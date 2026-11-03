@@ -1,0 +1,79 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Tajawal:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;width:1600px;height:680px;overflow:hidden}
+  body{background:linear-gradient(180deg,#F7FBF8 0%,#E6F2EA 100%);font-family:Outfit,sans-serif}
+  canvas{position:absolute;inset:0}
+  .lab{position:absolute;top:500px;width:420px;text-align:center}
+  .lab h3{margin:0;font-size:38px;font-weight:800;color:#0F1311}
+  .lab h3 span{font-family:Tajawal;color:#00843D;font-size:30px;margin-left:10px}
+  .lab p{margin:6px 0 0;font-size:20px;color:#4b5a52;font-weight:600}
+  .lab.r p{color:#CE1126}
+  .bar{position:absolute;top:0;left:0;right:0;height:10px;background:linear-gradient(180deg,#00843D 0 33%,#fff 33% 66%,#000 66%)}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<div class="bar"></div>
+<div class="lab" style="left:100px"><h3>Roots <span>الجذور</span></h3><p>Understand what you carry</p></div>
+<div class="lab r" style="left:590px"><h3>Bonds <span>الروابط</span></h3><p>Compatible, with a plan</p></div>
+<div class="lab" style="left:1080px"><h3>Branches <span>الفروع</span></h3><p>Protect your family</p></div>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+const W = 1600, H = 680;
+const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+r.setPixelRatio(1); r.setSize(W, H); r.toneMapping = THREE.ACESFilmicToneMapping; r.outputColorSpace = THREE.SRGBColorSpace;
+r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(r.domElement);
+const scene = new THREE.Scene();
+scene.environment = new THREE.PMREMGenerator(r).fromScene(new RoomEnvironment(), 0.04).texture;
+const cam = new THREE.PerspectiveCamera(30, W / H, 0.1, 100); cam.position.set(0, 3.2, 17); cam.lookAt(0, 1.2, 0);
+
+const green = new THREE.MeshPhysicalMaterial({ color: 0x00843D, metalness: 0.2, roughness: 0.25, clearcoat: 1 });
+const greenL = new THREE.MeshPhysicalMaterial({ color: 0x2FA866, roughness: 0.3, clearcoat: 0.8 });
+const red = new THREE.MeshPhysicalMaterial({ color: 0xCE1126, metalness: 0.3, roughness: 0.2, clearcoat: 1 });
+const pearl = new THREE.MeshPhysicalMaterial({ color: 0xFBF6EE, roughness: 0.06, clearcoat: 1, iridescence: 1, iridescenceIOR: 1.35, sheen: 1, sheenColor: new THREE.Color(0xffe4ef) });
+const marble = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.35, clearcoat: 0.5 });
+const dark = new THREE.MeshPhysicalMaterial({ color: 0x16201A, roughness: 0.3, metalness: 0.4 });
+
+function pedestal(x) {
+  const g = new THREE.Group(); g.position.x = x;
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 2.05, 0.5, 96), marble); base.position.y = -0.25; base.receiveShadow = true; base.castShadow = true; g.add(base);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(1.98, 0.05, 16, 120), dark); ring.rotation.x = Math.PI / 2; ring.position.y = 0.0; g.add(ring);
+  scene.add(g); return g;
+}
+const tube = (pts, rad, mat, parent) => { const m = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p))), 64, rad, 12, false), mat); m.castShadow = true; parent.add(m); return m; };
+
+// ROOTS: sprout with roots and a pearl bud
+const g1 = pedestal(-5.6); g1.rotation.y = 0.25;
+tube([[0, 0.02, 0], [0.05, 1.2, 0], [0, 2.4, 0]], 0.14, green, g1);
+[[1, 0], [-1, 0.3], [0.4, 1], [-0.5, -1]].forEach(([dx, dz]) => tube([[0, 0.05, 0], [dx * 0.6, 0.06, dz * 0.6], [dx * 1.4, 0.04, dz * 1.4]], 0.06, green, g1));
+const leaf = (rot, side) => { const l = new THREE.Mesh(new THREE.SphereGeometry(0.55, 48, 32), greenL); l.scale.set(1, 0.32, 0.55); l.position.set(side * 0.55, 1.75, 0); l.rotation.z = rot; l.castShadow = true; g1.add(l); };
+leaf(0.5, -1); leaf(-0.5, 1);
+const bud = new THREE.Mesh(new THREE.SphereGeometry(0.55, 96, 96), pearl); bud.position.y = 2.85; bud.castShadow = true; g1.add(bud);
+
+// BONDS: two interlocking rings (green + red)
+const g2 = pedestal(0);
+const t1 = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.2, 48, 160), green); t1.position.set(-0.55, 1.75, 0); t1.rotation.y = 0.5; t1.castShadow = true; g2.add(t1);
+const t2 = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.2, 48, 160), red); t2.position.set(0.55, 1.75, 0); t2.rotation.y = -0.5; t2.rotation.x = Math.PI / 2.2; t2.castShadow = true; g2.add(t2);
+const p2 = new THREE.Mesh(new THREE.SphereGeometry(0.3, 64, 64), pearl); p2.position.set(0, 1.75, 0.25); g2.add(p2);
+
+// BRANCHES: tree of pearls
+const g3 = pedestal(5.6); g3.rotation.y = -0.25;
+tube([[0, 0.02, 0], [0, 1.1, 0], [0, 1.6, 0]], 0.13, dark, g3);
+const ends = [[-1.3, 2.6, 0.2], [0, 3.1, 0], [1.3, 2.6, 0.2], [-0.8, 1.9, 0.6], [0.8, 1.9, 0.6]];
+ends.forEach(([x, y, z], i) => {
+  tube([[0, 1.4, 0], [x * 0.5, (y + 1.4) / 2 + 0.2, z * 0.5], [x, y, z]], 0.05, dark, g3);
+  const s = new THREE.Mesh(new THREE.SphereGeometry(i === 1 ? 0.36 : 0.3, 64, 64), i === 1 ? red : pearl); s.position.set(x, y, z); s.castShadow = true; g3.add(s);
+  const halo = new THREE.Mesh(new THREE.TorusGeometry(i === 1 ? 0.46 : 0.4, 0.03, 12, 60), green); halo.position.set(x, y, z); g3.add(halo);
+});
+
+const key = new THREE.DirectionalLight(0xffffff, 2.6); key.position.set(-6, 10, 8); key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048); Object.assign(key.shadow.camera, { left: -12, right: 12, top: 8, bottom: -4 }); scene.add(key);
+scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+const fill = new THREE.PointLight(0x9ff0bf, 30, 30); fill.position.set(6, 4, 6); scene.add(fill);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 30), new THREE.ShadowMaterial({ opacity: 0.12 })); ground.rotation.x = -Math.PI / 2; ground.position.y = -0.5; ground.receiveShadow = true; scene.add(ground);
+r.render(scene, cam); document.title = 'ready';
+</script>
+</body></html>

@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0A2342"/>
+      <stop offset="1" stop-color="#0E4D5C"/>
+    </linearGradient>
+    <linearGradient id="sand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F2D58A"/>
+      <stop offset="1" stop-color="#D4A84B"/>
+    </linearGradient>
+    <radialGradient id="pearl" cx="0.35" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.45" stop-color="#F6F0E6"/>
+      <stop offset="0.85" stop-color="#DCCFBF"/>
+      <stop offset="1" stop-color="#BFAF9A"/>
+    </radialGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0.4" stop-color="#FFF6DA" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#FFF6DA" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#sea)"/>
+  <g transform="translate(0 -14)">
+
+  <!-- ===== Kufic دانة (right to left: د  ا  ن  ة) ===== -->
+  <g fill="url(#sand)">
+    <!-- د dal: mirrored L -->
+    <rect x="392" y="214" width="28" height="86" rx="3"/>
+    <rect x="340" y="272" width="80" height="28" rx="3"/>
+
+    <!-- ن + ة joined on one baseline -->
+    <rect x="96"  y="272" width="164" height="28" rx="3"/>   <!-- baseline -->
+    <rect x="232" y="228" width="28" height="72" rx="3"/>    <!-- noon tooth -->
+    <!-- ة final: square loop -->
+    <path fill-rule="evenodd" d="M96 206 H172 V300 H96 Z  M122 232 V272 H146 V232 Z"/>
+  </g>
+
+  <!-- ا alif drawn as DNA double helix -->
+  <g stroke-linecap="round" fill="none">
+    <g stroke="#F2D58A" stroke-width="4" opacity="0.55">
+      <line x1="285" y1="128" x2="309" y2="128"/>
+      <line x1="285" y1="152" x2="309" y2="152"/>
+      <line x1="285" y1="188" x2="309" y2="188"/>
+      <line x1="285" y1="212" x2="309" y2="212"/>
+      <line x1="285" y1="248" x2="309" y2="248"/>
+      <line x1="285" y1="272" x2="309" y2="272"/>
+    </g>
+    <path d="M281 110 C281 125,313 125,313 140 C313 155,281 155,281 170 C281 185,313 185,313 200 C313 215,281 215,281 230 C281 245,313 245,313 260 C313 275,281 275,281 290"
+          stroke="url(#sand)" stroke-width="10"/>
+    <path d="M313 110 C313 125,281 125,281 140 C281 155,313 155,313 170 C313 185,281 185,281 200 C281 215,313 215,313 230 C313 245,281 245,281 260 C281 275,313 275,313 290"
+          stroke="#2BB3A3" stroke-width="10"/>
+  </g>
+
+  <!-- three pearls = the letter dots = one family -->
+  <circle cx="246" cy="196" r="26" fill="url(#halo)"/>
+  <circle cx="246" cy="196" r="11" fill="url(#pearl)"/>          <!-- dot of ن : the child -->
+  <circle cx="118" cy="176" r="30" fill="url(#halo)"/>
+  <circle cx="150" cy="176" r="30" fill="url(#halo)"/>
+  <circle cx="118" cy="176" r="14" fill="url(#pearl)"/>          <!-- dots of ة : the parents -->
+  <circle cx="150" cy="176" r="14" fill="url(#pearl)"/>
+
+  <!-- Al Sadu weaving band -->
+  <g transform="translate(96 324)">
+    <rect width="324" height="22" fill="#7A1F2B"/>
+    <g fill="#F2D58A">
+      <path d="M0 22 L9 4 L18 22 Z M36 22 L45 4 L54 22 Z M72 22 L81 4 L90 22 Z M108 22 L117 4 L126 22 Z M144 22 L153 4 L162 22 Z M180 22 L189 4 L198 22 Z M216 22 L225 4 L234 22 Z M252 22 L261 4 L270 22 Z M288 22 L297 4 L306 22 Z"/>
+    </g>
+    <g fill="#F7F2EA">
+      <path d="M18 0 L27 18 L36 0 Z M54 0 L63 18 L72 0 Z M90 0 L99 18 L108 0 Z M126 0 L135 18 L144 0 Z M162 0 L171 18 L180 0 Z M198 0 L207 18 L216 0 Z M234 0 L243 18 L252 0 Z M270 0 L279 18 L288 0 Z M306 0 L315 18 L324 0 Z"/>
+    </g>
+  </g>
+
+  <!-- Latin wordmark -->
+  <text x="258" y="420" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="62" font-weight="700" letter-spacing="6">
+    <tspan fill="#F2D58A">D</tspan><tspan fill="#F7F2EA" font-weight="300">a</tspan><tspan fill="#F2D58A">N</tspan><tspan fill="#F2D58A">A</tspan>
+  </text>
+  <text x="258" y="456" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="15" letter-spacing="3" fill="#9FD6CF">PROTECT WHAT YOU PASS ON</text>
+  </g>
+</svg>

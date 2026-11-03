@@ -1,0 +1,90 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Tajawal:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;width:1600px;height:760px;overflow:hidden}
+  body{background:radial-gradient(900px 600px at 62% 50%,#0f3b25 0%,#08150e 60%,#050806 100%);font-family:Outfit,sans-serif;color:#fff}
+  canvas{position:absolute;inset:0}
+  .side{position:absolute;left:90px;top:170px;width:470px}
+  .side .k{color:#ff6b78;letter-spacing:3px;font-weight:600;font-size:16px}
+  .side h2{font-size:52px;line-height:1.08;margin:12px 0 16px;font-weight:800}
+  .side h2 b{color:#4ade80}
+  .side p{color:#b9c7bf;font-size:20px;line-height:1.55;margin:0}
+  .side .ar{font-family:Tajawal;font-weight:800;font-size:30px;color:#c8f0d6;direction:rtl;text-align:left;margin-top:22px}
+  .tag{position:absolute;z-index:3;transform:translate(-50%,0);font-size:16px;color:#cfe1d6;white-space:nowrap;font-weight:600}
+  .tag.hl{color:#fff;font-size:18px}
+  .tag.al{color:#ff8a95} .tag.L{transform:translate(-100%,-50%)} .tag.R{transform:translate(0,-50%)} #tags{position:absolute;inset:0;z-index:3}
+  .legend{position:absolute;right:60px;bottom:40px;display:flex;gap:22px;font-size:15px;color:#b9c7bf}
+  .legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px;vertical-align:-1px}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<div class="side">
+  <div class="k">SILA ALERTS · صلة</div>
+  <h2>One result can protect <b>a whole family.</b></h2>
+  <p>A carrier's siblings have about a 50% chance of carrying the same gene. DaNA sends private, anonymous invitations so relatives can screen before they marry.</p>
+  <div class="ar">فحصٌ واحد… يحمي عائلةً بأكملها</div>
+</div>
+<div class="legend"><span><i style="background:#22c55e"></i>Tested carrier</span><span><i style="background:#ff4d5e"></i>Private alert in transit</span><span><i style="background:#f3efe6"></i>Relative invited</span></div>
+<div id="tags"></div>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+const W = 1600, H = 760;
+const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+r.setPixelRatio(1); r.setSize(W, H); r.toneMapping = THREE.ACESFilmicToneMapping; r.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(r.domElement);
+const scene = new THREE.Scene();
+scene.environment = new THREE.PMREMGenerator(r).fromScene(new RoomEnvironment(), 0.04).texture;
+const cam = new THREE.PerspectiveCamera(30, W / H, 0.1, 100); cam.position.set(-1.1, 1.4, 24); cam.lookAt(-1.1, 0.5, 0);
+
+const pearl = new THREE.MeshPhysicalMaterial({ color: 0xFBF6EE, roughness: 0.06, clearcoat: 1, iridescence: 1, iridescenceIOR: 1.35, sheen: 1, sheenColor: new THREE.Color(0xffe4ef) });
+const carrier = new THREE.MeshPhysicalMaterial({ color: 0x22c55e, roughness: 0.15, clearcoat: 1, emissive: 0x0b5a2a, emissiveIntensity: 0.6 });
+const line = new THREE.MeshPhysicalMaterial({ color: 0x3a5446, roughness: 0.5, metalness: 0.3 });
+const alertM = new THREE.MeshBasicMaterial({ color: 0xff4d5e });
+const glowM = new THREE.MeshBasicMaterial({ color: 0xff4d5e, transparent: true, opacity: 0.25 });
+const halo = new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.18 });
+
+const ox = 3.6;
+const N = {
+  gp: [0 + ox, 4.2, 0], kf: [-3 + ox, 1.8, 0], fm: [3 + ox, 1.8, 0],
+  br: [-4.8 + ox, -1.2, 0.6], k: [-1.4 + ox, -1.2, 0.6], f: [1.4 + ox, -1.2, 0.6], si: [4.8 + ox, -1.2, 0.6],
+};
+const v = (a) => new THREE.Vector3(...a);
+const tube = (pts, rad = 0.06, mat = line) => scene.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(v)), 80, rad, 10, false), mat));
+const elbow = (a, b) => { const m = [a[0], (a[1] + b[1]) / 2, (a[2] + b[2]) / 2]; tube([a, [a[0], m[1], m[2]], [b[0], m[1], m[2]], b], 0.06); };
+elbow(N.gp, N.kf); elbow(N.gp, N.fm); elbow(N.kf, N.br); elbow(N.kf, N.k); elbow(N.fm, N.f); elbow(N.fm, N.si);
+// cousin-marriage bond
+tube([N.k, [ox, -2.7, 1], N.f], 0.05, new THREE.MeshPhysicalMaterial({ color: 0xff4d5e, emissive: 0x7a0a15, emissiveIntensity: 0.8 }));
+
+const ball = (p, rad, mat) => { const m = new THREE.Mesh(new THREE.SphereGeometry(rad, 96, 96), mat); m.position.copy(v(p)); scene.add(m); return m; };
+['gp', 'kf', 'fm', 'br', 'si'].forEach(k => ball(N[k], 0.55, pearl));
+['k', 'f'].forEach(k => { ball(N[k], 0.62, carrier); const h = new THREE.Mesh(new THREE.SphereGeometry(1.0, 48, 48), halo); h.position.copy(v(N[k])); scene.add(h); });
+['kf', 'fm', 'br', 'si'].forEach(k => { const t = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.04, 12, 80), new THREE.MeshBasicMaterial({ color: 0xff4d5e, transparent: true, opacity: 0.7 })); t.position.copy(v(N[k])); scene.add(t); });
+
+// alerts in transit (red light particles along the paths)
+const along = (a, b, ts) => ts.forEach(t => {
+  const m = [a[0], (a[1] + b[1]) / 2, a[2]], n = [b[0], (a[1] + b[1]) / 2, b[2]];
+  const c = new THREE.CatmullRomCurve3([v(a), v(m), v(n), v(b)], false, 'catmullrom', 0);
+  const p = c.getPoint(t); const s = new THREE.Mesh(new THREE.SphereGeometry(0.13, 24, 24), alertM); s.position.copy(p); scene.add(s);
+  const g = new THREE.Mesh(new THREE.SphereGeometry(0.32, 24, 24), glowM); g.position.copy(p); scene.add(g);
+});
+along(N.k, N.br, [0.55]); along(N.k, N.kf, [0.6]); along(N.f, N.si, [0.7]); along(N.f, N.fm, [0.45]);
+
+const key = new THREE.DirectionalLight(0xffffff, 3); key.position.set(-5, 8, 10); scene.add(key);
+const rim = new THREE.PointLight(0x22c55e, 80, 30); rim.position.set(ox, 2, -5); scene.add(rim);
+scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+for (let i = 0; i < 50; i++) { const s = new THREE.Mesh(new THREE.SphereGeometry(0.03 + Math.random() * 0.04, 12, 12), new THREE.MeshBasicMaterial({ color: 0xbff5d0, transparent: true, opacity: 0.5 })); s.position.set(-2 + Math.random() * 14, -4 + Math.random() * 10, -4 + Math.random() * 3); scene.add(s); }
+r.render(scene, cam);
+
+const labels = { gp: 'Grandparents', kf: "Khalid's father · ~50%", fm: "Fatima's mother · ~50%", br: 'Brother · ~50%', k: 'Khalid · carrier', f: 'Fatima · carrier', si: 'Sister · ~50%' };
+const tags = document.getElementById('tags');
+for (const [k, txt] of Object.entries(labels)) {
+  const off = { gp: [0.85, 0, 'R'], kf: [-1.0, 0, 'L'], fm: [1.0, 0, 'R'] }[k] || [0, -1.15, ''];
+  const p = v(N[k]).add(new THREE.Vector3(off[0], off[1], 0)).project(cam);
+  const el = document.createElement('div'); el.className = 'tag' + ((k === 'k' || k === 'f') ? ' hl' : (k === 'gp' ? '' : ' al')) + (off[2] ? ' ' + off[2] : '');
+  el.textContent = txt; el.style.left = ((p.x + 1) / 2 * W) + 'px'; el.style.top = ((1 - p.y) / 2 * H) + 'px'; tags.appendChild(el);
+}
+document.title = 'ready';
+</script>
+</body></html>

@@ -1,0 +1,94 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Tajawal:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;width:1600px;height:720px;overflow:hidden}
+  body{background:radial-gradient(1200px 700px at 75% 45%,#0d6b3c 0%,#06331d 45%,#050b08 100%);font-family:Outfit,sans-serif;color:#fff}
+  canvas{position:absolute;inset:0}
+  .flag{position:absolute;left:0;top:0;bottom:0;width:18px;background:#CE1126}
+  .stripe{position:absolute;left:0;right:0;bottom:0;height:10px;background:linear-gradient(180deg,#00843D 0 33%,#fff 33% 66%,#000 66%)}
+  .txt{position:absolute;left:110px;top:150px;width:720px}
+  .k{display:inline-flex;gap:10px;align-items:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);padding:9px 18px;border-radius:40px;font-size:17px;color:#d9f2e3;letter-spacing:.5px}
+  .k i{width:9px;height:9px;border-radius:50%;background:#CE1126;box-shadow:0 0 12px #ff3347}
+  h1{font-size:150px;font-weight:800;margin:26px 0 0;letter-spacing:2px;line-height:1}
+  h1 .a{color:#ff4d5e;font-weight:600}
+  h1 .d{background:linear-gradient(180deg,#fff,#cfe9da);-webkit-background-clip:text;color:transparent}
+  .t{font-size:44px;font-weight:600;margin-top:18px;line-height:1.15}
+  .t b{color:#4ade80;font-weight:600}
+  .ar{font-family:Tajawal;font-weight:800;font-size:40px;color:#c8f0d6;margin-top:14px;direction:rtl;text-align:left}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<div class="flag"></div><div class="stripe"></div>
+<div class="txt">
+  <div class="k"><i></i>Future Health Challenge 2026 · Fertility · Inherited Disease Risk</div>
+  <h1><span class="d">D</span><span class="a">a</span><span class="d">NA</span></h1>
+  <div class="t">Know your <b>roots</b>.<br>Protect your <b>future</b>.</div>
+  <div class="ar">اعرف جذورك… واحمِ مستقبلك</div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const W = 1600, H = 720;
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(W, H);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(32, W / H, 0.1, 100);
+camera.position.set(0, 0.9, 15.5); camera.lookAt(0, 0.6, 0);
+
+const root = new THREE.Group(); root.position.set(4.3, -0.5, 0); root.rotation.y = -0.3; root.scale.setScalar(1.05); scene.add(root);
+
+// gold shell bowl (the letter ن)
+const gold = new THREE.MeshPhysicalMaterial({ color: 0xE2B85C, metalness: 1, roughness: 0.22, clearcoat: 0.6 });
+const shell = new THREE.Mesh(new THREE.TorusGeometry(1.9, 0.24, 64, 220, Math.PI), gold);
+shell.rotation.z = Math.PI; shell.scale.set(1, 0.92, 1.25); root.add(shell);
+
+// the pearl
+const pearlMat = new THREE.MeshPhysicalMaterial({
+  color: 0xFBF6EE, roughness: 0.06, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.04,
+  iridescence: 1, iridescenceIOR: 1.35, iridescenceThicknessRange: [180, 520], sheen: 1, sheenColor: new THREE.Color(0xffe4ef), sheenRoughness: 0.4,
+});
+const pearl = new THREE.Mesh(new THREE.SphereGeometry(1.05, 128, 128), pearlMat);
+pearl.position.set(0, 0.1, 0.1); root.add(pearl);
+
+// family pearls orbiting = relatives, connected by green threads
+const fam = [
+  [-2.6, 2.1, -0.6, 0.32], [-1.0, 2.75, -0.3, 0.26], [0.9, 2.8, -0.4, 0.28], [2.6, 2.0, -0.6, 0.32], [3.1, 0.6, -0.2, 0.22], [-3.1, 0.7, -0.2, 0.22],
+];
+const threadMat = new THREE.MeshPhysicalMaterial({ color: 0x22c55e, emissive: 0x0b7a3a, emissiveIntensity: 0.8, roughness: 0.3 });
+fam.forEach(([x, y, z, r]) => {
+  const p = new THREE.Mesh(new THREE.SphereGeometry(r, 64, 64), pearlMat); p.position.set(x, y, z); root.add(p);
+  const curve = new THREE.QuadraticBezierCurve3(new THREE.Vector3(0, 0.6, 0), new THREE.Vector3(x * 0.4, y * 0.9 + 0.4, z), new THREE.Vector3(x, y, z));
+  root.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 60, 0.028, 10, false), threadMat));
+});
+// ruby pearl = the future child
+const ruby = new THREE.Mesh(new THREE.SphereGeometry(0.3, 64, 64),
+  new THREE.MeshPhysicalMaterial({ color: 0xCE1126, roughness: 0.08, clearcoat: 1, emissive: 0x5a0010, emissiveIntensity: 0.4 }));
+ruby.position.set(0, 3.55, -0.2); root.add(ruby);
+const rc = new THREE.QuadraticBezierCurve3(new THREE.Vector3(0, 1.1, 0), new THREE.Vector3(0.1, 2.4, 0), new THREE.Vector3(0, 3.3, -0.2));
+root.add(new THREE.Mesh(new THREE.TubeGeometry(rc, 40, 0.03, 10, false), new THREE.MeshPhysicalMaterial({ color: 0xff4d5e, emissive: 0x9a0d1c, emissiveIntensity: 0.9 })));
+
+// floating dust pearls
+for (let i = 0; i < 40; i++) {
+  const s = new THREE.Mesh(new THREE.SphereGeometry(0.03 + Math.random() * 0.05, 16, 16), new THREE.MeshBasicMaterial({ color: 0xbff5d0, transparent: true, opacity: 0.6 }));
+  s.position.set(-1 + Math.random() * 9, -2.5 + Math.random() * 6.5, -3 + Math.random() * 2); scene.add(s);
+}
+
+// lights
+const key = new THREE.DirectionalLight(0xffffff, 3.2); key.position.set(-4, 6, 6); scene.add(key);
+const rim = new THREE.PointLight(0x22c55e, 60, 20); rim.position.set(6, 2, -3); scene.add(rim);
+const red = new THREE.PointLight(0xff3347, 25, 12); red.position.set(3.6, 4.5, 1.5); scene.add(red);
+scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+
+renderer.render(scene, camera);
+document.title = 'ready';
+</script>
+</body></html>

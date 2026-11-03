@@ -1,0 +1,64 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;width:1600px;height:900px;overflow:hidden}
+  body{background:#F6FAF7;font-family:Outfit,sans-serif;color:#0F1311;position:relative}
+  .bar{position:absolute;top:0;left:0;right:0;height:10px;background:linear-gradient(180deg,#00843D 0 33%,#fff 33% 66%,#000 66%)}
+  h1{position:absolute;left:70px;top:44px;margin:0;font-size:40px;font-weight:800}
+  h1 span{color:#00843D}
+  .sub{position:absolute;left:70px;top:98px;font-size:19px;color:#5E6B64}
+  .layer{position:absolute;left:70px;right:70px;border-radius:24px;padding:22px 26px}
+  .layer .t{font-size:16px;font-weight:700;letter-spacing:2px;margin-bottom:14px}
+  .row{display:flex;gap:14px}
+  .box{flex:1;background:#fff;border-radius:16px;padding:16px 18px;box-shadow:0 6px 18px rgba(0,0,0,.05);border:1px solid #E3ECE6}
+  .box b{display:block;font-size:19px;font-weight:700}
+  .box span{font-size:14.5px;color:#5E6B64}
+  .l1{top:150px;background:#E8F4EC} .l1 .t{color:#005C2A}
+  .l2{top:330px;background:#0F1311;color:#fff} .l2 .t{color:#4ade80}
+  .l2 .box{background:#1A201C;border-color:#2A332D;box-shadow:none} .l2 .box span{color:#9FB0A6}
+  .l2 .box.eng{background:#00843D;border-color:#00843D} .l2 .box.eng span{color:#d7f5e2}
+  .l2 .box.ai{border:2px solid #CE1126}
+  .l3{top:640px;background:#FCE9EB} .l3 .t{color:#CE1126}
+  .arrow{position:absolute;left:50%;width:4px;background:#0F1311;transform:translateX(-50%)}
+  .arrow:after{content:"";position:absolute;left:-8px;bottom:-2px;border:10px solid transparent;border-top:14px solid #0F1311}
+  .note{position:absolute;right:70px;bottom:36px;font-size:15px;color:#5E6B64}
+</style></head><body>
+<div class="bar"></div>
+<h1>DaNA <span>architecture</span></h1>
+<div class="sub">Maths sets every number · the AI only explains · humans approve · data stays in the UAE</div>
+
+<div class="layer l1"><div class="t">EXPERIENCE · NEXT.JS / REACT (ARABIC-FIRST, RTL)</div><div class="row">
+  <div class="box"><b>Couple app</b><span>Roots · Bonds · Branches · journey</span></div>
+  <div class="box"><b>Counsellor dashboard</b><span>Priority queue · AI summaries · approvals</span></div>
+  <div class="box"><b>DoH dashboard</b><span>Anonymous funnel · regional patterns</span></div>
+  <div class="box"><b>Admin + content review</b><span>Scholar &amp; genetics sign-off</span></div>
+</div></div>
+<div class="arrow" style="top:296px;height:28px"></div>
+
+<div class="layer l2"><div class="t">FASTAPI BACKEND · CONSENT AND ROLE CHECKS FIRST</div>
+  <div class="row" style="margin-bottom:14px">
+    <div class="box"><b>Identity</b><span>OIDC · UAE PASS pattern</span></div>
+    <div class="box"><b>Consent</b><span>granular · revocable · logged</span></div>
+    <div class="box"><b>Results (FHIR)</b><span>Malaffi adapter</span></div>
+    <div class="box"><b>Family tree</b><span>pedigree + relatives</span></div>
+    <div class="box"><b>Sila alerts</b><span>anonymous · rate-limited</span></div>
+  </div>
+  <div class="row">
+    <div class="box eng" style="flex:2"><b>Genetics rules engine</b><span>AR · X-linked · multi-gene · gene-dropping simulation · triage score · versioned</span></div>
+    <div class="box ai"><b>AI assistant</b><span>RAG · input &amp; output safety gates</span></div>
+    <div class="box"><b>Triage + counselling</b><span>priority · matching</span></div>
+    <div class="box"><b>Audit + analytics</b><span>append-only · k-anon</span></div>
+  </div>
+</div>
+<div class="arrow" style="top:606px;height:28px"></div>
+
+<div class="layer l3"><div class="t">DATA &amp; INTEGRATIONS · AZURE UAE REGION (SIMULATED IN PROTOTYPE)</div><div class="row">
+  <div class="box"><b>PostgreSQL + pgvector</b><span>encrypted variants · RLS</span></div>
+  <div class="box"><b>UAE PASS (mock)</b><span>Keycloak OIDC</span></div>
+  <div class="box"><b>Malaffi (mock)</b><span>HAPI FHIR + Synthea</span></div>
+  <div class="box"><b>LLM</b><span>Azure OpenAI or Jais</span></div>
+  <div class="box"><b>SMS gateway (mock)</b><span>TDRA-registered in pilot</span></div>
+</div></div>
+<div class="note">Swap mocks for real systems in a DoH pilot, with no change to the modules above.</div>
+</body></html>

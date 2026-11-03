@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DaNA — Know your roots, protect your future</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Tajawal:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green:#00843D; --green-d:#005C2A; --green-l:#E8F4EC; --red:#CE1126; --red-l:#FCE9EB;
+    --black:#111412; --ink:#1B2420; --muted:#5E6B64; --white:#FFFFFF; --mist:#F4F8F5;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:1440px;background:var(--black);font-family:Poppins,system-ui,sans-serif;color:var(--ink)}
+  .ar{font-family:Tajawal,sans-serif;direction:rtl}
+  .wrap{width:1200px;margin:0 auto}
+  .stripe{height:6px;background:linear-gradient(180deg,var(--green) 0 33%,#fff 33% 66%,var(--black) 66% 100%)}
+
+  /* NAV */
+  nav{background:#fff;position:relative}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:78px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:26px;letter-spacing:1px;color:var(--green)}
+  .brand .a{color:var(--red);font-weight:600}
+  .links{display:flex;gap:34px;font-size:15px;color:var(--muted);font-weight:500}
+  .nav-r{display:flex;align-items:center;gap:16px}
+  .lang{font-size:14px;color:var(--muted);border:1px solid #DDE7E0;border-radius:20px;padding:6px 14px}
+  .lang .ar{color:var(--black);font-weight:700}
+  .btn{display:inline-flex;align-items:center;gap:10px;border-radius:14px;padding:15px 24px;font-weight:600;font-size:15px}
+  .btn-green{background:var(--green);color:#fff;box-shadow:0 8px 20px rgba(0,132,61,.25)}
+  .btn-line{border:2px solid var(--black);color:var(--black)}
+  .btn small{font-weight:400;opacity:.75;font-size:12px}
+
+  /* HERO */
+  .hero{background:#fff;position:relative;overflow:hidden}
+  .hero:before{content:"";position:absolute;left:0;top:0;bottom:0;width:14px;background:var(--red)}
+  .hero .wrap{display:grid;grid-template-columns:1fr 600px;align-items:center;min-height:680px;gap:20px}
+  .pill{display:inline-flex;align-items:center;gap:8px;background:var(--green-l);color:var(--green-d);border-radius:30px;padding:8px 16px;font-size:13px;font-weight:600}
+  .pill i{width:8px;height:8px;border-radius:50%;background:var(--red)}
+  h1{font-weight:800;font-size:66px;line-height:1.05;color:var(--black);margin:22px 0 12px;letter-spacing:-1px}
+  h1 .g{color:var(--green)}
+  h1 .r{color:var(--red)}
+  .h1-ar{font-family:Tajawal,sans-serif;font-weight:800;font-size:34px;direction:rtl;text-align:left;color:var(--green-d);margin-bottom:22px}
+  .lead{font-size:18.5px;line-height:1.65;color:var(--muted);max-width:540px;margin-bottom:30px}
+  .ctas{display:flex;gap:14px;margin-bottom:30px}
+  .chips{display:flex;gap:10px}
+  .chip{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);background:var(--mist);border-radius:30px;padding:9px 14px;border:1px solid #E1ECE5}
+  .chip b{color:var(--green)}
+
+  /* BAND */
+  .band{background:var(--green);color:#fff;padding:54px 0;text-align:center;position:relative}
+  .band p{font-size:28px;font-weight:600;max-width:940px;margin:0 auto;line-height:1.4}
+  .band .ar{font-size:24px;font-weight:700;margin-top:12px;opacity:.9}
+
+  /* HOW */
+  .how{background:#fff;padding:90px 0}
+  .kicker{text-align:center;color:var(--red);font-weight:700;letter-spacing:3px;font-size:13px}
+  .sec-t{text-align:center;font-size:42px;font-weight:800;color:var(--black);margin:8px 0 8px}
+  .sec-s{text-align:center;color:var(--muted);font-size:17px;margin-bottom:50px}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+  .card{border-radius:24px;padding:34px;background:var(--mist);border-top:6px solid var(--green)}
+  .card.c2{border-top-color:var(--red)} .card.c3{border-top-color:var(--black)}
+  .card .ic{width:62px;height:62px;border-radius:18px;display:grid;place-items:center;background:#fff;box-shadow:0 6px 16px rgba(0,0,0,.06);margin-bottom:20px}
+  .card h3{font-size:26px;font-weight:700;color:var(--black)}
+  .card h3 span{font-family:Tajawal;font-size:21px;color:var(--green);margin-left:8px}
+  .card .tag{font-weight:600;color:var(--green-d);margin:6px 0 12px}
+  .card.c2 .tag{color:var(--red)}
+  .card p{color:var(--muted);line-height:1.65;font-size:15.5px}
+
+  /* TREE */
+  .tree{background:var(--black);color:#fff;padding:90px 0}
+  .tree .wrap{display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:center}
+  .tree h2{font-size:46px;font-weight:800;line-height:1.12}
+  .tree h2 .g{color:#3CC07A}
+  .tree p{color:#B9C7BF;font-size:17px;line-height:1.7;margin:18px 0 28px}
+  .stats{display:flex;gap:16px}
+  .stat{background:#1C221E;border-radius:18px;padding:18px 20px;min-width:150px}
+  .stat strong{display:block;font-size:30px;font-weight:800;color:#fff}
+  .stat strong.r{color:#FF4D5E} .stat strong.g{color:#3CC07A}
+  .stat span{font-size:13px;color:#9FB0A6}
+
+  /* TRUST */
+  .trust{background:var(--mist);padding:90px 0}
+  .trust .wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:stretch}
+  .trust .sec-t{text-align:left}
+  .tlist{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:28px}
+  .titem{background:#fff;border-radius:18px;padding:22px;border-left:5px solid var(--green)}
+  .titem:nth-child(2){border-left-color:var(--red)} .titem:nth-child(3){border-left-color:var(--black)}
+  .titem h4{font-size:16px;color:var(--black);margin-bottom:6px}
+  .titem p{font-size:14px;color:var(--muted);line-height:1.55}
+  .faith{background:var(--green);border-radius:28px;padding:44px;color:#fff;position:relative;overflow:hidden}
+  .faith:after{content:"";position:absolute;right:-60px;bottom:-60px;width:220px;height:220px;border-radius:50%;border:30px solid rgba(255,255,255,.08)}
+  .faith .q{font-family:Tajawal;font-weight:800;font-size:46px;direction:rtl;text-align:right}
+  .faith .qe{font-size:22px;font-weight:600;margin:8px 0 14px}
+  .faith p{opacity:.9;line-height:1.7;font-size:15.5px}
+  .faith small{display:block;margin-top:20px;opacity:.75;font-size:12.5px}
+
+  /* FAQ */
+  .faq{background:#fff;padding:80px 0}
+  .qa{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:36px}
+  .qa div{border:1px solid #E3ECE6;border-radius:18px;padding:22px 24px}
+  .qa h4{font-size:17px;color:var(--black);margin-bottom:8px}
+  .qa h4:before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--red);margin-right:10px}
+  .qa p{color:var(--muted);font-size:15px;line-height:1.55}
+
+  footer{background:var(--black);color:#9FB0A6;padding:44px 0 70px;font-size:13.5px}
+  footer .wrap{display:flex;justify-content:space-between;align-items:center}
+  footer .brand{color:#fff}
+  .pro{display:flex;gap:12px}
+  .pro span{border:1px solid #2E3832;border-radius:10px;padding:9px 14px;color:#fff}
+</style>
+</head>
+<body>
+
+<!-- ================= NAV ================= -->
+<nav><div class="wrap">
+  <div class="brand">
+    <svg width="42" height="42" viewBox="96 120 320 260"><path fill="#00843D" d="M120 196 C 118 300, 178 352, 256 352 C 338 352, 398 296, 392 176 C 391 168, 384 166, 382 174 C 376 270, 326 316, 256 316 C 190 316, 142 278, 132 196 C 131 186, 121 186, 120 196 Z"/><circle cx="256" cy="214" r="44" fill="#fff" stroke="#CE1126" stroke-width="10"/></svg>
+    <span>D<span class="a">a</span>NA</span>
+  </div>
+  <div class="links"><span>How it works</span><span>Family protection</span><span>Privacy</span><span>Faith &amp; family</span><span>FAQ</span></div>
+  <div class="nav-r">
+    <div class="lang"><span class="ar">عربي</span> &nbsp;|&nbsp; EN</div>
+    <div class="btn btn-green">Login with UAE PASS <small>(demo)</small></div>
+  </div>
+</div></nav>
+<div class="stripe"></div>
+
+<!-- ================= HERO ================= -->
+<section class="hero"><div class="wrap">
+  <div>
+    <div class="pill"><i></i>For every couple in the UAE · Premarital genetic screening</div>
+    <h1>Know your <span class="g">roots</span>.<br>Protect your <span class="g">future</span><span class="r">.</span></h1>
+    <div class="h1-ar">اعرف جذورك… واحمِ مستقبلك</div>
+    <p class="lead">DaNA explains your premarital genetic result simply, helps you plan healthy children together, and lets you privately protect the people you love.</p>
+    <div class="ctas">
+      <div class="btn btn-green">Login with UAE PASS <small>(demo)</small></div>
+      <div class="btn btn-line">&#9654;&nbsp; Watch the 1-minute story</div>
+    </div>
+    <div class="chips">
+      <div class="chip"><b>&#10003;</b> Private by design</div>
+      <div class="chip"><b>&#10003;</b> Data stays in the UAE</div>
+      <div class="chip"><b>&#10003;</b> Real genetic counsellors</div>
+    </div>
+  </div>
+
+  <!-- ===== Anime-style couple with family tree ===== -->
+  <svg width="600" height="640" viewBox="0 0 600 640">
+    <defs>
+      <radialGradient id="pearl" cx=".36" cy=".32" r=".8"><stop offset="0" stop-color="#fff"/><stop offset=".7" stop-color="#F1F1EC"/><stop offset="1" stop-color="#D6D9D2"/></radialGradient>
+      <linearGradient id="kan" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".7" stop-color="#F4F6F4"/><stop offset="1" stop-color="#DFE5E0"/></linearGradient>
+      <linearGradient id="aba" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2A2D33"/><stop offset="1" stop-color="#15171B"/></linearGradient>
+      <linearGradient id="hij" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34373F"/><stop offset="1" stop-color="#1C1E23"/></linearGradient>
+      <radialGradient id="scr" cx=".5" cy=".4" r=".7"><stop offset="0" stop-color="#E9FFF2"/><stop offset="1" stop-color="#00843D"/></radialGradient>
+      <filter id="sh" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#0b3" flood-opacity=".18"/></filter>
+    </defs>
+
+    <!-- soft backdrop -->
+    <circle cx="300" cy="300" r="262" fill="#E8F4EC"/>
+
+    <!-- FAMILY TREE: branches = future -->
+    <g stroke="#0B6B3A" stroke-linecap="round" fill="none">
+      <path d="M300 250 C 262 212, 214 176, 158 156" stroke-width="10"/>
+      <path d="M300 250 C 338 212, 386 176, 442 156" stroke-width="10"/>
+      <path d="M300 236 C 300 190, 300 150, 300 112" stroke-width="10"/>
+      <path d="M300 300 C 250 282, 188 270, 116 254" stroke-width="8"/>
+      <path d="M300 300 C 350 282, 412 270, 484 254" stroke-width="8"/>
+      <path d="M220 192 C 210 170, 206 150, 210 128" stroke-width="5"/>
+      <path d="M380 192 C 390 170, 394 150, 390 128" stroke-width="5"/>
+    </g>
+    <!-- leaf clusters -->
+    <g>
+      <circle cx="158" cy="150" r="38" fill="#00843D" opacity=".85"/><circle cx="128" cy="170" r="26" fill="#2FA866" opacity=".85"/>
+      <circle cx="442" cy="150" r="38" fill="#00843D" opacity=".85"/><circle cx="472" cy="170" r="26" fill="#2FA866" opacity=".85"/>
+      <circle cx="300" cy="104" r="42" fill="#2FA866" opacity=".9"/><circle cx="262" cy="118" r="26" fill="#00843D" opacity=".8"/><circle cx="338" cy="118" r="26" fill="#00843D" opacity=".8"/>
+      <circle cx="210" cy="124" r="20" fill="#0B6B3A" opacity=".8"/><circle cx="390" cy="124" r="20" fill="#0B6B3A" opacity=".8"/>
+      <circle cx="112" cy="252" r="24" fill="#2FA866" opacity=".8"/><circle cx="488" cy="252" r="24" fill="#2FA866" opacity=".8"/>
+    </g>
+    <!-- pearls on the branches = family members -->
+    <g stroke="#CFE3D6" stroke-width="2">
+      <circle cx="158" cy="150" r="11" fill="url(#pearl)"/><circle cx="442" cy="150" r="11" fill="url(#pearl)"/>
+      <circle cx="112" cy="252" r="9" fill="url(#pearl)"/><circle cx="488" cy="252" r="9" fill="url(#pearl)"/>
+      <circle cx="210" cy="124" r="8" fill="url(#pearl)"/><circle cx="390" cy="124" r="8" fill="url(#pearl)"/>
+    </g>
+    <!-- red heart at the top = the future child -->
+    <path fill="#CE1126" d="M300 116 C 286 104, 274 92, 282 80 C 288 72, 298 74, 300 82 C 302 74, 312 72, 318 80 C 326 92, 314 104, 300 116 Z"/>
+
+    <!-- trunk -->
+    <path fill="#0B6B3A" d="M286 572 C 290 460, 288 340, 292 236 L 308 236 C 312 340, 310 460, 314 572 Z"/>
+    <!-- ROOTS = know your roots -->
+    <g stroke="#0B6B3A" stroke-linecap="round" fill="none" stroke-width="6">
+      <path d="M300 570 C 258 586, 196 596, 120 604"/>
+      <path d="M300 570 C 342 586, 404 596, 480 604"/>
+      <path d="M300 574 C 286 596, 262 612, 228 624"/>
+      <path d="M300 574 C 314 596, 338 612, 372 624"/>
+      <path d="M190 594 C 172 606, 160 616, 146 626" stroke-width="4"/>
+      <path d="M410 594 C 428 606, 440 616, 454 626" stroke-width="4"/>
+    </g>
+    <circle cx="120" cy="604" r="6" fill="#CE1126"/><circle cx="480" cy="604" r="6" fill="#CE1126"/>
+    <circle cx="228" cy="624" r="5" fill="#0B6B3A"/><circle cx="372" cy="624" r="5" fill="#0B6B3A"/>
+
+    <!-- ========== GIRL: shayla + abaya (anime style) ========== -->
+    <!-- abaya -->
+    <path fill="url(#aba)" d="M168 330 C 178 304, 262 304, 272 330 L 300 590 L 140 590 Z"/>
+    <path d="M220 336 L 220 590" stroke="#00843D" stroke-width="3"/>
+    <path d="M146 574 L 294 574" stroke="#00843D" stroke-width="3"/>
+    <!-- shayla back -->
+    <path fill="url(#hij)" d="M174 232 C 168 156, 272 156, 266 232 C 268 272, 262 304, 276 338 L 164 338 C 178 304, 172 272, 174 232 Z"/>
+    <!-- face -->
+    <path fill="#F0C4A2" d="M190 222 C 190 184, 250 184, 250 222 L 250 246 C 250 270, 233 286, 220 290 C 207 286, 190 270, 190 246 Z"/>
+    <!-- shayla front band -->
+    <path fill="#2B2E35" d="M186 218 C 192 176, 248 176, 254 218 C 242 196, 198 196, 186 218 Z"/>
+    <path d="M192 206 C 206 192, 234 192, 248 206" stroke="#00843D" stroke-width="2.5" fill="none"/>
+    <!-- anime eyes -->
+    <g>
+      <path d="M198 228 q8 -6 16 0" stroke="#2A1A12" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <path d="M226 228 q8 -6 16 0" stroke="#2A1A12" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <ellipse cx="206" cy="239" rx="7" ry="9" fill="#3B2416"/><ellipse cx="234" cy="239" rx="7" ry="9" fill="#3B2416"/>
+      <ellipse cx="206" cy="241" rx="4.5" ry="6" fill="#6B3E22"/><ellipse cx="234" cy="241" rx="4.5" ry="6" fill="#6B3E22"/>
+      <circle cx="203.5" cy="235.5" r="2.6" fill="#fff"/><circle cx="231.5" cy="235.5" r="2.6" fill="#fff"/>
+      <circle cx="208.5" cy="243" r="1.2" fill="#fff"/><circle cx="236.5" cy="243" r="1.2" fill="#fff"/>
+      <path d="M197 232 q9 -9 18 -2 M225 230 q9 -7 18 2" stroke="#1A100B" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    </g>
+    <ellipse cx="198" cy="256" rx="7" ry="4" fill="#F28C8C" opacity=".45"/><ellipse cx="242" cy="256" rx="7" ry="4" fill="#F28C8C" opacity=".45"/>
+    <path d="M219 250 l-1.5 5 l2.5 0" stroke="#C98B6A" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M212 263 q8 7 16 0" stroke="#B4473F" stroke-width="2.4" fill="#F7B1A8" stroke-linecap="round"/>
+    <!-- arms holding phone -->
+    <path fill="#1F2227" d="M178 340 C 170 372, 186 396, 208 404 L 214 392 C 198 384, 192 368, 196 346 Z"/>
+    <path fill="#1F2227" d="M262 340 C 270 372, 254 396, 232 404 L 226 392 C 242 384, 248 368, 244 346 Z"/>
+    <rect x="200" y="360" width="40" height="64" rx="8" fill="#111412"/>
+    <rect x="204" y="365" width="32" height="54" rx="5" fill="url(#scr)"/>
+    <circle cx="220" cy="385" r="7" fill="url(#pearl)"/>
+    <path d="M211 398 C 212 408, 228 408, 229 398" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="206" cy="402" rx="8" ry="7" fill="#F0C4A2"/><ellipse cx="234" cy="402" rx="8" ry="7" fill="#F0C4A2"/>
+
+    <!-- ========== BOY: kandura + ghutra + agal + beard (anime style) ========== -->
+    <path fill="url(#kan)" stroke="#D5DED7" stroke-width="1.5" d="M326 332 C 338 304, 422 304, 434 332 L 456 590 L 304 590 Z"/>
+    <path d="M380 330 L 380 430" stroke="#DCE4DE" stroke-width="2"/>
+    <path d="M380 336 C 378 362, 376 384, 372 404" stroke="#E1E8E2" stroke-width="3" fill="none"/>
+    <circle cx="372" cy="408" r="4.5" fill="#E6ECE7"/>
+    <!-- ghutra back -->
+    <path fill="#FFFFFF" stroke="#D5DED7" stroke-width="1.5" d="M332 224 C 326 150, 434 150, 428 224 L 446 344 C 420 328, 340 328, 314 344 Z"/>
+    <path d="M338 300 C 350 318, 360 326, 372 330 M422 300 C 410 318, 400 326, 388 330" stroke="#E2E8E3" stroke-width="2" fill="none"/>
+    <!-- face -->
+    <path fill="#E4B08A" d="M350 222 C 350 182, 410 182, 410 222 L 410 250 C 410 274, 394 292, 380 296 C 366 292, 350 274, 350 250 Z"/>
+    <!-- soft anime beard -->
+    <path fill="#2A1C14" d="M350 244 C 352 274, 366 294, 380 298 C 394 294, 408 274, 410 244 C 404 268, 394 284, 380 286 C 366 284, 356 268, 350 244 Z"/>
+    <path d="M370 266 q10 -5 20 0" stroke="#2A1C14" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M373 273 q7 5 14 0" stroke="#9B3B33" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <!-- eyes -->
+    <g>
+      <path d="M356 226 q9 -5 18 0 M386 226 q9 -5 18 0" stroke="#1F140E" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+      <ellipse cx="366" cy="240" rx="6.5" ry="7.5" fill="#2E1D12"/><ellipse cx="394" cy="240" rx="6.5" ry="7.5" fill="#2E1D12"/>
+      <ellipse cx="366" cy="242" rx="4" ry="5" fill="#5E3820"/><ellipse cx="394" cy="242" rx="4" ry="5" fill="#5E3820"/>
+      <circle cx="363.5" cy="237" r="2.3" fill="#fff"/><circle cx="391.5" cy="237" r="2.3" fill="#fff"/>
+      <path d="M358 233 q8 -6 16 0 M386 233 q8 -6 16 0" stroke="#1A100B" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    </g>
+    <path d="M379 250 l-1.5 5 l2.5 0" stroke="#B57A57" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <!-- ghutra front over forehead -->
+    <path fill="#FFFFFF" stroke="#D5DED7" stroke-width="1.5" d="M344 214 C 348 168, 412 168, 416 214 C 404 194, 356 194, 344 214 Z"/>
+    <!-- agal -->
+    <ellipse cx="380" cy="190" rx="34" ry="6.5" fill="none" stroke="#111412" stroke-width="5"/>
+    <ellipse cx="380" cy="197" rx="35" ry="6.5" fill="none" stroke="#111412" stroke-width="4"/>
+    <!-- hand on heart (Emirati greeting) -->
+    <path fill="#F6F8F6" stroke="#D5DED7" stroke-width="1.5" d="M424 344 C 434 380, 420 402, 396 410 L 390 396 C 408 388, 414 372, 408 350 Z"/>
+    <ellipse cx="392" cy="402" rx="11" ry="9" fill="#E4B08A"/>
+    <path d="M384 398 q8 -3 16 0" stroke="#C9926D" stroke-width="1.4" fill="none"/>
+
+    <!-- floating UI card -->
+    <g filter="url(#sh)">
+      <rect x="430" y="400" width="158" height="66" rx="16" fill="#fff"/>
+    </g>
+    <circle cx="458" cy="433" r="14" fill="#00843D"/>
+    <path d="M451 433 l5 5 l9 -10" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="480" y="428" font-family="Poppins" font-size="12" font-weight="700" fill="#111412">Compatible,</text>
+    <text x="480" y="445" font-family="Poppins" font-size="12" font-weight="600" fill="#00843D">with a plan</text>
+
+    <g filter="url(#sh)">
+      <rect x="6" y="430" width="134" height="58" rx="16" fill="#fff"/>
+    </g>
+    <circle cx="32" cy="459" r="12" fill="#FCE9EB"/>
+    <path fill="#CE1126" d="M32 466 C 25 460, 20 455, 24 450 C 27 446, 31 447, 32 451 C 33 447, 37 446, 40 450 C 44 455, 39 460, 32 466 Z"/>
+    <text x="52" y="455" font-family="Poppins" font-size="12" font-weight="700" fill="#111412">6 relatives</text>
+    <text x="52" y="472" font-family="Poppins" font-size="11.5" fill="#5E6B64">protected</text>
+  </svg>
+</div></section>
+<div class="stripe"></div>
+
+<!-- ================= BAND ================= -->
+<section class="band">
+  <p>Carrying a gene is common. It doesn’t affect your health, and it doesn’t stop you from building a healthy family.</p>
+  <div class="ar">حمل الجين أمرٌ شائع… ولا يمنعكم من بناء أسرة سليمة</div>
+</section>
+
+<!-- ================= HOW ================= -->
+<section class="how"><div class="wrap">
+  <div class="kicker">HOW IT WORKS</div>
+  <div class="sec-t">Roots. Bonds. Branches.</div>
+  <div class="sec-s">Three simple journeys, designed with genetic counsellors and families.</div>
+  <div class="cards">
+    <div class="card">
+      <div class="ic"><svg width="34" height="34" viewBox="0 0 34 34"><path d="M17 30 V14" stroke="#0B6B3A" stroke-width="3" stroke-linecap="round"/><path d="M17 30 C 12 31, 8 32, 5 33 M17 30 C 22 31, 26 32, 29 33" stroke="#0B6B3A" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="11" r="8" fill="#00843D"/></svg></div>
+      <h3>Roots <span>الجذور</span></h3>
+      <div class="tag">Understand what you carry</div>
+      <p>Your result explained gently, with pictures and Arabic voice notes. No jargon, no fear, just clarity.</p>
+    </div>
+    <div class="card c2">
+      <div class="ic"><svg width="34" height="34" viewBox="0 0 34 34"><circle cx="13" cy="17" r="8" fill="none" stroke="#00843D" stroke-width="3"/><circle cx="21" cy="17" r="8" fill="none" stroke="#CE1126" stroke-width="3"/></svg></div>
+      <h3>Bonds <span>الروابط</span></h3>
+      <div class="tag">Compatible, with a plan</div>
+      <p>See every option side by side and decide together, with a genetic counsellor when you need one. The choice is always yours.</p>
+    </div>
+    <div class="card c3">
+      <div class="ic"><svg width="34" height="34" viewBox="0 0 34 34"><path d="M17 10 L8 24 M17 10 L26 24 M17 10 V25" stroke="#111412" stroke-width="2.4"/><circle cx="17" cy="8" r="5" fill="#CE1126"/><circle cx="8" cy="25" r="4" fill="#00843D"/><circle cx="17" cy="26" r="4" fill="#00843D"/><circle cx="26" cy="25" r="4" fill="#00843D"/></svg></div>
+      <h3>Branches <span>الفروع</span></h3>
+      <div class="tag">Protect your family</div>
+      <p>Private Sila alerts invite relatives to screen early, before they marry. No names, no details, only care.</p>
+    </div>
+  </div>
+</div></section>
+
+<!-- ================= TREE ================= -->
+<section class="tree"><div class="wrap">
+  <div>
+    <h2>One result can protect<br><span class="g">a whole family.</span></h2>
+    <p>Genes run in families. When one person learns they carry a gene, their brothers, sisters and cousins may too. DaNA’s family tree shows who to protect first, and sends a private invitation only when you choose.</p>
+    <div class="stats">
+      <div class="stat"><strong class="g">~50%</strong><span>chance a sibling<br>carries it too</span></div>
+      <div class="stat"><strong>0</strong><span>names shared<br>in any alert</span></div>
+      <div class="stat"><strong class="r">1 tap</strong><span>to invite a relative<br>to free screening</span></div>
+    </div>
+  </div>
+  <svg width="560" height="380" viewBox="0 0 560 380">
+    <defs><radialGradient id="pp" cx=".36" cy=".32" r=".8"><stop offset="0" stop-color="#fff"/><stop offset=".7" stop-color="#EEF2EE"/><stop offset="1" stop-color="#C9D3CC"/></radialGradient></defs>
+    <g stroke="#3B4A41" stroke-width="2.5" fill="none">
+      <path d="M280 60 V110 M160 110 H400 M160 110 V160 M400 110 V160"/>
+      <path d="M160 180 V200 M100 200 H220 M100 200 V245 M220 200 V245"/>
+      <path d="M400 180 V200 M340 200 H460 M340 200 V245 M460 200 V245"/>
+    </g>
+    <path d="M220 280 C 260 330, 300 330, 340 280" stroke="#CE1126" stroke-width="2.5" stroke-dasharray="6 6" fill="none"/>
+    <circle cx="280" cy="46" r="15" fill="url(#pp)"/>
+    <circle cx="160" cy="170" r="16" fill="url(#pp)"/><circle cx="400" cy="170" r="16" fill="url(#pp)"/>
+    <circle cx="100" cy="262" r="24" fill="#00843D" opacity=".35"/><circle cx="100" cy="262" r="15" fill="url(#pp)"/>
+    <circle cx="460" cy="262" r="24" fill="#00843D" opacity=".35"/><circle cx="460" cy="262" r="15" fill="url(#pp)"/>
+    <circle cx="220" cy="262" r="18" fill="#00843D"/><circle cx="220" cy="262" r="12" fill="url(#pp)"/>
+    <circle cx="340" cy="262" r="18" fill="#00843D"/><circle cx="340" cy="262" r="12" fill="url(#pp)"/>
+    <g font-family="Poppins" font-size="13" fill="#B9C7BF" text-anchor="middle">
+      <text x="300" y="50" text-anchor="start">Grandparents</text>
+      <text x="80" y="174">Khalid’s father</text>
+      <text x="482" y="174">Fatima’s mother</text>
+      <text x="100" y="306">Brother · ~50%</text>
+      <text x="220" y="306" fill="#fff" font-weight="600">Khalid</text>
+      <text x="340" y="306" fill="#fff" font-weight="600">Fatima</text>
+      <text x="460" y="306">Sister · ~50%</text>
+      <text x="280" y="354" fill="#FF6B78" font-weight="600">compatible, with a plan</text>
+    </g>
+  </svg>
+</div></section>
+
+<!-- ================= TRUST + FAITH ================= -->
+<section class="trust"><div class="wrap">
+  <div>
+    <div class="sec-t">Private by design. Human by heart.</div>
+    <div class="tlist">
+      <div class="titem"><h4>You control everything</h4><p>Nothing is shared with your partner, a counsellor or family without your consent.</p></div>
+      <div class="titem"><h4>Anonymous family alerts</h4><p>Relatives never learn who sent the invitation, or why.</p></div>
+      <div class="titem"><h4>Data stays in the UAE</h4><p>Built to follow UAE health-data and genome laws, and Abu Dhabi standards.</p></div>
+      <div class="titem"><h4>Humans make the calls</h4><p>Licensed genetic counsellors guide every important decision.</p></div>
+    </div>
+  </div>
+  <div class="faith">
+    <div class="q">اعقلها وتوكّل</div>
+    <div class="qe">“Tie your camel, then trust in Allah.”</div>
+    <p>Caring for your family’s health is part of trust, not against it. DaNA respects faith, family and privacy at every step, and never tells you whom to marry.</p>
+    <small>Faith content reviewed by qualified scholars · optional for every user</small>
+  </div>
+</div></section>
+
+<!-- ================= FAQ ================= -->
+<section class="faq"><div class="wrap">
+  <div class="kicker">FAQ</div>
+  <div class="sec-t">Questions families ask</div>
+  <div class="qa">
+    <div><h4>Does DaNA decide if we should marry?</h4><p>No. DaNA explains your options. The decision is always yours, and every choice is respected.</p></div>
+    <div><h4>Will my family know I sent the alert?</h4><p>No. Sila alerts are anonymous and never mention you, the condition or your family.</p></div>
+    <div><h4>What if my result is low risk?</h4><p>Good news! We explain what the test can and can’t tell you, and how you can still protect relatives.</p></div>
+    <div><h4>Can I talk to a real person?</h4><p>Yes. Licensed genetic counsellors are available, and urgent cases are contacted first.</p></div>
+  </div>
+</div></section>
+
+<div class="stripe"></div>
+<footer><div class="wrap">
+  <div>
+    <div class="brand"><span>D<span class="a">a</span>NA</span> &nbsp;<span class="ar" style="font-size:20px;color:#3CC07A">دانة</span></div>
+    <div style="margin-top:10px">Know your roots. Protect your future. · DaNA supports and explains; it does not diagnose. · Prototype, synthetic data only.</div>
+  </div>
+  <div class="pro"><span>Counsellor login</span><span>DoH dashboard</span></div>
+</div></footer>
+</body>
+</html>
