@@ -1,0 +1,48 @@
+export const t2 = {
+  en: {
+    introTag: 'Know your roots. Protect your future.',
+    skip: 'Skip',
+    growK: 'GROW WITH DANA',
+    growT: 'From one seed of knowledge, a whole family grows.',
+    grow: [
+      { n: '01', t: 'Roots', p: 'It starts with understanding. Your result, explained simply, becomes the roots your family stands on.' },
+      { n: '02', t: 'Bonds', p: 'A shared plan grows from those roots. You decide together: compatible, with a plan.' },
+      { n: '03', t: 'Branches', p: 'Your family branches out, protected. Relatives are invited to screen, and the future is safe.' },
+    ],
+    scroll: 'Scroll to grow',
+    walkK: 'YOUR JOURNEY, TOGETHER',
+    walkT: 'DaNA walks with you, for years.',
+    walkS: 'Not just on result day: at every moment that matters.',
+    miles: [
+      { i: '💍', t: 'Married', s: 'Your plan is saved' },
+      { i: '📅', t: 'Planning a pregnancy', s: 'Gentle check-in' },
+      { i: '🧪', t: 'IVF or prenatal tests', s: 'Counsellor on hand' },
+      { i: '👶', t: 'Newborn check', s: 'Healthy and screened' },
+      { i: '🌳', t: 'A protected family', s: 'Relatives screened early' },
+    ],
+    bubbles: ['Congratulations! Your family plan is saved.', 'Ready to plan? Let’s check in together.', 'Your counsellor is one tap away.', 'Time for the newborn screening.', 'Your whole family is protected.'],
+  },
+  ar: {
+    introTag: 'اعرف جذورك… واحمِ مستقبلك',
+    skip: 'تخطٍّ',
+    growK: 'انمُ مع دانة',
+    growT: 'من بذرة معرفة واحدة، تنمو عائلة بأكملها.',
+    grow: [
+      { n: '٠١', t: 'الجذور', p: 'تبدأ الرحلة بالفهم. نتيجتك مشروحة ببساطة لتصبح جذورًا تقف عليها عائلتك.' },
+      { n: '٠٢', t: 'الروابط', p: 'من هذه الجذور تنمو خطة مشتركة. تقرران معًا: متوافقون، بخطة.' },
+      { n: '٠٣', t: 'الفروع', p: 'تتفرع عائلتك وهي محمية. يُدعى الأقارب للفحص، ويبقى المستقبل آمنًا.' },
+    ],
+    scroll: 'مرّر لتنمو',
+    walkK: 'رحلتكم معًا',
+    walkT: 'دانة ترافقكم لسنوات.',
+    walkS: 'ليس يوم النتيجة فقط، بل في كل لحظة مهمة.',
+    miles: [
+      { i: '💍', t: 'الزواج', s: 'خطتكم محفوظة' },
+      { i: '📅', t: 'التخطيط للحمل', s: 'متابعة لطيفة' },
+      { i: '🧪', t: 'أطفال الأنابيب أو فحوص الحمل', s: 'المستشار بجانبكم' },
+      { i: '👶', t: 'فحص المولود', s: 'سليم ومفحوص' },
+      { i: '🌳', t: 'عائلة محمية', s: 'الأقارب فُحصوا مبكرًا' },
+    ],
+    bubbles: ['مبارك! خطة عائلتكم محفوظة.', 'مستعدون للتخطيط؟ لنتابع معًا.', 'مستشاركم على بُعد لمسة.', 'حان وقت فحص المولود.', 'عائلتكم كلها محمية.'],
+  },
+};

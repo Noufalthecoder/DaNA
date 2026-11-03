@@ -30,8 +30,22 @@ Built for the **[Future Health Digital Innovation Challenge 2026](https://hack2s
 
 > **Why the name?** *Dana* (دانة) is the Gulf's most precious pearl, the treasure pearl divers dreamed of. Look closer and **D-a-N-A** holds **DNA**, the most precious thing a family passes on.
 
+## Watch it move
+
+<table>
+  <tr>
+    <td width="50%" align="center"><img src="docs/images/intro.gif" alt="Intro: a pearl drops into the shell and DaNA writes itself"><br><b>The pearl drops</b><br><sub>A pearl falls into the ن shell, ripples, and D·a·N·A springs in</sub></td>
+    <td width="50%" align="center"><img src="docs/images/grow.gif" alt="Scroll to grow: seed, roots, trunk, branches, pearls, heart"><br><b>Grow with DaNA</b><br><sub>Scroll and a seed becomes a family tree: Roots → Bonds → Branches</sub></td>
+  </tr>
+  <tr>
+    <td width="50%" align="center"><img src="docs/images/walk.gif" alt="The couple walks past life milestones and a child joins them"><br><b>Your journey, together</b><br><sub>The couple walks past five milestones; a child joins at the newborn check</sub></td>
+    <td width="50%" align="center"><img src="docs/images/sila.gif" alt="Sila alerts travel through the family tree and relatives light up"><br><b>Sila alerts, live</b><br><sub>One tap sends private alerts and the family lights up</sub></td>
+  </tr>
+</table>
+
 ## Contents
 
+- [Watch it move](#watch-it-move)
 - [The problem](#the-problem)
 - [Our idea: Roots · Bonds · Branches](#our-idea-roots--bonds--branches)
 - [Sila alerts: one result, a whole family protected](#sila-alerts-one-result-a-whole-family-protected)
@@ -104,7 +118,21 @@ flowchart LR
 |---|---|
 | <img src="docs/images/screen-en.png" alt="DaNA landing page in English"> | <img src="docs/images/screen-ar.png" alt="DaNA landing page in Arabic"> |
 
-The landing page is fully animated: the family tree draws itself, the characters blink, the pearls pulse, and an interactive demo lets you **send Sila alerts and watch the family light up**. One tap switches the whole page between English and Arabic (RTL).
+| Grow with DaNA | Your journey, together |
+|---|---|
+| <img src="docs/images/still-grow.png" alt="The fully grown family tree"> | <img src="docs/images/still-walk.png" alt="The Emirati couple walking through the desert past milestones"> |
+
+**Motion design, at a glance**
+
+| Moment | What moves |
+|---|---|
+| 🦪 Intro | A pearl drops into the ن shell with a bounce and ripples; the wordmark springs in letter by letter |
+| 🌳 Hero | Roots and branches draw themselves, leaves pop, pearls pulse, the heart beats, the couple blinks, leaves fall, and the scene follows your mouse |
+| 🃏 Journeys | Roots, Bonds and Branches cards tilt in 3D toward the cursor |
+| 🌱 Grow | Scroll-driven: seed → roots → trunk → branches → leaves → family pearls → heart, synced with the story steps |
+| 🚶 Walk | Scroll-driven: the couple walks a desert road with layered dunes; milestones light up, DaNA speaks, a child joins |
+| ✉️ Sila | Red alerts travel the family tree; relatives glow; the counter updates |
+| 🌐 Language | One tap switches English ⇄ Arabic, with full right-to-left layout |
 
 ## Architecture
 
@@ -139,7 +167,12 @@ npm install
 npm run dev
 ```
 
-Open **http://localhost:5173**, or **http://localhost:5173/?lang=ar** for Arabic.
+Open **http://localhost:5173**. Handy URL options:
+
+| URL | Opens |
+|---|---|
+| `/?lang=ar` | Arabic, right to left |
+| `/?nointro` | Skips the opening animation |
 
 **Tech:** React 18 · Vite 6 · Framer Motion 11 · Google Fonts (Outfit, Inter, Tajawal). The README visuals are real-time 3D scenes rendered with three.js (sources in [`docs/assets-src`](docs/assets-src)).
 
@@ -149,9 +182,12 @@ Open **http://localhost:5173**, or **http://localhost:5173/?lang=ar** for Arabic
 .
 ├── web/                 Animated React landing page (EN / AR, RTL)
 │   └── src/
-│       ├── App.jsx          Sections, Sila alert demo, FAQ, language switch
-│       ├── CoupleTree.jsx   Animated Emirati couple + family tree
-│       └── i18n.js          English and Arabic copy
+│       ├── App.jsx          Sections, Sila alert demo, tilt cards, FAQ, language switch
+│       ├── Intro.jsx        Opening animation: the pearl drops into the shell
+│       ├── CoupleTree.jsx   Animated Emirati couple + family tree (hero)
+│       ├── GrowSection.jsx  Scroll-driven tree growth (Roots → Bonds → Branches)
+│       ├── JourneyWalk.jsx  Scroll-driven walking family with milestones
+│       └── i18n*.js         English and Arabic copy
 ├── logo/                DaNA logo explorations (SVG + PNG)
 ├── landing/             Static HTML mockups
 └── docs/
@@ -163,6 +199,7 @@ Open **http://localhost:5173**, or **http://localhost:5173/?lang=ar** for Arabic
 
 - [x] Concept, research and policy alignment
 - [x] Brand, logo and animated bilingual landing page
+- [x] Scroll-driven storytelling: growing tree and walking family
 - [ ] Genetics rules engine with full test suite
 - [ ] Synthetic family simulator (500+ families with cousin marriages)
 - [ ] Couple app: Roots, Bonds, Branches and pearl family tree

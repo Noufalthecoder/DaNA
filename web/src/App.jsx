@@ -1,7 +1,38 @@
 import { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence, useScroll, useMotionValueEvent, useInView, animate } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useMotionValueEvent, useInView, animate, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import CoupleTree from './CoupleTree.jsx';
+import Intro from './Intro.jsx';
+import GrowSection from './GrowSection.jsx';
+import JourneyWalk from './JourneyWalk.jsx';
 import { t } from './i18n.js';
+import { t2 } from './i18n2.js';
+
+/* 3D tilt that follows the mouse */
+function Tilt({ className, children, delay = 0 }) {
+  const rx = useMotionValue(0), ry = useMotionValue(0);
+  const sx = useSpring(rx, { stiffness: 200, damping: 18 }), sy = useSpring(ry, { stiffness: 200, damping: 18 });
+  const move = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    ry.set(((e.clientX - r.left) / r.width - 0.5) * 16);
+    rx.set(-((e.clientY - r.top) / r.height - 0.5) * 16);
+  };
+  return (
+    <motion.div className={className} style={{ rotateX: sx, rotateY: sy }} onMouseMove={move} onMouseLeave={() => { rx.set(0); ry.set(0); }}
+      initial={{ opacity: 0, y: 50 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.7, delay }}
+      whileHover={{ boxShadow: '0 30px 60px rgba(0,0,0,.12)' }}>
+      {children}
+    </motion.div>
+  );
+}
+
+function Leaves() {
+  const items = [[8, 0, 9, 0], [22, 2.5, 11, 1], [41, 1.2, 10, 0], [58, 4, 12, 1], [70, 0.6, 9.5, 0], [84, 3.2, 11.5, 0], [92, 5, 10, 1]];
+  return items.map(([left, delay, dur, red], i) => (
+    <motion.span key={i} className={`leaf ${red ? 'r' : ''}`} style={{ left: `${left}%` }}
+      animate={{ y: [0, 700], x: [0, 30, -20, 25, 0], rotate: [0, 180, 360], opacity: [0, 0.9, 0.9, 0] }}
+      transition={{ duration: dur, delay, repeat: Infinity, ease: 'linear' }} />
+  ));
+}
 
 const reveal = {
   initial: { opacity: 0, y: 40 },
@@ -123,7 +154,13 @@ function FAQ({ L }) {
 export default function App() {
   const [lang, setLang] = useState(() => (new URLSearchParams(window.location.search).get('lang') === 'ar' ? 'ar' : 'en'));
   const [protectedCount, setProtectedCount] = useState(0);
-  const L = t[lang];
+  const L = { ...t[lang], ...t2[lang] };
+  const [intro, setIntro] = useState(() => !new URLSearchParams(window.location.search).has('nointro'));
+  useEffect(() => { if (!intro) return; const id = setTimeout(() => setIntro(false), 2900); return () => clearTimeout(id); }, [intro]);
+  const mx = useMotionValue(0), my = useMotionValue(0);
+  const px = useSpring(useTransform(mx, (v) => v * -18), { stiffness: 60, damping: 16 });
+  const py = useSpring(useTransform(my, (v) => v * -12), { stiffness: 60, damping: 16 });
+  const onHeroMove = (e) => { mx.set(e.clientX / window.innerWidth - 0.5); my.set(e.clientY / window.innerHeight - 0.5); };
   const { scrollY, scrollYProgress } = useScroll();
   const [scrolled, setScrolled] = useState(false);
   useMotionValueEvent(scrollY, 'change', (y) => setScrolled(y > 20));
@@ -149,6 +186,7 @@ export default function App() {
 
   return (
     <>
+      <AnimatePresence>{intro && <Intro L={L} onDone={() => setIntro(false)} />}</AnimatePresence>
       <motion.div className="progress" style={{ scaleX: scrollYProgress }} />
 
       <nav className={`top ${scrolled ? 'scrolled' : ''}`}>
@@ -171,7 +209,7 @@ export default function App() {
       <div className="stripe" />
 
       {/* HERO */}
-      <section className="hero">
+      <section className="hero" onMouseMove={onHeroMove}>
         <div className="wrap grid">
           <div>
             <motion.div className="pill" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} key={`p-${lang}`}><i />{L.pill}</motion.div>
@@ -191,13 +229,14 @@ export default function App() {
               ))}
             </div>
           </div>
-          <div className="hero-art">
+          <motion.div className="hero-art" style={{ x: px, y: py }}>
+            <Leaves />
             {[[30, 40, 18, 0], [520, 20, 12, 1], [560, 520, 16, 2], [-10, 560, 10, 1.5], [480, 300, 8, 0.7]].map(([x, y, s, d], i) => (
               <motion.div key={i} className="particle" style={{ left: x, top: y, width: s, height: s }}
                 animate={{ y: [0, -18, 0], opacity: [0.6, 1, 0.6] }} transition={{ duration: 5 + i, repeat: Infinity, delay: d }} />
             ))}
             <CoupleTree L={L} ar={lang === 'ar'} />
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -226,8 +265,7 @@ export default function App() {
           <motion.div className="sec-s" {...reveal}>{L.howS}</motion.div>
           <div className="cards">
             {L.cards.map((c, i) => (
-              <motion.div key={`${lang}-${c.t}`} className={`card c${i + 1}`} {...reveal} transition={{ ...reveal.transition, delay: i * 0.15 }}
-                whileHover={{ y: -10, boxShadow: '0 24px 50px rgba(0,0,0,.10)' }}>
+              <Tilt key={`${lang}-${c.t}`} className={`card c${i + 1}`} delay={i * 0.15}>
                 <div className="num">0{i + 1}</div>
                 <motion.div className="ic" whileHover={{ rotate: [0, -8, 8, 0] }}>
                   {i === 0 && <svg width="34" height="34" viewBox="0 0 34 34"><path d="M17 30 V14" stroke="#0B6B3A" strokeWidth="3" strokeLinecap="round" /><path d="M17 30 C 12 31, 8 32, 5 33 M17 30 C 22 31, 26 32, 29 33" stroke="#0B6B3A" strokeWidth="2" strokeLinecap="round" /><circle cx="17" cy="11" r="8" fill="#00843D" /></svg>}
@@ -237,11 +275,17 @@ export default function App() {
                 <h3>{c.t} <span>{c.ar}</span></h3>
                 <div className="tag">{c.tag}</div>
                 <p>{c.p}</p>
-              </motion.div>
+              </Tilt>
             ))}
           </div>
         </div>
       </section>
+
+      {/* GROW: scroll-driven tree growth */}
+      <GrowSection L={L} key={`g-${lang}`} />
+
+      {/* WALK: scroll-driven family journey */}
+      <JourneyWalk L={L} key={`w-${lang}`} />
 
       {/* TREE */}
       <section className="sec treesec" id="tree">

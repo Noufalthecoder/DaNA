@@ -133,3 +133,86 @@ footer .brand{color:#fff}
   .cards{grid-template-columns:1fr}
   .tlist{grid-template-columns:1fr}
 }
+
+/* ===== intro ===== */
+.intro{position:fixed;inset:0;z-index:100;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer}
+.intro-word{display:flex;font-family:var(--head);font-weight:800;font-size:76px;color:var(--green);letter-spacing:2px;margin-top:-10px}
+.intro-word .a{color:var(--red);font-weight:600}
+.intro-tag{font-family:var(--head);font-size:20px;color:var(--muted)}
+[dir=rtl] .intro-tag{font-family:var(--ar)}
+.intro-bar{position:absolute;bottom:0;left:0;right:0;height:6px;transform-origin:0 50%;background:linear-gradient(90deg,var(--green),var(--red))}
+.intro-skip{position:absolute;top:24px;inset-inline-end:28px;border:1px solid #DDE7E0;background:#fff;border-radius:30px;padding:8px 16px;font:600 13px var(--body);color:var(--muted);cursor:pointer}
+
+/* ===== falling leaves ===== */
+.leaf{position:absolute;top:-30px;width:16px;height:16px;border-radius:0 100% 0 100%;background:linear-gradient(135deg,#2FA866,#00843D);opacity:.85;pointer-events:none;z-index:2}
+.leaf.r{background:linear-gradient(135deg,#ff6b78,#CE1126);width:10px;height:10px}
+
+/* ===== tilt cards ===== */
+.cards{perspective:1200px}
+.card{transform-style:preserve-3d;will-change:transform}
+.card .ic,.card h3{transform:translateZ(40px)}
+
+/* ===== grow (scroll story) ===== */
+.grow{height:330vh;position:relative}
+.grow-sticky{position:sticky;top:0;height:100vh;display:flex;align-items:center;overflow:hidden}
+.grow-grid{display:grid;grid-template-columns:1fr 560px;gap:40px;align-items:center}
+.grow-t{font-family:var(--head);font-weight:800;font-size:clamp(30px,3.2vw,46px);line-height:1.12;color:var(--black);margin:10px 0 30px}
+[dir=rtl] .grow-t{font-family:var(--ar)}
+.grow-steps{display:grid;gap:14px;max-width:520px}
+.gstep{display:flex;gap:18px;align-items:flex-start;padding:16px 18px;border-radius:18px;transition:background .3s}
+.gstep.on{background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.06)}
+.gstep .gn{font-family:var(--head);font-weight:800;font-size:22px;color:var(--red);min-width:34px}
+.gstep h3{font-family:var(--head);font-size:24px;color:var(--black)}
+[dir=rtl] .gstep h3{font-family:var(--ar)}
+.gstep p{color:var(--muted);line-height:1.6;font-size:15.5px;overflow:hidden;margin-top:6px}
+.grow-meter{margin-top:26px;display:flex;align-items:center;gap:12px;max-width:520px}
+.grow-meter .fill{flex:1;height:8px;border-radius:8px;background:linear-gradient(90deg,var(--green),var(--red));transform-origin:0 50%}
+[dir=rtl] .grow-meter .fill{transform-origin:100% 50%}
+.grow-meter span{font-family:var(--head);font-weight:700;color:var(--green);min-width:48px}
+.grow-svg{width:100%;height:auto;max-height:82vh}
+.glab{font-family:var(--head);font-size:18px;font-weight:700;fill:var(--green-d)}
+.scroll-hint{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);font-weight:600;color:var(--muted);display:flex;gap:8px;align-items:center}
+
+/* ===== walk (scroll story) ===== */
+.walk{height:420vh;position:relative}
+.walk-sticky{position:sticky;top:0;height:100vh;overflow:hidden}
+.walk-head{position:relative;z-index:5;padding-top:112px}
+.walk-head h2{font-family:var(--head);font-weight:800;font-size:clamp(30px,3.4vw,48px);color:var(--black);margin-top:8px}
+[dir=rtl] .walk-head h2{font-family:var(--ar)}
+.walk-head p{color:var(--muted);font-size:18px;margin-top:6px}
+.sun{position:absolute;right:14%;top:120px;width:130px;height:130px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#FFF4C8,#FFC857 60%,#F7A93B);box-shadow:0 0 90px 30px rgba(255,200,87,.45)}
+.cloud{position:absolute;width:140px;height:40px;border-radius:40px;background:#fff;opacity:.85;box-shadow:40px -18px 0 -4px #fff,80px 0 0 -8px #fff}
+.dunes{position:absolute;left:0;width:4200px}
+.world{position:absolute;left:0;bottom:0;width:4800px;height:100%}
+.road{position:absolute;left:0;right:0;bottom:0;height:120px;background:linear-gradient(180deg,#D8B46F 0,#C9A15C 100%)}
+.road:after{content:"";position:absolute;left:0;right:0;top:54px;height:6px;background:repeating-linear-gradient(90deg,#fff8 0 40px,transparent 40px 80px)}
+.palm{position:absolute;bottom:110px;width:80px;height:160px}
+.mile{position:absolute;bottom:120px;width:230px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center}
+.mile-card{display:flex;gap:12px;align-items:center;background:#fff;border-radius:18px;padding:12px 16px;box-shadow:0 12px 30px rgba(0,0,0,.08);border:2px solid #EFE7D6;position:relative;width:230px}
+.mile-card.on{border-color:var(--green)}
+.mile-card .mi{font-size:30px}
+.mile-card b{display:block;font-family:var(--head);font-size:16px;color:var(--black)}
+[dir=rtl] .mile-card b{font-family:var(--ar)}
+.mile-card small{color:var(--muted);font-size:12.5px}
+.mile-card .tick{position:absolute;top:-10px;inset-inline-end:-10px;width:26px;height:26px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-size:14px;font-weight:700}
+.pole{width:6px;height:300px;background:#D9D3C4;border-radius:4px}
+.pole.on{background:var(--green)}
+.family{position:absolute;left:22%;bottom:92px;z-index:6;display:flex;flex-direction:column;align-items:center}
+[dir=rtl] .family{left:auto;right:22%}
+.walkers{display:flex;align-items:flex-end;gap:2px}
+.walker{width:130px;height:260px;overflow:visible}
+.walker.child{width:84px;height:168px}
+.child-wrap{display:flex}
+.bubble{background:#fff;border-radius:18px;padding:12px 16px;font-weight:600;font-size:14.5px;color:var(--black);box-shadow:0 12px 30px rgba(0,0,0,.10);margin-bottom:14px;max-width:290px;display:flex;gap:10px;align-items:center;position:relative}
+.bubble:after{content:"";position:absolute;bottom:-8px;left:50%;width:16px;height:16px;background:#fff;transform:translateX(-50%) rotate(45deg)}
+.bdot{width:10px;height:10px;border-radius:50%;background:var(--green);flex:none;box-shadow:0 0 0 4px var(--green-l)}
+.hearts{position:absolute;top:60px;left:50%}
+.hearts span{position:absolute;color:var(--red);font-size:20px}
+.walk-progress{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);display:flex;gap:12px;z-index:7}
+.walk-progress i{display:block;width:12px;height:12px;border-radius:50%}
+
+@media (max-width:980px){
+  .grow-grid{grid-template-columns:1fr}
+  .grow-svg{max-height:42vh}
+  .family{left:8%}
+}
