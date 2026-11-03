@@ -4,42 +4,32 @@ import CoupleTree from './CoupleTree.jsx';
 import Intro from './Intro.jsx';
 import GrowSection from './GrowSection.jsx';
 import JourneyWalk from './JourneyWalk.jsx';
+import { useSmoothScroll, scrollToHash, RevealText, ScrollWords, VelocityMarquee, StackCards, ExpandSection, FooterMark, ease } from './Motion.jsx';
 import { t } from './i18n.js';
 import { t2 } from './i18n2.js';
 
-/* 3D tilt that follows the mouse */
-function Tilt({ className, children, delay = 0 }) {
-  const rx = useMotionValue(0), ry = useMotionValue(0);
-  const sx = useSpring(rx, { stiffness: 200, damping: 18 }), sy = useSpring(ry, { stiffness: 200, damping: 18 });
-  const move = (e) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    ry.set(((e.clientX - r.left) / r.width - 0.5) * 16);
-    rx.set(-((e.clientY - r.top) / r.height - 0.5) * 16);
-  };
+const reveal = {
+  initial: { opacity: 0, y: 32 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.3 },
+  transition: { duration: 0.9, ease },
+};
+
+function Logo({ size = 40 }) {
   return (
-    <motion.div className={className} style={{ rotateX: sx, rotateY: sy }} onMouseMove={move} onMouseLeave={() => { rx.set(0); ry.set(0); }}
-      initial={{ opacity: 0, y: 50 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.7, delay }}
-      whileHover={{ boxShadow: '0 30px 60px rgba(0,0,0,.12)' }}>
-      {children}
-    </motion.div>
+    <svg width={size} height={size} viewBox="96 120 320 260" aria-hidden="true">
+      <path fill="#00843D" d="M120 196 C 118 300, 178 352, 256 352 C 338 352, 398 296, 392 176 C 391 168, 384 166, 382 174 C 376 270, 326 316, 256 316 C 190 316, 142 278, 132 196 C 131 186, 121 186, 120 196 Z" />
+      <motion.circle cx="256" cy="214" r="44" fill="#fff" stroke="#CE1126" strokeWidth="10"
+        animate={{ y: [0, -8, 0] }} transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }} />
+    </svg>
   );
 }
 
-function Leaves() {
-  const items = [[8, 0, 9, 0], [22, 2.5, 11, 1], [41, 1.2, 10, 0], [58, 4, 12, 1], [70, 0.6, 9.5, 0], [84, 3.2, 11.5, 0], [92, 5, 10, 1]];
-  return items.map(([left, delay, dur, red], i) => (
-    <motion.span key={i} className={`leaf ${red ? 'r' : ''}`} style={{ left: `${left}%` }}
-      animate={{ y: [0, 700], x: [0, 30, -20, 25, 0], rotate: [0, 180, 360], opacity: [0, 0.9, 0.9, 0] }}
-      transition={{ duration: dur, delay, repeat: Infinity, ease: 'linear' }} />
-  ));
-}
-
-const reveal = {
-  initial: { opacity: 0, y: 40 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, amount: 0.25 },
-  transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
-};
+const ICONS = [
+  <svg key="r" viewBox="0 0 120 120"><path d="M60 104 V54" stroke="#0B6B3A" strokeWidth="6" strokeLinecap="round" /><path d="M60 104 C 44 108, 30 110, 18 116 M60 104 C 76 108, 90 110, 102 116 M60 104 C 56 110, 50 114, 44 118 M60 104 C 64 110, 70 114, 76 118" stroke="#8A6A3A" strokeWidth="4" strokeLinecap="round" fill="none" /><circle cx="60" cy="40" r="26" fill="#00843D" /><circle cx="60" cy="40" r="9" fill="#fff" stroke="#CE1126" strokeWidth="3" /></svg>,
+  <svg key="b" viewBox="0 0 120 120"><circle cx="46" cy="60" r="30" fill="none" stroke="#00843D" strokeWidth="7" /><circle cx="74" cy="60" r="30" fill="none" stroke="#CE1126" strokeWidth="7" /><circle cx="60" cy="60" r="8" fill="#fff" stroke="#111412" strokeWidth="3" /></svg>,
+  <svg key="f" viewBox="0 0 120 120"><path d="M60 30 L28 84 M60 30 L92 84 M60 30 V88" stroke="#111412" strokeWidth="4" /><circle cx="60" cy="26" r="13" fill="#CE1126" /><circle cx="28" cy="88" r="11" fill="#00843D" /><circle cx="60" cy="92" r="11" fill="#00843D" /><circle cx="92" cy="88" r="11" fill="#00843D" /></svg>,
+];
 
 function CountUp({ to, suffix = '', prefix = '', start = true, className }) {
   const ref = useRef(null);
@@ -51,16 +41,6 @@ function CountUp({ to, suffix = '', prefix = '', start = true, className }) {
     return () => c.stop();
   }, [inView, start, to]);
   return <strong ref={ref} className={className}>{prefix}{v}{suffix}</strong>;
-}
-
-function Logo({ size = 42 }) {
-  return (
-    <svg width={size} height={size} viewBox="96 120 320 260" aria-hidden="true">
-      <path fill="#00843D" d="M120 196 C 118 300, 178 352, 256 352 C 338 352, 398 296, 392 176 C 391 168, 384 166, 382 174 C 376 270, 326 316, 256 316 C 190 316, 142 278, 132 196 C 131 186, 121 186, 120 196 Z" />
-      <motion.circle cx="256" cy="214" r="44" fill="#fff" stroke="#CE1126" strokeWidth="10"
-        animate={{ cy: [214, 204, 214] }} transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }} />
-    </svg>
-  );
 }
 
 /* ---------- interactive Sila alert family tree ---------- */
@@ -152,179 +132,164 @@ function FAQ({ L }) {
 }
 
 export default function App() {
+  useSmoothScroll();
   const [lang, setLang] = useState(() => (new URLSearchParams(window.location.search).get('lang') === 'ar' ? 'ar' : 'en'));
   const [protectedCount, setProtectedCount] = useState(0);
   const L = { ...t[lang], ...t2[lang] };
+  const ar = lang === 'ar';
   const [intro, setIntro] = useState(() => !new URLSearchParams(window.location.search).has('nointro'));
   useEffect(() => { if (!intro) return; const id = setTimeout(() => setIntro(false), 2900); return () => clearTimeout(id); }, [intro]);
-  const mx = useMotionValue(0), my = useMotionValue(0);
-  const px = useSpring(useTransform(mx, (v) => v * -18), { stiffness: 60, damping: 16 });
-  const py = useSpring(useTransform(my, (v) => v * -12), { stiffness: 60, damping: 16 });
-  const onHeroMove = (e) => { mx.set(e.clientX / window.innerWidth - 0.5); my.set(e.clientY / window.innerHeight - 0.5); };
-  const { scrollY, scrollYProgress } = useScroll();
-  const [scrolled, setScrolled] = useState(false);
-  useMotionValueEvent(scrollY, 'change', (y) => setScrolled(y > 20));
   useEffect(() => {
-    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.dir = ar ? 'rtl' : 'ltr';
     document.documentElement.lang = lang;
-  }, [lang]);
+  }, [lang, ar]);
 
+  /* nav: hides on the way down, returns on the way up */
+  const { scrollY, scrollYProgress } = useScroll();
+  const [nav, setNav] = useState({ solid: false, hidden: false });
+  useMotionValueEvent(scrollY, 'change', (y) => {
+    const prev = scrollY.getPrevious() ?? 0;
+    setNav((n) => { const hidden = y > 500 && y > prev + 2 ? true : y < prev - 2 ? false : n.hidden; return n.solid === y > 30 && n.hidden === hidden ? n : { solid: y > 30, hidden }; });
+  });
+
+  /* hero: subtle mouse parallax + it drifts and settles back as you scroll away */
+  const heroRef = useRef(null);
+  const { scrollYProgress: hp } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
+  const textY = useTransform(hp, [0, 1], [0, -90]);
+  const textOp = useTransform(hp, [0, 0.7], [1, 0]);
+  const artY = useTransform(hp, [0, 1], [0, 140]);
+  const artS = useTransform(hp, [0, 1], [1, 0.88]);
+  const mx = useMotionValue(0), my = useMotionValue(0);
+  const px = useSpring(useTransform(mx, (v) => v * -12), { stiffness: 50, damping: 18 });
+  const py = useSpring(useTransform(my, (v) => v * -8), { stiffness: 50, damping: 18 });
+  const onHeroMove = (e) => { mx.set(e.clientX / window.innerWidth - 0.5); my.set(e.clientY / window.innerHeight - 0.5); };
+
+  const go = (hash) => (e) => scrollToHash(e, hash);
   const word = (w, i, cls = '') => (
-    <motion.span key={`${lang}-${w}-${i}`} className={`w ${cls}`} initial={{ opacity: 0, y: 40, rotate: 4 }} animate={{ opacity: 1, y: 0, rotate: 0 }}
-      transition={{ delay: 0.15 + i * 0.09, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}>{w}</motion.span>
+    <span className="mask" key={`${lang}-${i}`}>
+      <motion.span className={`w ${cls}`} initial={{ y: '110%' }} animate={{ y: '0%' }}
+        transition={{ delay: (intro ? 3 : 0.2) + i * 0.08, duration: 1, ease }}>{w}</motion.span>
+    </span>
   );
-  const green = (w, i) => (
-    <motion.span key={`${lang}-g-${w}`} className="w g" initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i * 0.09, duration: 0.6 }}>
-      {w}
-      <svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true">
-        <motion.path d="M2 9 C 50 2, 120 2, 198 8" stroke="#CE1126" strokeWidth="4" fill="none" strokeLinecap="round"
-          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 1 + i * 0.1, duration: 0.7 }} />
-      </svg>
-    </motion.span>
-  );
-  const marqueeItems = [...L.marquee, ...L.marquee, ...L.marquee, ...L.marquee];
+  const d0 = intro ? 3 : 0.2;
 
   return (
     <>
       <AnimatePresence>{intro && <Intro L={L} onDone={() => setIntro(false)} />}</AnimatePresence>
       <motion.div className="progress" style={{ scaleX: scrollYProgress }} />
 
-      <nav className={`top ${scrolled ? 'scrolled' : ''}`}>
+      <motion.nav className={`top ${nav.solid ? 'solid' : ''}`} animate={{ y: nav.hidden ? -100 : 0 }} transition={{ duration: 0.4, ease }}>
         <div className="wrap bar">
-          <motion.div className="brand" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-            <Logo /><span>D<span className="a">a</span>NA</span>
-          </motion.div>
+          <a className="brand" href="#top" onClick={go('#top')}><Logo /><span>D<span className="a">a</span>NA</span></a>
           <div className="links">
-            {L.nav.map((n, i) => <a key={n} href={['#how', '#tree', '#trust', '#trust', '#faq'][i]}>{n}</a>)}
+            {L.nav.map((n, i) => { const h = ['#how', '#tree', '#trust', '#trust', '#faq'][i]; return <a key={n} href={h} onClick={go(h)}>{n}</a>; })}
           </div>
           <div className="nav-r">
             <div className="lang">
-              <button className={`arb ${lang === 'ar' ? 'on' : ''}`} onClick={() => setLang('ar')}>عربي</button>
-              <button className={lang === 'en' ? 'on' : ''} onClick={() => setLang('en')}>EN</button>
+              <button className={`arb ${ar ? 'on' : ''}`} onClick={() => setLang('ar')}>عربي</button>
+              <button className={!ar ? 'on' : ''} onClick={() => setLang('en')}>EN</button>
             </div>
-            <motion.a className="btn btn-green" href="#" whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}>{L.login} <small>{L.demo}</small></motion.a>
+            <a className="btn btn-dark" href="#">{L.login}</a>
           </div>
         </div>
-      </nav>
-      <div className="stripe" />
+      </motion.nav>
 
       {/* HERO */}
-      <section className="hero" onMouseMove={onHeroMove}>
+      <section className="hero" id="top" ref={heroRef} onMouseMove={onHeroMove}>
         <div className="wrap grid">
-          <div>
-            <motion.div className="pill" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} key={`p-${lang}`}><i />{L.pill}</motion.div>
+          <motion.div style={{ y: textY, opacity: textOp }}>
+            <motion.div className="pill" key={`p-${lang}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: d0, duration: 0.8, ease }}><i />{L.pill}</motion.div>
             <h1 className="title">
-              {L.h1a.map((w, i) => word(w, i))}{green(L.h1aG, L.h1a.length)}<span className="dot">.</span><br />
-              {L.h1b.map((w, i) => word(w, i + 3))}{green(L.h1bG, L.h1b.length + 3)}<span className="dot">.</span>
+              <span className="line">{L.h1a.map((w, i) => word(w, i))}{word(<>{L.h1aG}<i className="dot">.</i></>, L.h1a.length, 'g')}</span>
+              <span className="line">{L.h1b.map((w, i) => word(w, i + 3))}{word(<>{L.h1bG}<i className="dot">.</i></>, L.h1b.length + 3, 'g')}</span>
             </h1>
-            <motion.div className="h1-sub" dir={lang === 'ar' ? 'ltr' : 'rtl'} style={{ textAlign: lang === 'ar' ? 'right' : 'left' }} key={`s-${lang}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}>{L.h1ar}</motion.div>
-            <motion.p className="lead" key={`l-${lang}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1 }}>{L.lead}</motion.p>
-            <motion.div className="ctas" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.15 }}>
-              <motion.a className="btn btn-green" href="#" whileHover={{ y: -3, boxShadow: '0 16px 30px rgba(0,132,61,.35)' }} whileTap={{ scale: 0.97 }}>{L.login} <small>{L.demo}</small></motion.a>
-              <motion.a className="btn btn-line" href="#how" whileHover={{ y: -3 }} whileTap={{ scale: 0.97 }}>▶&nbsp; {L.watch}</motion.a>
+            <motion.div className="h1-sub" dir={ar ? 'ltr' : 'rtl'} style={{ textAlign: ar ? 'right' : 'left' }} key={`s-${lang}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: d0 + 0.7, duration: 0.8 }}>{L.h1ar}</motion.div>
+            <motion.p className="lead" key={`l-${lang}`} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: d0 + 0.8, duration: 0.9, ease }}>{L.lead}</motion.p>
+            <motion.div className="ctas" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: d0 + 0.95, duration: 0.9, ease }}>
+              <motion.a className="btn btn-green" href="#" whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>{L.login} <small>{L.demo}</small></motion.a>
+              <motion.a className="btn btn-ghost" href="#how" onClick={go('#how')} whileHover={{ y: -2 }}>{L.watch} <span className="arr">{ar ? '←' : '→'}</span></motion.a>
             </motion.div>
-            <div className="chips">
-              {L.chips.map((c, i) => (
-                <motion.div key={`${lang}-${c}`} className="chip" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 1.3 + i * 0.12 }}><b>✓</b> {c}</motion.div>
-              ))}
-            </div>
-          </div>
-          <motion.div className="hero-art" style={{ x: px, y: py }}>
-            <Leaves />
-            {[[30, 40, 18, 0], [520, 20, 12, 1], [560, 520, 16, 2], [-10, 560, 10, 1.5], [480, 300, 8, 0.7]].map(([x, y, s, d], i) => (
-              <motion.div key={i} className="particle" style={{ left: x, top: y, width: s, height: s }}
-                animate={{ y: [0, -18, 0], opacity: [0.6, 1, 0.6] }} transition={{ duration: 5 + i, repeat: Infinity, delay: d }} />
-            ))}
-            <CoupleTree L={L} ar={lang === 'ar'} />
+            <motion.div className="chips" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: d0 + 1.1, duration: 0.8 }}>
+              {L.chips.map((c) => <span key={`${lang}-${c}`} className="chip"><b>✓</b>{c}</span>)}
+            </motion.div>
+          </motion.div>
+          <motion.div className="hero-art" style={{ y: artY, scale: artS }} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: d0, duration: 1.2, ease }}>
+            <motion.div style={{ x: px, y: py }}><CoupleTree L={L} ar={ar} /></motion.div>
           </motion.div>
         </div>
+        <motion.div className="scroll-cue" style={{ opacity: textOp }}><span /></motion.div>
       </section>
 
-      {/* MARQUEE */}
-      <div className="marquee">
-        <motion.div className="track" animate={{ x: lang === 'ar' ? ['0%', '50%'] : ['0%', '-50%'] }} transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}>
-          {marqueeItems.map((m, i) => <span key={i}>{m}</span>)}
-        </motion.div>
-      </div>
+      <VelocityMarquee items={L.marquee} rtl={ar} key={`m-${lang}`} />
 
-      {/* BAND */}
-      <section className="band">
-        <motion.div className="ring" style={{ width: 300, height: 300, left: -80, top: -120 }} animate={{ rotate: 360 }} transition={{ duration: 30, repeat: Infinity, ease: 'linear' }} />
-        <motion.div className="ring" style={{ width: 220, height: 220, right: -60, bottom: -90 }} animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 6, repeat: Infinity }} />
+      {/* STATEMENT: lights up as you scroll */}
+      <section className="statement">
         <div className="wrap">
-          <motion.p {...reveal} key={`b-${lang}`}>{L.band}</motion.p>
-          <motion.div className={`sub ${lang === 'en' ? 'ar' : ''}`} {...reveal} transition={{ ...reveal.transition, delay: 0.2 }}>{L.bandAr}</motion.div>
+          <ScrollWords key={`sw-${lang}`} text={L.band} accent={ar ? ['شائع', 'سليمة'] : ['common.', 'common', 'healthy', 'family.']} />
+          <motion.div className={`sub ${!ar ? 'ar' : ''}`} {...reveal}>{L.bandAr}</motion.div>
         </div>
       </section>
 
-      {/* HOW */}
-      <section className="sec" id="how">
+      {/* HOW: cards pin and stack */}
+      <section className="sec how" id="how">
         <div className="wrap">
           <motion.div className="kicker" {...reveal}>{L.howK}</motion.div>
-          <motion.div className="sec-t" {...reveal}>{L.howT}</motion.div>
-          <motion.div className="sec-s" {...reveal}>{L.howS}</motion.div>
-          <div className="cards">
-            {L.cards.map((c, i) => (
-              <Tilt key={`${lang}-${c.t}`} className={`card c${i + 1}`} delay={i * 0.15}>
-                <div className="num">0{i + 1}</div>
-                <motion.div className="ic" whileHover={{ rotate: [0, -8, 8, 0] }}>
-                  {i === 0 && <svg width="34" height="34" viewBox="0 0 34 34"><path d="M17 30 V14" stroke="#0B6B3A" strokeWidth="3" strokeLinecap="round" /><path d="M17 30 C 12 31, 8 32, 5 33 M17 30 C 22 31, 26 32, 29 33" stroke="#0B6B3A" strokeWidth="2" strokeLinecap="round" /><circle cx="17" cy="11" r="8" fill="#00843D" /></svg>}
-                  {i === 1 && <svg width="34" height="34" viewBox="0 0 34 34"><circle cx="13" cy="17" r="8" fill="none" stroke="#00843D" strokeWidth="3" /><circle cx="21" cy="17" r="8" fill="none" stroke="#CE1126" strokeWidth="3" /></svg>}
-                  {i === 2 && <svg width="34" height="34" viewBox="0 0 34 34"><path d="M17 10 L8 24 M17 10 L26 24 M17 10 V25" stroke="#111412" strokeWidth="2.4" /><circle cx="17" cy="8" r="5" fill="#CE1126" /><circle cx="8" cy="25" r="4" fill="#00843D" /><circle cx="17" cy="26" r="4" fill="#00843D" /><circle cx="26" cy="25" r="4" fill="#00843D" /></svg>}
-                </motion.div>
+          <RevealText key={`ht-${lang}`} text={L.howT} className="sec-t" />
+          <motion.p className="sec-s" {...reveal}>{L.howS}</motion.p>
+          <StackCards key={`sc-${lang}`} items={L.cards} render={(c, i) => (
+            <div className="sc-in">
+              <div className="sc-text">
+                <div className="sc-num">0{i + 1} <span>/ 03</span></div>
                 <h3>{c.t} <span>{c.ar}</span></h3>
                 <div className="tag">{c.tag}</div>
                 <p>{c.p}</p>
-              </Tilt>
-            ))}
-          </div>
+              </div>
+              <div className="sc-art">{ICONS[i]}</div>
+            </div>
+          )} />
         </div>
       </section>
 
-      {/* GROW: scroll-driven tree growth */}
       <GrowSection L={L} key={`g-${lang}`} />
-
-      {/* WALK: scroll-driven family journey */}
       <JourneyWalk L={L} key={`w-${lang}`} />
 
-      {/* TREE */}
-      <section className="sec treesec" id="tree">
+      {/* SILA: the dark section opens up as it arrives */}
+      <ExpandSection className="sec treesec" id="tree">
         <div className="wrap grid">
-          <motion.div {...reveal}>
-            <h2>{L.treeT1}<br /><span className="g">{L.treeT2}</span></h2>
-            <p>{L.treeP}</p>
+          <div>
+            <RevealText key={`tt-${lang}`} text={L.treeT1} className="tt" />
+            <RevealText key={`tt2-${lang}`} text={L.treeT2} className="tt g" delay={0.2} />
+            <motion.p {...reveal}>{L.treeP}</motion.p>
             <div className="stats">
-              <div className="stat"><CountUp to={50} prefix="~" suffix="%" className="" /><span>{L.stats[0][0]}<br />{L.stats[0][1]}</span></div>
-              <div className="stat"><strong>0</strong><span>{L.stats[1][0]}<br />{L.stats[1][1]}</span></div>
-              <div className="stat">
-                <motion.strong key={protectedCount} initial={{ scale: 1.6, color: '#3CC07A' }} animate={{ scale: 1, color: protectedCount ? '#3CC07A' : '#ffffff' }}>{protectedCount}</motion.strong>
-                <span>{L.stats[2][0]}<br />{L.stats[2][1]}</span>
-              </div>
+              <motion.div className="stat" {...reveal}><CountUp to={50} prefix="~" suffix="%" /><span>{L.stats[0][0]} {L.stats[0][1]}</span></motion.div>
+              <motion.div className="stat" {...reveal} transition={{ ...reveal.transition, delay: 0.1 }}><strong>0</strong><span>{L.stats[1][0]} {L.stats[1][1]}</span></motion.div>
+              <motion.div className="stat" {...reveal} transition={{ ...reveal.transition, delay: 0.2 }}>
+                <motion.strong key={protectedCount} initial={{ scale: 1.5, color: '#3CC07A' }} animate={{ scale: 1, color: protectedCount ? '#3CC07A' : '#ffffff' }}>{protectedCount}</motion.strong>
+                <span>{L.stats[2][0]} {L.stats[2][1]}</span>
+              </motion.div>
             </div>
-          </motion.div>
+          </div>
           <motion.div {...reveal} transition={{ ...reveal.transition, delay: 0.2 }}>
             <FamilyAlert L={L} onSent={setProtectedCount} />
           </motion.div>
         </div>
-      </section>
+      </ExpandSection>
 
       {/* TRUST + FAITH */}
       <section className="sec trust" id="trust">
         <div className="wrap grid">
           <div>
-            <motion.div className="sec-t" {...reveal}>{L.trustT}</motion.div>
+            <RevealText key={`tr-${lang}`} text={L.trustT} className="sec-t start" />
             <div className="tlist">
               {L.trust.map(([h, p], i) => (
-                <motion.div key={`${lang}-${h}`} className="titem" {...reveal} transition={{ ...reveal.transition, delay: i * 0.1 }} whileHover={{ x: lang === 'ar' ? -6 : 6 }}>
-                  <h4>{h}</h4><p>{p}</p>
+                <motion.div key={`${lang}-${h}`} className="titem" {...reveal} transition={{ ...reveal.transition, delay: i * 0.08 }}>
+                  <span className="ti">0{i + 1}</span><h4>{h}</h4><p>{p}</p>
                 </motion.div>
               ))}
             </div>
           </div>
-          <motion.div className="faith" initial={{ opacity: 0, scale: 0.92 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
-            <motion.div style={{ position: 'absolute', right: -60, bottom: -60, width: 220, height: 220, borderRadius: '50%', border: '30px solid rgba(255,255,255,.08)' }}
-              animate={{ rotate: 360, scale: [1, 1.08, 1] }} transition={{ duration: 18, repeat: Infinity, ease: 'linear' }} />
-            <motion.div className="q" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.3 }}>{L.faithQ}</motion.div>
+          <motion.div className="faith" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 1, ease }}>
+            <motion.div className="q" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.3, duration: 0.9, ease }}>{L.faithQ}</motion.div>
             <div className="qe">{L.faithE}</div>
             <p>{L.faithP}</p>
             <small>{L.faithS}</small>
@@ -336,20 +301,18 @@ export default function App() {
       <section className="sec faq" id="faq">
         <div className="wrap">
           <motion.div className="kicker" {...reveal}>{L.faqK}</motion.div>
-          <motion.div className="sec-t" {...reveal}>{L.faqT}</motion.div>
+          <RevealText key={`fq-${lang}`} text={L.faqT} className="sec-t" />
           <FAQ L={L} key={lang} />
         </div>
       </section>
 
-      <div className="stripe" />
       <footer>
         <div className="wrap row">
-          <div>
-            <div className="brand"><Logo size={34} /><span>D<span className="a">a</span>NA</span> <span className="ar" style={{ fontSize: 20, color: '#3CC07A' }}>دانة</span></div>
-            <div style={{ marginTop: 10, maxWidth: 720 }}>{L.foot}</div>
-          </div>
-          <div className="pro">{L.pro.map((p) => <span key={p}>{p}</span>)}</div>
+          <div className="brand"><Logo size={30} /><span>D<span className="a">a</span>NA</span> <span className="ar fa">دانة</span></div>
+          <div className="pro">{L.pro.map((p) => <a key={p} href="#">{p}</a>)}</div>
         </div>
+        <div className="wrap fnote">{L.foot}</div>
+        <FooterMark />
       </footer>
     </>
   );

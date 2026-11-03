@@ -104,7 +104,7 @@ export default function CoupleTree({ L, ar = false }) {
         <path fill="#1F2227" d="M262 340 C 270 372, 254 396, 232 404 L 226 392 C 242 384, 248 368, 244 346 Z" />
         <rect x="200" y="360" width="40" height="64" rx="8" fill="#111412" />
         <rect x="204" y="365" width="32" height="54" rx="5" fill="url(#scr)" />
-        <motion.circle cx="220" cy="385" r="7" fill="url(#pearl)" animate={{ r: [7, 8.5, 7] }} transition={{ duration: 1.8, repeat: Infinity }} />
+        <motion.circle cx="220" cy="385" r="7" fill="url(#pearl)" style={{ transformBox: 'fill-box', originX: 0.5, originY: 0.5 }} animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.8, repeat: Infinity }} />
         <path d="M211 398 C 212 408, 228 408, 229 398" stroke="#fff" strokeWidth="2.5" fill="none" strokeLinecap="round" />
         <ellipse cx="206" cy="402" rx="8" ry="7" fill="#F0C4A2" /><ellipse cx="234" cy="402" rx="8" ry="7" fill="#F0C4A2" />
       </motion.g>

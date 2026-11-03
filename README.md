@@ -38,7 +38,7 @@ Built for the **[Future Health Digital Innovation Challenge 2026](https://hack2s
     <td width="50%" align="center"><img src="docs/images/grow.gif" alt="Scroll to grow: seed, roots, trunk, branches, pearls, heart"><br><b>Grow with DaNA</b><br><sub>Scroll and a seed becomes a family tree: Roots → Bonds → Branches</sub></td>
   </tr>
   <tr>
-    <td width="50%" align="center"><img src="docs/images/walk.gif" alt="The couple walks past life milestones and a child joins them"><br><b>Your journey, together</b><br><sub>The couple walks past five milestones; a child joins at the newborn check</sub></td>
+    <td width="50%" align="center"><img src="docs/images/walk.gif" alt="The couple walks from engagement to a protected family, meeting a genetic counsellor on the way"><br><b>Your journey, together</b><br><sub>From engagement to a protected family: seven stops, a counsellor who greets them, and a child who joins</sub></td>
     <td width="50%" align="center"><img src="docs/images/sila.gif" alt="Sila alerts travel through the family tree and relatives light up"><br><b>Sila alerts, live</b><br><sub>One tap sends private alerts and the family lights up</sub></td>
   </tr>
 </table>
@@ -120,18 +120,22 @@ flowchart LR
 
 | Grow with DaNA | Your journey, together |
 |---|---|
-| <img src="docs/images/still-grow.png" alt="The fully grown family tree"> | <img src="docs/images/still-walk.png" alt="The Emirati couple walking through the desert past milestones"> |
+| <img src="docs/images/still-grow.png" alt="The fully grown family tree"> | <img src="docs/images/still-walk.png" alt="The couple meets Dr. Mariam, their genetic counsellor"> |
 
 **Motion design, at a glance**
 
 | Moment | What moves |
 |---|---|
 | 🦪 Intro | A pearl drops into the ن shell with a bounce and ripples; the wordmark springs in letter by letter |
-| 🌳 Hero | Roots and branches draw themselves, leaves pop, pearls pulse, the heart beats, the couple blinks, leaves fall, and the scene follows your mouse |
-| 🃏 Journeys | Roots, Bonds and Branches cards tilt in 3D toward the cursor |
+| 🌀 Everywhere | Buttery smooth scrolling (Lenis); headings slide up from behind a mask; the nav hides on the way down and returns on the way up |
+| 🌳 Hero | The title rises word by word, the tree draws itself and the heart beats; as you scroll away, the text lifts and the couple drifts back |
+| 〰️ Marquee | Speeds up and reverses with your scroll velocity |
+| 💬 Statement | Lights up word by word as you read |
+| 🃏 Journeys | Roots, Bonds and Branches cards pin and stack as you scroll |
 | 🌱 Grow | Scroll-driven: seed → roots → trunk → branches → leaves → family pearls → heart, synced with the story steps |
-| 🚶 Walk | Scroll-driven: the couple walks a desert road with layered dunes; milestones light up, DaNA speaks, a child joins |
-| ✉️ Sila | Red alerts travel the family tree; relatives glow; the counter updates |
+| 🚶 Walk | A scroll-driven gait (knees bend, arms swing, feet stay planted) through seven stops: **engaged → results → compatible, with a plan → married → counsellor → newborn → protected family**. They walk only while you scroll, turn around when you scroll back, keep a respectful distance until the wedding, and stop to meet Dr. Mariam, who waves and welcomes them |
+| ✉️ Sila | The dark section opens to full width; red alerts travel the family tree; relatives glow; the counter updates |
+| 🔚 Footer | A giant DaNA wordmark rises as the page ends |
 | 🌐 Language | One tap switches English ⇄ Arabic, with full right-to-left layout |
 
 ## Architecture
@@ -174,7 +178,7 @@ Open **http://localhost:5173**. Handy URL options:
 | `/?lang=ar` | Arabic, right to left |
 | `/?nointro` | Skips the opening animation |
 
-**Tech:** React 18 · Vite 6 · Framer Motion 11 · Google Fonts (Outfit, Inter, Tajawal). The README visuals are real-time 3D scenes rendered with three.js (sources in [`docs/assets-src`](docs/assets-src)).
+**Tech:** React 18 · Vite 6 · Framer Motion 11 · Lenis · Google Fonts (Outfit, Inter, Tajawal). The README visuals are real-time 3D scenes rendered with three.js (sources in [`docs/assets-src`](docs/assets-src)).
 
 ## Project structure
 
@@ -182,11 +186,13 @@ Open **http://localhost:5173**. Handy URL options:
 .
 ├── web/                 Animated React landing page (EN / AR, RTL)
 │   └── src/
-│       ├── App.jsx          Sections, Sila alert demo, tilt cards, FAQ, language switch
+│       ├── App.jsx          Sections, Sila alert demo, FAQ, language switch
+│       ├── Motion.jsx       Smooth scroll, text reveals, velocity marquee, stacking cards
 │       ├── Intro.jsx        Opening animation: the pearl drops into the shell
 │       ├── CoupleTree.jsx   Animated Emirati couple + family tree (hero)
 │       ├── GrowSection.jsx  Scroll-driven tree growth (Roots → Bonds → Branches)
-│       ├── JourneyWalk.jsx  Scroll-driven walking family with milestones
+│       ├── JourneyWalk.jsx  Scroll-driven journey: engagement to a protected family
+│       ├── Walker.jsx       Side-view characters with a scroll-driven walk cycle
 │       └── i18n*.js         English and Arabic copy
 ├── logo/                DaNA logo explorations (SVG + PNG)
 ├── landing/             Static HTML mockups
