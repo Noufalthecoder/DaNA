@@ -27,10 +27,10 @@ export function Stat({ label, value, note }) {
   return <div className="stat"><span>{label}</span><strong>{value}</strong>{note && <small>{note}</small>}</div>;
 }
 
-const PRI = { urgent: ['●', 'Urgent'], high: ['▲', 'High'], low: ['■', 'Low'], routine: ['○', 'Routine'] };
+const PRI = { urgent: ['●', 'Urgent', 1], high: ['▲', 'High', 2], moderate: ['■', 'Moderate', 3], routine: ['○', 'Routine', 4] };
 export function Priority({ p }) {
-  const [icon, label] = PRI[p];
-  return <span className={`pri pri-${p}`}><i aria-hidden="true">{icon}</i>{label}</span>;
+  const [icon, label, tier] = PRI[p] || PRI.routine;
+  return <span className={`pri pri-${p}`}><i aria-hidden="true">{icon}</i>Tier {tier} · {label}</span>;
 }
 
 export function Badge({ children, tone = 'grey' }) {

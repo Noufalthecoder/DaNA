@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Baby, Pencil, Plus, Send, Trash2, UserRound, UserRoundCheck, Users, UsersRound } from 'lucide-react';
-import { Dialog, Page } from '../shared/ui.jsx';
+import { Card, Dialog, Page } from '../shared/ui.jsx';
+import Report from '../shared/Report.jsx';
 import { useStore } from '../shared/store.js';
 import { addRelative, removeRelative, renameRelative, sendAlerts } from '../shared/db.js';
 import { relativesFor } from '../shared/data.js';
@@ -191,6 +192,10 @@ export default function FamilyTree() {
           })}
         </div>
       </div>
+
+      <Card title="Your lab report">
+        <Report personId={me.id} />
+      </Card>
 
       <p className="disclaimer">Visible to you and your counsellor. Names are never sent in Sila alerts. DaNA explains; it does not diagnose. Numbers come from a rules engine, never from AI.</p>
 
