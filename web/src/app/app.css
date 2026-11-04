@@ -82,7 +82,8 @@ body.in-app{background:#F6F7F5}
 .side nav a{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;font-size:14.5px;font-weight:500;color:var(--ink2);text-decoration:none}
 .side nav a:hover{background:#F3F5F4;color:var(--ink)}
 .side nav a.on{background:var(--green-l);color:var(--green);font-weight:600}
-.side .ic{width:22px;text-align:center;font-size:15px}
+.side .ic{width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.side .ic svg{width:18px;height:18px;display:block}
 .side-foot{margin-top:auto;display:grid;gap:6px;padding:10px;font-size:11.5px;color:var(--ink3)}
 .side-foot button{background:none;border:1px dashed var(--line);border-radius:8px;padding:7px;font:500 12px var(--body);color:var(--ink2);cursor:pointer}
 .main{min-width:0;display:flex;flex-direction:column}
