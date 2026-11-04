@@ -6,7 +6,7 @@ const DIST = 3700; // px the world travels across the scene
 /* scroll → distance, with a pause while the family meets the counsellor */
 const MEET = [0.55, 0.66];
 const STOP = 2140;
-const COUNSELLOR_X = 2900;
+const COUNSELLOR_X = 2970;
 const POLES = [580, 1140, 1700, 2260, COUNSELLOR_X, 3500, 4060];
 const C_IDX = 4;   // the counsellor milestone
 const WED_IDX = 3; // married from here on
