@@ -1,40 +1,53 @@
-import { useState } from 'react';
-import { Page, Card, Badge } from '../shared/ui.jsx';
+import { Page, Card } from '../shared/ui.jsx';
 import { useStore } from '../shared/store.js';
+import { sendAlerts } from '../shared/db.js';
+import { relativesFor } from '../shared/data.js';
 import { useCouple } from './useCouple.js';
 
-/* Roots: understand what you carry */
+/* Roots: protect your family with anonymous Sila alerts */
 export default function Roots() {
-  const { me, partner, gene } = useCouple();
-  // live: the database decides (the partner's own consent); offline demo: the local switch
-  const share = useStore((s) => (s.partnerShares ?? s.consents.sharePartner));
-  const [playing, setPlaying] = useState(false);
+  const { me } = useCouple();
+  const sent = useStore((s) => s.alertsSent);
+  const invites = useStore((s) => s.invites);
+  const list = relativesFor(me.id);
+  const send = (ids) => sendAlerts(ids);
 
   return (
-    <Page title="Roots" sub="Understand what you carry">
-      <Card title="Your result" aside={<Badge tone={gene ? 'amber' : 'green'}>{gene ? 'Carrier' : 'Nothing found'}</Badge>}>
-        {gene ? (<>
-          <p className="lead-in">You carry one changed copy of the <b>{gene.symbol}</b> gene, linked to <b>{gene.condition}</b>.</p>
-          <div className="genes" aria-label="Two gene copies: one working, one changed">
-            <div><span className="copy ok" />Working copy</div>
-            <div><span className="copy changed" />Changed copy</div>
-          </div>
-          <ul className="facts">
-            <li><b>You are healthy.</b> Carriers don’t have the condition.</li>
-            <li><b>It’s common.</b> Many healthy people carry a gene like this.</li>
-            <li><b>It matters for children</b> only if your partner carries the same gene.</li>
+    <Page title="Roots" sub="Genes run in families. One private message can protect them."
+      actions={<button className="btn" onClick={() => send(list.map((r) => r.id))}>Send to all</button>}>
+      <div className="grid2">
+        <Card title="Who may also carry it">
+          <ul className="rel">
+            {list.map((r) => {
+              const done = sent.includes(r.id);
+              return (
+                <li key={r.id}>
+                  <span><b>{r.label}</b><small>Chance they carry it: {r.chance}</small></span>
+                  <button className={done ? 'sent' : 'btn-soft'} disabled={done} onClick={() => send([r.id])}>{done ? '✓ Sent' : 'Send alert'}</button>
+                </li>
+              );
+            })}
           </ul>
-        </>) : <p className="lead-in">No disease-causing variant was found in the genes we screened.</p>}
-        <button className="btn-soft" onClick={() => setPlaying(!playing)}>{playing ? '❚❚ Pause' : '▶ Listen in Arabic (voice note)'}</button>
-      </Card>
-
-      <Card title={`${partner.short}’s result`}>
-        {share
-          ? <p>{partner.short} also carries a changed copy of <b>{partner.carrier}</b>. Together, that makes you <a href="#/app/bonds">compatible, with a plan</a>.</p>
-          : <p className="muted">{partner.short} hasn’t shared their result with you. Sharing is always a choice.</p>}
-      </Card>
-
-      <p className="disclaimer">DaNA explains; it does not diagnose. Numbers come from a rules engine, never from AI.</p>
+        </Card>
+        <Card title="What they receive">
+          <div className="sms">
+            <small>SMS · from DaNA</small>
+            <p>Someone who cares about you recommends free genetic screening before marriage. It’s quick, private and free for UAE nationals.</p>
+            <a href={invites.length ? `#/invite/${invites.at(-1).token}` : '#/invite'}>{invites.length ? `dana.ae/i/${invites.at(-1).token.slice(0, 8)}…` : 'dana.ae/i/7Kq2'}</a>
+          </div>
+          {invites.length > 0 && (
+            <div className="invite-links">
+              <span className="muted">One-time links created now (each expires in 14 days, shown only once):</span>
+              {invites.map((x) => <span key={x.token}>{x.label}: <a href={`#/invite/${x.token}`}><code>#/invite/{x.token}</code></a></span>)}
+            </div>
+          )}
+          <ul className="facts">
+            <li>No names, no condition, no family details.</li>
+            <li>They never learn who sent it.</li>
+            <li>Their phone number is deleted after sending.</li>
+          </ul>
+        </Card>
+      </div>
     </Page>
   );
 }

@@ -1,0 +1,23 @@
+# Render blueprint for the DaNA API (FastAPI in api/).
+# Render -> New -> Blueprint -> pick this repo. Secrets are asked for in the dashboard.
+services:
+  - type: web
+    name: dana-api
+    runtime: python
+    plan: free
+    rootDir: api
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: SUPABASE_URL
+        value: https://oflqmhfivyzttlivgusr.supabase.co
+      - key: ALLOWED_ORIGINS
+        value: https://dana-gamma-seven.vercel.app,http://localhost:5173
+      - key: SUPABASE_ANON_KEY
+        sync: false   # entered in the Render dashboard
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false   # SECRET: entered in the Render dashboard only

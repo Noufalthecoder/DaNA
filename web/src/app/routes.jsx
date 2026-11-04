@@ -6,9 +6,9 @@ import Home from './couple/Home.jsx';
 import Screening from './couple/Screening.jsx';
 import Profile from './couple/Profile.jsx';
 import MedicalReport from './couple/MedicalReport.jsx';
-import Roots from './couple/Roots.jsx';
+import FamilyTree from './couple/FamilyTree.jsx';
 import Bonds from './couple/Bonds.jsx';
-import Branches from './couple/Branches.jsx';
+import Roots from './couple/Roots.jsx';
 import CoupleCounsellor from './couple/Counsellor.jsx';
 import Privacy from './couple/Privacy.jsx';
 import Queue from './counsellor/Queue.jsx';
@@ -23,6 +23,7 @@ import {
   RootsIcon,
   BondsIcon,
   BranchesIcon,
+  FamilyTreeIcon,
   CounsellorIcon,
   PrivacyIcon,
   ProfileIcon,
@@ -38,9 +39,9 @@ export const MENUS = {
     label: 'Couple',
     items: [
       { to: '/app', label: 'Home', icon: <HomeIcon /> },
+      { to: '/app/familytree', label: 'Family Tree', icon: <FamilyTreeIcon /> },
       { to: '/app/roots', label: 'Roots', icon: <RootsIcon /> },
       { to: '/app/bonds', label: 'Bonds', icon: <BondsIcon /> },
-      { to: '/app/branches', label: 'Branches', icon: <BranchesIcon /> },
       { to: '/app/counsellor', label: 'Counsellor', icon: <CounsellorIcon /> },
       { to: '/app/privacy', label: 'Privacy', icon: <PrivacyIcon /> },
       { to: '/app/profile', label: 'Profile', icon: <ProfileIcon /> },
@@ -71,9 +72,9 @@ export function page(role, path) {
       '/app/profile': <Profile />,
       '/app/report': <MedicalReport />,
       '/app/screening': <Screening />,
+      '/app/familytree': <FamilyTree />,
       '/app/roots': <Roots />,
       '/app/bonds': <Bonds />,
-      '/app/branches': <Branches />,
       '/app/counsellor': <CoupleCounsellor />,
       '/app/privacy': <Privacy />,
     }[p];

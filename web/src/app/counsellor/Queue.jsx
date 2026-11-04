@@ -1,25 +1,32 @@
 import { useState } from 'react';
 import { Page, Card, Priority, Badge, Stat } from '../shared/ui.jsx';
 import { COUPLES, PEOPLE } from '../shared/data.js';
-import { assess, PRIORITY_ORDER } from '../shared/genetics.js';
+import { assess, PRIORITY_ORDER, TIER_PRIORITY } from '../shared/genetics.js';
 import { useStore } from '../shared/store.js';
 
 /* cases sorted by clinical priority: pregnant + same gene first */
-export function cases() {
-  return COUPLES.map((c) => ({ ...c, r: assess(c) })).sort((x, y) => PRIORITY_ORDER[x.r.priority] - PRIORITY_ORDER[y.r.priority]);
+export function cases(live = {}) {
+  return COUPLES.map((c) => {
+    const r = assess(c);
+    // live: the database's triage engine is the source of truth
+    if (live[c.id]) { r.tier = live[c.id].tier; r.priority = TIER_PRIORITY[r.tier]; }
+    return { ...c, r, counsellor: live[c.id]?.counsellor };
+  }).sort((x, y) => PRIORITY_ORDER[x.r.priority] - PRIORITY_ORDER[y.r.priority]);
 }
 
 export default function Queue() {
   const approved = useStore((s) => s.approved);
+  const live = useStore((s) => s.cases);
   const [filter, setFilter] = useState('open');
-  const all = cases();
+  const all = cases(live);
   const list = all.filter((c) => (filter === 'open' ? !approved.includes(c.id) : filter === 'done' ? approved.includes(c.id) : true));
 
   return (
     <Page title="Case queue" sub="Sorted by priority. Urgent cases are contacted first.">
-      <div className="stats">
-        <Stat label="Urgent" value={all.filter((c) => c.r.priority === 'urgent').length} note="pregnant, same gene" />
-        <Stat label="High" value={all.filter((c) => c.r.priority === 'high').length} />
+      <div className="stats four">
+        <Stat label="Tier 1 · Urgent" value={all.filter((c) => c.r.priority === 'urgent').length} note="pregnant, shared finding" />
+        <Stat label="Tier 2 · High" value={all.filter((c) => c.r.priority === 'high').length} />
+        <Stat label="Tier 3 · Moderate" value={all.filter((c) => c.r.priority === 'moderate').length} note="uncertain or single carrier" />
         <Stat label="Plans approved" value={approved.length} />
       </div>
       <Card title="Couples" aside={

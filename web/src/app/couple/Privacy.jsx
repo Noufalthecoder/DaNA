@@ -3,7 +3,7 @@ import { useStore } from '../shared/store.js';
 import { setConsent } from '../shared/db.js';
 
 const ITEMS = [
-  ['sharePartner', 'Share my result with my partner', 'Your partner sees your result in Roots.'],
+  ['sharePartner', 'Share my result with my partner', 'Your partner can see your result.'],
   ['shareCounsellor', 'Share my result with my counsellor', 'Needed for a counselling session.'],
   ['faithCards', 'Show faith cards', 'Scholar-reviewed guidance, optional.'],
 ];

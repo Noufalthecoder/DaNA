@@ -4,7 +4,7 @@ The app is split into four modules. **Each person owns one folder**, so you can 
 
 | # | Module | Owner | Folder | What you build |
 |---|---|---|---|---|
-| 1 | **Couple app** | _name_ | `web/src/app/couple/` | Home, Roots, Bonds, Branches, Counsellor booking, Privacy |
+| 1 | **Couple app** | _name_ | `web/src/app/couple/` | Home, Family Tree, Bonds, Roots, Counsellor booking, Privacy |
 | 2 | **Counsellor portal** | _name_ | `web/src/app/counsellor/` | Case queue, case view, notes, plan approval, schedule |
 | 3 | **DoH dashboard** | _name_ | `web/src/app/admin/` | Programme overview, content review, audit log |
 | 4 | **Platform** | _name_ | `web/src/app/shared/` + landing page | Login, data, rules engine, store, shared UI, landing page |

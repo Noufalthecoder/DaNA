@@ -13,6 +13,21 @@ import { supabase, hasBackend } from './supabase.js';
 
 const ROLE = { couple: 'Couple', counsellor: 'Counsellor', admin: 'DoH admin' };
 
+/* plain-language versions of Supabase's sign-in and sign-up errors */
+function friendly(msg = '') {
+  const m = msg.toLowerCase();
+  if (m.includes('invalid login credentials')) return 'Wrong email or password.';
+  if (m.includes('email not confirmed')) return 'Please open the confirmation email we sent you, then sign in.';
+  if (m.includes('already registered') || m.includes('already been registered')) return 'This email already has an account. Sign in instead.';
+  if (m.includes('rate limit') || m.includes('too many')) return 'Too many attempts. Please wait a minute and try again.';
+  if (m.includes('password should be') || m.includes('weak password')) return 'Choose a stronger password: at least 8 characters.';
+  if (m.includes('invalid') && m.includes('email')) return 'Please enter a valid email address.';
+  if (m.includes('signups not allowed') || m.includes('signup is disabled')) return 'New accounts are switched off right now.';
+  if (m.includes('duplicate key') || m.includes('accounts_pkey')) return 'Your account is ready. Please sign in again.';
+  if (m.includes('failed to fetch') || m.includes('network')) return 'Can’t reach DaNA right now. Check your internet and try again.';
+  return msg;
+}
+
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
@@ -32,9 +47,11 @@ export default function Login() {
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [exists, setExists] = useState(false); // sign-up hit an email that already has an account
   const authError = useStore((s) => s.authError);
   const field = (k) => ({ value: form[k], onChange: (e) => setForm({ ...form, [k]: e.target.value }) });
-  const to = (s) => { setError(''); setStep(s); };
+  const clearAuthError = () => { if (authError) set({ authError: null }); };
+  const to = (s) => { setError(''); setExists(false); clearAuthError(); setStep(s); };
 
   // Arriving at login resets any active session and restarts the journey flow
   useEffect(() => {
@@ -72,32 +89,34 @@ export default function Login() {
   };
 
   const google = async () => {
-    setError('');
+    setError(''); clearAuthError();
     window.__danaVia = null;
     const { error: e } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + window.location.pathname } });
-    if (e) setError(e.message);
+    if (e) setError(friendly(e.message));
   };
 
   const emailSignIn = async (e) => {
     e.preventDefault();
-    setBusy(true); setError('');
+    setBusy(true); setError(''); clearAuthError();
     window.__danaVia = null;
     const { error: err } = await supabase.auth.signInWithPassword({ email: form.email.trim(), password: form.password });
-    setBusy(false);
-    if (err) setError(err.message === 'Invalid login credentials' ? 'Wrong email or password.' : err.message);
+    if (err) { setBusy(false); setError(friendly(err.message)); } // on success stay busy until the app opens
   };
 
   const signUp = async (e) => {
     e.preventDefault();
     if (form.password.length < 8) { setError('Use at least 8 characters for your password.'); return; }
-    setBusy(true); setError('');
+    setBusy(true); setError(''); setExists(false); clearAuthError();
     window.__danaVia = null;
     const { data, error: err } = await supabase.auth.signUp({
       email: form.email.trim(), password: form.password,
       options: { data: { full_name: form.name.trim() }, emailRedirectTo: window.location.origin + window.location.pathname },
     });
-    setBusy(false);
-    if (err) setError(err.message);
+    if (err || !data.session) setBusy(false); // on success stay busy until the app opens
+    const taken = (err && /already (been )?registered/i.test(err.message))
+      || (!err && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0);
+    if (taken) setExists(true);
+    else if (err) setError(friendly(err.message));
     else if (!data.session) setStep('check-email'); // email confirmation is on in Supabase
   };
 
@@ -122,7 +141,7 @@ export default function Login() {
             <button className="method" onClick={() => to('email')} disabled={!hasBackend}><span className="mi" aria-hidden="true">✉</span>Sign in with email</button>
           </div>
           {!hasBackend && notConnected}
-          {(error || authError) && <p className="err">{error || authError}</p>}
+          {(error || authError) && <p className="err">{error || friendly(authError)}</p>}
           <div className="or"><span>New to DaNA?</span></div>
           <button className="method outline" onClick={() => to('signup')} disabled={!hasBackend}>Create an account</button>
           <p className="fine">Demo only: UAE PASS is simulated and all data is synthetic.</p>
@@ -157,7 +176,7 @@ export default function Login() {
             <label>Email<input type="email" required autoComplete="email" {...field('email')} /></label>
             <label>Password<input type="password" required autoComplete="current-password" {...field('password')} /></label>
             {error && <p className="err">{error}</p>}
-            <button className="btn wide" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+            <button className="btn wide" disabled={busy}>{busy ? 'Signing you in…' : 'Sign in'}</button>
             <p className="swap">No account? <button type="button" className="link" onClick={() => to('signup')}>Create one</button></p>
             <button type="button" className="link" onClick={() => to('start')}>← Other ways to sign in</button>
           </form>
@@ -170,8 +189,18 @@ export default function Login() {
             <label>Full name<input required autoComplete="name" {...field('name')} /></label>
             <label>Email<input type="email" required autoComplete="email" {...field('email')} /></label>
             <label>Password<input type="password" required minLength={8} autoComplete="new-password" {...field('password')} /><small>At least 8 characters</small></label>
+            {exists && (
+              <div className="exists">
+                <p><b>{form.email}</b> already has a DaNA account.</p>
+                <p className="muted">If you used Google before, continue with Google. Otherwise sign in with your password.</p>
+                <div className="exists-a">
+                  <button type="button" className="btn" onClick={() => to('email')}>Sign in</button>
+                  <button type="button" className="method" onClick={google}><GoogleIcon />Continue with Google</button>
+                </div>
+              </div>
+            )}
             {error && <p className="err">{error}</p>}
-            <button className="btn wide" disabled={busy}>{busy ? 'Creating…' : 'Create account'}</button>
+            <button className="btn wide" disabled={busy}>{busy ? 'Setting up your account…' : 'Create account'}</button>
             <button type="button" className="method google-inline" onClick={google}><GoogleIcon />Sign up with Google</button>
             <p className="swap">Already have an account? <button type="button" className="link" onClick={() => to('email')}>Sign in</button></p>
           </form>

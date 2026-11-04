@@ -1,27 +1,40 @@
 /*
-  Genetics rules engine (deterministic). Maths decides, AI only explains.
-  Owner: Platform. Add unit tests here before adding new inheritance patterns.
+  Genetics rules engine (deterministic, versioned). Maths decides, AI only explains.
+  Mirrors compute_tier() in supabase/004_spec_v3.sql so the offline demo and the
+  database always agree. Owner: Platform.
+
+  Tier 1 urgent  : pregnant + shared pathogenic finding (or X-linked)
+  Tier 2 high    : shared AR pathogenic finding, or X-linked female carrier
+  Tier 3 moderate: uncertain (VUS) finding, or a single carrier
+  Tier 4 routine : nothing relevant found
 */
 import { GENES, PEOPLE } from './data.js';
 
-/* returns the couple's result type, the risk wording and the counsellor priority */
+export const RULES_VERSION = 'rules-v0.2';
+export const TIER_PRIORITY = { 1: 'urgent', 2: 'high', 3: 'moderate', 4: 'routine' };
+
 export function assess(couple) {
   const a = PEOPLE[couple.a], b = PEOPLE[couple.b];
   const female = a.sex === 'F' ? a : b;
   let r;
 
   if (female.carrier && GENES[female.carrier].inheritance === 'XL') {
-    r = { type: 'xlinked', label: 'X-linked: plan for sons', risk: 'Each son: 1 in 2', priority: 'high', gene: female.carrier };
+    r = { type: 'xlinked', label: 'X-linked: plan for sons', risk: 'Each son: 1 in 2', tier: 2, gene: female.carrier };
   } else if (a.carrier && a.carrier === b.carrier) {
-    r = { type: 'plan', label: 'Compatible, with a plan', risk: 'Each pregnancy: 1 in 4', priority: 'high', gene: a.carrier };
+    r = { type: 'plan', label: 'Compatible, with a plan', risk: 'Each pregnancy: 1 in 4', tier: 2, gene: a.carrier };
+  } else if (a.vus || b.vus) {
+    const gene = a.carrier || b.carrier || a.vus || b.vus;
+    r = { type: 'uncertain', label: 'Uncertain: needs review', risk: 'A counsellor reviews the uncertain finding before any risk is given', tier: 3, gene };
   } else if (a.carrier || b.carrier) {
-    r = { type: 'carrier', label: 'One carrier, low couple risk', risk: 'Same as the general population', priority: 'low', gene: a.carrier || b.carrier };
+    r = { type: 'carrier', label: 'One carrier, low couple risk', risk: 'Same as the general population', tier: 3, gene: a.carrier || b.carrier };
   } else {
-    r = { type: 'clear', label: 'Both clear', risk: 'No shared variant found', priority: 'routine', gene: null };
+    r = { type: 'clear', label: 'Both clear', risk: 'No shared variant found', tier: 4, gene: null };
   }
-  if (couple.pregnantWeeks && r.priority === 'high') r.priority = 'urgent';
+  if (couple.pregnantWeeks && r.tier === 2) r.tier = 1;
+  r.priority = TIER_PRIORITY[r.tier];
   r.condition = r.gene ? GENES[r.gene].condition : null;
+  r.version = RULES_VERSION;
   return r;
 }
 
-export const PRIORITY_ORDER = { urgent: 0, high: 1, low: 2, routine: 3 };
+export const PRIORITY_ORDER = { urgent: 0, high: 1, moderate: 2, routine: 3 };

@@ -33,7 +33,7 @@ export default function Home() {
         }
       : !sent.length
         ? {
-            to: '#/app/branches',
+            to: '#/app/roots',
             t: 'Protect your family',
             p: 'Send private Sila alerts so relatives can screen early.',
           }
@@ -70,7 +70,7 @@ export default function Home() {
                 <Badge tone={result.type === 'clear' ? 'green' : 'amber'}>{result.label}</Badge>
                 <p><b>{result.condition}</b> · {result.risk}</p>
                 <div style={{ display: 'flex', gap: 14, marginTop: 4, flexWrap: 'wrap' }}>
-                  <a href="#/app/roots">What does this mean? →</a>
+                  <a href={result.type === 'plan' ? '#/app/bonds' : '#/app/counsellor'}>What does this mean? →</a>
                   <a href="#/app/report" style={{ color: 'var(--ink2)' }}>View medical report →</a>
                   <a href="#/app/profile" style={{ color: 'var(--ink2)' }}>Update profile data →</a>
                 </div>

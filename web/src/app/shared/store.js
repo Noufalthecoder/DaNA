@@ -18,8 +18,17 @@ const initial = {
   audit: [],
   screeningIntakes: {},
   partnerShares: null, // live mode: can I see my partner's result?
+  family: {},          // person id -> their family_members rows
   stats: null,         // live mode: DoH totals from the database
   dbError: null,
+  reports: {},        // person id -> validated report (live)
+  cases: {},          // couple id -> { id, tier, counsellor } (live)
+  referrals: {},      // couple id -> [referral]
+  invites: [],
+  slots: [],          // live: free slots of my counsellor [{ id, label, counsellor }]
+  apptIds: {},        // couple id -> booked appointment id        // Sila links created this session: [{ label, token }]
+  tiers: null,        // DoH: couples per tier (small groups hidden)
+  breakdown: null,    // DoH: couples per condition (small groups hidden)
 };
 
 let state = load();
