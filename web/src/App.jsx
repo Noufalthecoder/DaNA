@@ -137,7 +137,9 @@ export default function App() {
   const [protectedCount, setProtectedCount] = useState(0);
   const L = { ...t[lang], ...t2[lang] };
   const ar = lang === 'ar';
-  const [intro, setIntro] = useState(() => !new URLSearchParams(window.location.search).has('nointro'));
+  /* the intro plays once per visit, not every time you come back from the app */
+  const [intro, setIntro] = useState(() => !window.__danaIntro && !new URLSearchParams(window.location.search).has('nointro'));
+  useEffect(() => { window.__danaIntro = true; }, []);
   useEffect(() => { if (!intro) return; const id = setTimeout(() => setIntro(false), 2900); return () => clearTimeout(id); }, [intro]);
   useEffect(() => {
     document.documentElement.dir = ar ? 'rtl' : 'ltr';
@@ -189,7 +191,7 @@ export default function App() {
               <button className={`arb ${ar ? 'on' : ''}`} onClick={() => setLang('ar')}>عربي</button>
               <button className={!ar ? 'on' : ''} onClick={() => setLang('en')}>EN</button>
             </div>
-            <a className="btn btn-dark" href="#">{L.login}</a>
+            <a className="btn btn-dark" href="#/login">{L.login}</a>
           </div>
         </div>
       </motion.nav>
@@ -206,7 +208,7 @@ export default function App() {
             <motion.div className="h1-sub" dir={ar ? 'ltr' : 'rtl'} style={{ textAlign: ar ? 'right' : 'left' }} key={`s-${lang}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: d0 + 0.7, duration: 0.8 }}>{L.h1ar}</motion.div>
             <motion.p className="lead" key={`l-${lang}`} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: d0 + 0.8, duration: 0.9, ease }}>{L.lead}</motion.p>
             <motion.div className="ctas" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: d0 + 0.95, duration: 0.9, ease }}>
-              <motion.a className="btn btn-green" href="#" whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>{L.login} <small>{L.demo}</small></motion.a>
+              <motion.a className="btn btn-green" href="#/login" whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>{L.login} <small>{L.demo}</small></motion.a>
               <motion.a className="btn btn-ghost" href="#how" onClick={go('#how')} whileHover={{ y: -2 }}>{L.watch} <span className="arr">{ar ? '←' : '→'}</span></motion.a>
             </motion.div>
             <motion.div className="chips" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: d0 + 1.1, duration: 0.8 }}>
@@ -309,7 +311,7 @@ export default function App() {
       <footer>
         <div className="wrap row">
           <div className="brand"><Logo size={30} /><span>D<span className="a">a</span>NA</span> <span className="ar fa">دانة</span></div>
-          <div className="pro">{L.pro.map((p) => <a key={p} href="#">{p}</a>)}</div>
+          <div className="pro">{L.pro.map((p) => <a key={p} href="#/login">{p}</a>)}</div>
         </div>
         <div className="wrap fnote">{L.foot}</div>
         <FooterMark />

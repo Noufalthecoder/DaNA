@@ -132,10 +132,10 @@ h1.title .dot{color:var(--red);font-style:normal}
 [dir=rtl] .treesec .tt{letter-spacing:0;line-height:1.35}
 .treesec .tt.g{color:#3CC07A}
 .treesec p{color:#A9B8B0;font-size:17px;line-height:1.75;margin:22px 0 28px;max-width:520px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#252D28;border-radius:20px;overflow:hidden;border:1px solid #252D28}
-.stat{background:var(--black);padding:20px}
-.stat strong{display:block;font-family:var(--head);font-size:34px;font-weight:800}
-.stat span{font-size:12.5px;color:#8FA197}
+.treesec .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#252D28;border-radius:20px;overflow:hidden;border:1px solid #252D28}
+.treesec .stat{background:var(--black);padding:20px}
+.treesec .stat strong{display:block;font-family:var(--head);font-size:34px;font-weight:800}
+.treesec .stat span{font-size:12.5px;color:#8FA197}
 .alert-btn{background:var(--red);color:#fff;box-shadow:0 10px 30px -8px rgba(206,17,38,.6)}
 .alert-btn.done{background:#1A201C;box-shadow:none;border:1px solid #2F3A33}
 .treesec .btn-line{background:transparent;color:#fff;border:1px solid #3A463F}
@@ -270,7 +270,7 @@ footer .fa{font-size:20px;color:#3CC07A;margin-inline-start:6px}
   .tlist{grid-template-columns:1fr}
   .grow-svg{max-height:40vh}
   .family{left:6%}
-  .stats{grid-template-columns:1fr}
+  .treesec .stats{grid-template-columns:1fr}
 }
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:.01ms!important;animation-iteration-count:1!important}

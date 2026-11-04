@@ -177,6 +177,18 @@ Open **http://localhost:5173**. Handy URL options:
 |---|---|
 | `/?lang=ar` | Arabic, right to left |
 | `/?nointro` | Skips the opening animation |
+| `/#/login` | Demo login (simulated UAE PASS) |
+| `/#/invite` | What a relative sees after a Sila alert |
+
+### Demo logins
+
+| Account | Role | What they can do |
+|---|---|---|
+| Khalid Al Mansoori · Fatima Al Hammadi | **Couple** | Read their result (Roots), choose a plan together (Bonds), send anonymous Sila alerts (Branches), book a counsellor, manage consent |
+| Dr. Mariam Al Hosani | **Counsellor** | Case queue sorted by priority, case view, private notes, plan approval, schedule |
+| Programme team | **DoH admin** | Programme overview, faith-content approval, append-only audit log |
+
+Relatives never log in: they receive a private invite link. Everything you do is saved in the browser and shows up in the admin's audit log. **Working as a team?** See [docs/TEAM.md](docs/TEAM.md) for who owns which module.
 
 **Tech:** React 18 · Vite 6 · Framer Motion 11 · Lenis · Google Fonts (Outfit, Inter, Tajawal). The README visuals are real-time 3D scenes rendered with three.js (sources in [`docs/assets-src`](docs/assets-src)).
 
@@ -206,6 +218,7 @@ Open **http://localhost:5173**. Handy URL options:
 - [x] Concept, research and policy alignment
 - [x] Brand, logo and animated bilingual landing page
 - [x] Scroll-driven storytelling: growing tree and walking family
+- [x] Clickable demo: simulated UAE PASS login with couple, counsellor and DoH views
 - [ ] Genetics rules engine with full test suite
 - [ ] Synthetic family simulator (500+ families with cousin marriages)
 - [ ] Couple app: Roots, Bonds, Branches and pearl family tree
