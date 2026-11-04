@@ -5,7 +5,7 @@
 */
 import { useSyncExternalStore } from 'react';
 
-const KEY = 'dana-demo-v1';
+const KEY = 'dana-demo-v2';
 const initial = {
   session: null,
   alertsSent: [],
@@ -15,6 +15,7 @@ const initial = {
   booked: null,
   faith: {},
   audit: [],
+  screeningIntakes: {},
 };
 
 let state = load();
@@ -41,9 +42,27 @@ export function set(patch, auditText) {
 
 export function get() { return state; }
 
+export function signOut() {
+  state = {
+    ...initial,
+    session: null,
+    screeningIntakes: {},
+    alertsSent: [],
+    plan: null,
+    booked: null,
+    notes: {},
+    approved: [],
+    faith: {},
+    consents: { sharePartner: true, shareCounsellor: true, faithCards: true },
+    audit: state.audit || [],
+  };
+  save();
+  subs.forEach((f) => f());
+}
+
 export function resetDemo() {
   const session = state.session;
-  state = { ...initial, session };
+  state = { ...initial, session, screeningIntakes: {} };
   save();
   subs.forEach((f) => f());
 }

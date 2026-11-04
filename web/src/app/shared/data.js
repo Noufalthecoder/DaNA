@@ -69,3 +69,86 @@ export const FAITH_CARDS = [
   { id: 'f3', title: 'IVF with embryo testing: what scholars say', status: 'pending', reviewer: '' },
   { id: 'f4', title: 'Caring for kin (Silat al-rahim) and Sila alerts', status: 'pending', reviewer: '' },
 ];
+
+/* Verified synthetic data for UAE PASS & Malaffi auto-fill */
+export const SYNTHETIC_INTAKES = {
+  fatima: {
+    personal: {
+      fullName: 'Fatima Al Hammadi',
+      fullNameAr: 'فاطمة الحمادي',
+      emiratesId: '784-1998-3482910-2',
+      dob: '1998-04-14',
+      gender: 'Female',
+      phone: '+971 50 492 8173',
+      email: 'fatima.alhammadi@example.ae',
+      nationality: 'United Arab Emirates',
+      city: 'Abu Dhabi',
+    },
+    medical: {
+      bloodGroup: 'O+',
+      conditions: 'Mild iron-deficiency anemia',
+      medications: 'Folic acid supplements (0.4mg daily)',
+      surgeries: 'Appendectomy (2018 at Cleveland Clinic Abu Dhabi)',
+      allergies: 'Penicillin (mild skin rash)',
+    },
+    family: [
+      { id: 1, relation: 'Mother', condition: 'Type 2 Diabetes', cancerHistory: 'None' },
+      { id: 2, relation: 'Maternal Uncle', condition: 'Beta-thalassaemia trait (Carrier)', cancerHistory: 'None' },
+      { id: 3, relation: 'Paternal Grandmother', condition: 'Hypertension', cancerHistory: 'Colorectal (age 72)' },
+    ],
+    compliance: {
+      isPregnant: 'no',
+      gestationalWeeks: '',
+      isConsanguineous: 'yes',
+      relationToPartner: 'Second cousin (Maternal grandmothers are sisters)',
+      weddingDate: '2027-02-15',
+      previousScreening: 'no',
+    },
+    consent: {
+      malaffiSync: true,
+      partnerShare: true,
+      counsellorAccess: true,
+      anonymizedResearch: false,
+    },
+  },
+  khalid: {
+    personal: {
+      fullName: 'Khalid Al Mansoori',
+      fullNameAr: 'خالد المنصوري',
+      emiratesId: '784-1995-1829304-1',
+      dob: '1995-09-22',
+      gender: 'Male',
+      phone: '+971 52 839 1029',
+      email: 'khalid.almansoori@example.ae',
+      nationality: 'United Arab Emirates',
+      city: 'Abu Dhabi',
+    },
+    medical: {
+      bloodGroup: 'A+',
+      conditions: 'None reported',
+      medications: 'None',
+      surgeries: 'None',
+      allergies: 'None',
+    },
+    family: [
+      { id: 1, relation: 'Paternal Grandfather', condition: 'Beta-thalassaemia trait (Carrier)', cancerHistory: 'None' },
+      { id: 2, relation: 'Brother', condition: 'Unexplained childhood anemia', cancerHistory: 'None' },
+      { id: 3, relation: 'Paternal Aunt', condition: 'None', cancerHistory: 'Breast cancer (age 58)' },
+    ],
+    compliance: {
+      isPregnant: 'no',
+      gestationalWeeks: '',
+      isConsanguineous: 'yes',
+      relationToPartner: 'Second cousin (Maternal grandmothers are sisters)',
+      weddingDate: '2027-02-15',
+      previousScreening: 'no',
+    },
+    consent: {
+      malaffiSync: true,
+      partnerShare: true,
+      counsellorAccess: true,
+      anonymizedResearch: false,
+    },
+  },
+};
+

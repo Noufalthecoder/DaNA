@@ -3,6 +3,7 @@
   then add one line to your role's `items` and one case to `page()`.
 */
 import Home from './couple/Home.jsx';
+import Screening from './couple/Screening.jsx';
 import Roots from './couple/Roots.jsx';
 import Bonds from './couple/Bonds.jsx';
 import Branches from './couple/Branches.jsx';
@@ -20,6 +21,7 @@ export const MENUS = {
     label: 'Couple',
     items: [
       { to: '/app', label: 'Home', icon: '⌂' },
+      { to: '/app/screening', label: 'Screening', icon: '📋' },
       { to: '/app/roots', label: 'Roots', icon: '🌱' },
       { to: '/app/bonds', label: 'Bonds', icon: '🤝' },
       { to: '/app/branches', label: 'Branches', icon: '🌳' },
@@ -47,7 +49,15 @@ export const MENUS = {
 export function page(role, path) {
   const p = path.replace(/\/$/, '');
   if (role === 'couple') {
-    return { '/app': <Home />, '/app/roots': <Roots />, '/app/bonds': <Bonds />, '/app/branches': <Branches />, '/app/counsellor': <CoupleCounsellor />, '/app/privacy': <Privacy /> }[p];
+    return {
+      '/app': <Home />,
+      '/app/screening': <Screening />,
+      '/app/roots': <Roots />,
+      '/app/bonds': <Bonds />,
+      '/app/branches': <Branches />,
+      '/app/counsellor': <CoupleCounsellor />,
+      '/app/privacy': <Privacy />
+    }[p];
   }
   if (role === 'counsellor') {
     if (p.startsWith('/app/case/')) return <CaseView id={p.split('/').pop()} />;

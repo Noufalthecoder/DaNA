@@ -4,18 +4,54 @@ import { useCouple } from './useCouple.js';
 
 export default function Home() {
   const { me, partner, result } = useCouple();
+  const intakes = useStore((s) => s.screeningIntakes || {});
+  const myIntake = intakes[me.id];
+  const isScreened = !!myIntake?.completed;
+
   const sent = useStore((s) => s.alertsSent);
   const plan = useStore((s) => s.plan);
   const booked = useStore((s) => s.booked);
-  const step = plan ? (sent.length ? 4 : 3) : 2;
-  const next = !plan
-    ? { to: '#/app/bonds', t: 'Choose your plan together', p: 'See every option side by side, then decide as a couple.' }
-    : !sent.length
-      ? { to: '#/app/branches', t: 'Protect your family', p: 'Send private Sila alerts so relatives can screen early.' }
-      : { to: '#/app/counsellor', t: 'Talk to your counsellor', p: 'Ask anything, any time. Dr. Mariam is one tap away.' };
+
+  // Stepper: 0 = Screened, 1 = Results explained, 2 = Plan together, 3 = Protect family
+  const step = !isScreened
+    ? 0
+    : plan
+      ? (sent.length ? 3 : 2)
+      : 2;
+
+  const next = !isScreened
+    ? {
+        to: '#/app/screening',
+        t: 'Complete your screening intake',
+        p: 'Auto-fill with UAE PASS or enter medical, family pedigree & compliance details.',
+      }
+    : !plan
+      ? {
+          to: '#/app/bonds',
+          t: 'Choose your plan together',
+          p: 'See every option side by side, then decide as a couple.',
+        }
+      : !sent.length
+        ? {
+            to: '#/app/branches',
+            t: 'Protect your family',
+            p: 'Send private Sila alerts so relatives can screen early.',
+          }
+        : {
+            to: '#/app/counsellor',
+            t: 'Talk to your counsellor',
+            p: 'Ask anything, any time. Dr. Mariam is one tap away.',
+          };
 
   return (
-    <Page title={`Welcome, ${me.short}`} sub={`You and ${partner.short} · premarital screening complete`}>
+    <Page
+      title={`Welcome, ${me.short}`}
+      sub={
+        isScreened
+          ? `You and ${partner.short} · premarital screening complete`
+          : `You and ${partner.short} · screening intake pending`
+      }
+    >
       <Card title="Your journey">
         <Steps items={['Screened', 'Results explained', 'Plan together', 'Protect family']} current={step} />
       </Card>
@@ -29,14 +65,29 @@ export default function Home() {
         </a>
         <Card title="Your couple result">
           <div className="result-mini">
-            <Badge tone={result.type === 'clear' ? 'green' : 'amber'}>{result.label}</Badge>
-            <p><b>{result.condition}</b> · {result.risk}</p>
-            <a href="#/app/roots">What does this mean? →</a>
+            {isScreened ? (
+              <>
+                <Badge tone={result.type === 'clear' ? 'green' : 'amber'}>{result.label}</Badge>
+                <p><b>{result.condition}</b> · {result.risk}</p>
+                <a href="#/app/roots">What does this mean? →</a>
+              </>
+            ) : (
+              <>
+                <Badge tone="amber">Intake Pending Verification</Badge>
+                <p>Complete the screening intake to unlock full variant comparison & clinical options.</p>
+                <a href="#/app/screening">Start screening intake →</a>
+              </>
+            )}
           </div>
         </Card>
       </div>
 
-      <div className="stats">
+      <div className="stats four">
+        <Stat
+          label="Screening Intake"
+          value={isScreened ? 'Verified' : 'Pending'}
+          note={isScreened ? (myIntake.mode === 'uae_pass' ? 'UAE PASS verified' : 'Manual entry') : 'Action required'}
+        />
         <Stat label="Your plan" value={plan ? plan.split(':')[0] : 'Not chosen'} />
         <Stat label="Relatives invited" value={sent.length} note="anonymously" />
         <Stat label="Counsellor" value={booked ? 'Booked' : 'Available'} note={booked || 'Dr. Mariam'} />

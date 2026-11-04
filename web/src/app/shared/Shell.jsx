@@ -1,8 +1,9 @@
 /* App frame: sidebar menu per role + top bar. Owner: Platform. */
 import { useEffect, useState } from 'react';
-import { set, useStore, resetDemo } from './store.js';
+import { useStore, resetDemo, signOut } from './store.js';
 import { go } from './router.js';
 import { Avatar } from './ui.jsx';
+import { Brand } from './Logo.jsx';
 
 export default function Shell({ menu, path, children }) {
   const session = useStore((s) => s.session);
@@ -10,13 +11,14 @@ export default function Shell({ menu, path, children }) {
   useEffect(() => { document.documentElement.dir = 'ltr'; document.documentElement.lang = 'en'; }, []);
   useEffect(() => setOpen(false), [path]);
 
-  const logout = () => { set({ session: null }, 'Signed out'); go('/login'); };
+  const logout = () => { signOut(); go('/login'); };
+  const switchAccount = (e) => { e.preventDefault(); signOut(); go('/login'); };
   const active = (to) => (to === '/app' ? path === '/app' : path.startsWith(to));
 
   return (
     <div className="shell">
       <aside className={`side ${open ? 'open' : ''}`}>
-        <a className="side-brand" href="#/"><span className="dot" />DaNA</a>
+        <Brand size={32} href="#/" style={{ padding: '4px 10px 18px' }} />
         <div className="side-role">{menu.label}</div>
         <nav>
           {menu.items.map((m) => (
@@ -26,7 +28,7 @@ export default function Shell({ menu, path, children }) {
           ))}
         </nav>
         <div className="side-foot">
-          <button onClick={() => { resetDemo(); }}>Reset demo data</button>
+          <button onClick={() => { resetDemo(); if (session?.role === 'couple') go('/app/screening'); }}>Reset demo data</button>
           <span>Synthetic data · simulated UAE PASS</span>
         </div>
       </aside>
@@ -36,10 +38,10 @@ export default function Shell({ menu, path, children }) {
           <button className="burger" onClick={() => setOpen(!open)} aria-label="Menu">☰</button>
           <div className="top-who">
             <Avatar name={session.name} size={34} />
-            <span><b>{session.name}</b><small>{session.title}</small></span>
+            <span><b>{session.name}</b>{session.role !== 'couple' && <small>{session.title}</small>}</span>
           </div>
           <div className="top-r">
-            <a className="ghost" href="#/login" onClick={(e) => { e.preventDefault(); set({ session: null }); go('/login'); }}>Switch account</a>
+            <a className="ghost" href="#/login" onClick={switchAccount}>Switch account</a>
             <button className="ghost" onClick={logout}>Sign out</button>
           </div>
         </header>

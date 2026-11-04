@@ -1,4 +1,5 @@
 /* Shared building blocks. Owner: Platform. Use these so every module looks the same. */
+export { Logo, Brand } from './Logo.jsx';
 
 export function Page({ title, sub, actions, children }) {
   return (
