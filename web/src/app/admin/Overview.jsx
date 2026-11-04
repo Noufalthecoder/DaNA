@@ -54,21 +54,53 @@ function ScreeningsChart() {
   );
 }
 
+/* k-anonymity: a group smaller than 5 is never shown, so nobody can be identified */
+function Suppressed({ rows }) {
+  const max = Math.max(1, ...rows.map((r) => Number(r.n) || 0));
+  return (
+    <div className="tierbars">
+      {rows.map((r) => (
+        <div key={r.label}>
+          <span>{r.label}</span>
+          <span className="track"><span className="fill" style={{ display: 'block', width: r.hidden ? 0 : `${(Number(r.n) / max) * 100}%` }} /></span>
+          <span className={r.hidden ? 'hidden' : ''}>{r.hidden ? 'fewer than 5' : Number(r.n).toLocaleString()}</span>
+        </div>
+      ))}
+      {!rows.length && <span className="muted">No data yet.</span>}
+    </div>
+  );
+}
+
 export default function Overview() {
   const sent = useStore((s) => s.alertsSent);
   const approved = useStore((s) => s.approved);
+  const stats = useStore((s) => s.stats); // live: real totals from the database (DoH sees totals only)
+  const alertCount = stats ? Number(stats.alerts_sent) : sent.length;
+  const approvedCount = stats ? Number(stats.plans_approved) : approved.length;
+  const tiers = useStore((s) => s.tiers);
+  const breakdown = useStore((s) => s.breakdown);
   return (
     <Page title="Programme overview" sub="Abu Dhabi premarital genetic screening · synthetic data">
       <div className="stats four">
         <Stat label="Couples screened" value="8,405" note="since May 2026" />
         <Stat label="Same-gene couples" value="312" note="compatible, with a plan" />
-        <Stat label="Sila alerts sent" value={(1284 + sent.length).toLocaleString()} note="anonymous" />
+        <Stat label="Sila alerts sent" value={(1284 + alertCount).toLocaleString()} note="anonymous" />
         <Stat label="Relatives screened" value="417" note="after an alert" />
       </div>
       <ScreeningsChart />
+      {tiers && (
+        <div className="grid2">
+          <Card title="Couples by triage tier" aside={<small className="muted">groups under 5 hidden</small>}>
+            <Suppressed rows={tiers.map((t) => ({ label: `Tier ${t.triage_tier} · ${['Urgent', 'High', 'Moderate', 'Routine'][t.triage_tier - 1]}`, n: t.couples, hidden: t.suppressed }))} />
+          </Card>
+          <Card title="Couples needing support, by condition" aside={<small className="muted">groups under 5 hidden</small>}>
+            <Suppressed rows={(breakdown || []).map((b) => ({ label: b.condition, n: b.couples, hidden: b.suppressed }))} />
+          </Card>
+        </div>
+      )}
       <div className="stats">
         <Stat label="Median wait for counsellor" value="2.4 days" note="urgent cases: same day" />
-        <Stat label="Plans approved" value={(268 + approved.length).toLocaleString()} />
+        <Stat label="Plans approved" value={(268 + approvedCount).toLocaleString()} />
         <Stat label="Couples who married" value="91%" note="of same-gene couples, with a plan" />
       </div>
     </Page>

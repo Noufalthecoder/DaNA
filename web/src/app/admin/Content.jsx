@@ -1,12 +1,13 @@
 import { Page, Card, Badge } from '../shared/ui.jsx';
 import { FAITH_CARDS } from '../shared/data.js';
-import { set, useStore } from '../shared/store.js';
+import { useStore } from '../shared/store.js';
+import { decideCard } from '../shared/db.js';
 
 /* scholar-reviewed faith cards: nothing goes live until it is approved */
 export default function Content() {
   const faith = useStore((s) => s.faith);
   const status = (c) => faith[c.id] || c.status;
-  const decide = (c, v) => set({ faith: { ...faith, [c.id]: v } }, `Faith card ${v}: “${c.title}”`);
+  const decide = (c, v) => decideCard(c, v);
 
   return (
     <Page title="Content review" sub="Faith cards are reviewed by qualified scholars before they go live. AI never gives religious rulings.">

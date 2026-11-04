@@ -6,3 +6,9 @@ Thumbs.db
 .env
 .env.*
 .vscode/
+!.env.example
+
+# Python API
+api/.venv/
+__pycache__/
+.pytest_cache/

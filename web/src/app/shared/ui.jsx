@@ -1,4 +1,7 @@
 /* Shared building blocks. Owner: Platform. Use these so every module looks the same. */
+import { useEffect, useRef } from 'react';
+import { X } from 'lucide-react';
+export { Logo, Brand } from './Logo.jsx';
 
 export function Page({ title, sub, actions, children }) {
   return (
@@ -25,10 +28,10 @@ export function Stat({ label, value, note }) {
   return <div className="stat"><span>{label}</span><strong>{value}</strong>{note && <small>{note}</small>}</div>;
 }
 
-const PRI = { urgent: ['●', 'Urgent'], high: ['▲', 'High'], low: ['■', 'Low'], routine: ['○', 'Routine'] };
+const PRI = { urgent: ['●', 'Urgent', 1], high: ['▲', 'High', 2], moderate: ['■', 'Moderate', 3], routine: ['○', 'Routine', 4] };
 export function Priority({ p }) {
-  const [icon, label] = PRI[p];
-  return <span className={`pri pri-${p}`}><i aria-hidden="true">{icon}</i>{label}</span>;
+  const [icon, label, tier] = PRI[p] || PRI.routine;
+  return <span className={`pri pri-${p}`}><i aria-hidden="true">{icon}</i>Tier {tier} · {label}</span>;
 }
 
 export function Badge({ children, tone = 'grey' }) {
@@ -61,5 +64,24 @@ export function Avatar({ name = '', size = 36 }) {
     safeName.replace(/^Dr\.\s*/, '').split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() ||
     safeName[0]?.toUpperCase() ||
     '?';
-  return <span className="avatar" style={{ width: size, height: size, fontSize: size * 0.38 }}>{initials}</span>;
+  return <span className={`avatar avatar-${size}`} style={{ width: size, height: size, fontSize: size * 0.38 }}>{initials}</span>;
+}
+
+/* A modal built on the native dialog, so focus and the Escape key just work. */
+export function Dialog({ title, icon, footer, onSubmit, onClose, children }) {
+  const box = useRef(null);
+  useEffect(() => { box.current?.showModal(); }, []);
+  return (
+    <dialog className="dialog" ref={box} onClose={onClose} aria-label={title}>
+      <form onSubmit={onSubmit}>
+        <div className="dialog-h">
+          {icon}
+          <h2>{title}</h2>
+          <button type="button" className="dialog-x" aria-label="Close" onClick={onClose}><X size={18} /></button>
+        </div>
+        <div className="dialog-b">{children}</div>
+        <div className="dialog-f">{footer}</div>
+      </form>
+    </dialog>
+  );
 }

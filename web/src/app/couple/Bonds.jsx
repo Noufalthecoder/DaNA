@@ -1,5 +1,6 @@
 import { Page, Card, Badge, Steps } from '../shared/ui.jsx';
 import { set, useStore } from '../shared/store.js';
+import { choosePlan } from '../shared/db.js';
 import { useCouple } from './useCouple.js';
 import { IconPartner, IconArrowRight } from '../shared/Icons.jsx';
 
@@ -30,11 +31,21 @@ const TIMELINE = [
 ];
 
 export default function Bonds() {
-  const { result, partner, me, isConnected } = useCouple();
-  const plan = useStore((s) => s.plan);
+  const { result, partner, me, couple, isConnected } = useCouple();
+  const coupleId = couple?.id;
+  const planFromStore = useStore((s) => (coupleId && s.plans ? s.plans[coupleId] : s.plan));
+  const plan = planFromStore || null;
+  const approved = useStore((s) => (coupleId && Array.isArray(s.approved) ? s.approved.includes(coupleId) : false));
   const booked = useStore((s) => s.booked);
 
-  const choose = (id) => set({ plan: id }, `Couple chose reproductive plan: ${id}`);
+  const choose = (id) => {
+    if (id !== plan) {
+      if (coupleId && typeof choosePlan === 'function') {
+        try { choosePlan(coupleId, id); } catch {}
+      }
+      set({ plan: id }, `Couple chose reproductive plan: ${id}`);
+    }
+  };
 
   // Calculate current step in timeline
   const currentStep = !isConnected ? 1 : !plan ? 2 : !booked ? 3 : 4;
@@ -44,7 +55,7 @@ export default function Bonds() {
       title="Bonds · الروابط"
       sub={
         isConnected
-          ? `Premarital partner assessment for ${me.short} & ${partner.short}. Compatible, with a plan.`
+          ? `Premarital partner assessment for ${me?.short || 'You'} & ${partner?.short || 'Partner'}. Compatible, with a plan.`
           : 'Connect with your premarital partner to evaluate combined reproductive genetic risks.'
       }
     >
@@ -63,7 +74,7 @@ export default function Bonds() {
             <p className="lead-in">
               {result.type === 'plan' ? (
                 <>
-                  Both you and {partner.short} carry one copy of the <b>{result.gene}</b> gene variant linked to <b>{result.condition}</b> (Autosomal Recessive).
+                  Both you and {partner?.short || 'Partner'} carry one copy of the <b>{result.gene}</b> gene variant linked to <b>{result.condition}</b> (Autosomal Recessive).
                 </>
               ) : result.type === 'xlinked' ? (
                 <>
@@ -75,7 +86,7 @@ export default function Bonds() {
                 </>
               ) : (
                 <>
-                  No shared variants were detected between you and {partner.short} across the screened Abu Dhabi panel.
+                  No shared variants were detected between you and {partner?.short || 'Partner'} across the screened Abu Dhabi panel.
                 </>
               )}
             </p>
@@ -100,13 +111,13 @@ export default function Bonds() {
                 <li><b>75% chance in each pregnancy</b> of having a healthy child (unaffected or healthy carrier).</li>
                 <li><b>25% chance in each pregnancy</b> of the child inheriting both copies and having {result.condition || 'the condition'}.</li>
                 <li><b>Independent probabilities:</b> Each pregnancy has the exact same odds, regardless of previous outcomes.</li>
-                <li><b>DaNA never says "do not marry":</b> You are <em>compatible, with a plan</em>.</li>
+                <li><b>DaNA never says &ldquo;do not marry&rdquo;:</b> You are <em>compatible, with a plan</em>.</li>
               </ul>
             </div>
           </Card>
 
           {/* Reproductive Options */}
-          <h2 className="sec-h">Reproductive Options, Side by Side</h2>
+          <h2 className="sec-h">Your options, side by side</h2>
           <div className="options">
             {OPTIONS.map((o) => (
               <button
@@ -121,7 +132,11 @@ export default function Bonds() {
                     <Badge key={t}>{t}</Badge>
                   ))}
                 </div>
-                <span className="pick">{plan === o.id ? '✓ Our Selected Plan' : 'Choose this option'}</span>
+                <span className="pick">
+                  {plan === o.id
+                    ? (approved ? '✓ Our plan · approved by your counsellor' : '✓ Our plan · waiting for your counsellor')
+                    : 'Choose this option'}
+                </span>
               </button>
             ))}
           </div>

@@ -5,16 +5,30 @@
 */
 import { useSyncExternalStore } from 'react';
 
-const KEY = 'dana-demo-v1';
+const KEY = 'dana-demo-v2';
 const initial = {
   session: null,
   alertsSent: [],
   consents: { sharePartner: true, shareCounsellor: true, faithCards: true },
   notes: {},
   approved: [],
-  booked: null,
+  plans: {},          // couple id -> chosen plan
+  appointments: {},   // couple id -> booked slot label
   faith: {},
   audit: [],
+  family: {},          // person id -> their family_members rows
+  screeningIntakes: {},
+  partnerShares: null, // live mode: can I see my partner's result?
+  stats: null,         // live mode: DoH totals from the database
+  dbError: null,
+  reports: {},        // person id -> validated report (live)
+  cases: {},          // couple id -> { id, tier, counsellor } (live)
+  referrals: {},      // couple id -> [referral]
+  invites: [],
+  slots: [],          // live: free slots of my counsellor [{ id, label, counsellor }]
+  apptIds: {},        // couple id -> booked appointment id        // Sila links created this session: [{ label, token }]
+  tiers: null,        // DoH: couples per tier (small groups hidden)
+  breakdown: null,    // DoH: couples per condition (small groups hidden)
 };
 
 let state = load();
@@ -41,9 +55,36 @@ export function set(patch, auditText) {
 
 export function get() { return state; }
 
+export function signOut() {
+  state = {
+    ...initial,
+    session: null,
+    screeningIntakes: {},
+    alertsSent: [],
+    plan: null,
+    booked: null,
+    plans: {},
+    appointments: {},
+    notes: {},
+    approved: [],
+    faith: {},
+    consents: { sharePartner: true, shareCounsellor: true, faithCards: true },
+    audit: state.audit || [],
+  };
+  save();
+  subs.forEach((f) => f());
+}
+
+/* wipe saved demo data but keep (or replace) the session: used when a real login starts */
+export function startFresh(session) {
+  state = { ...initial, session, screeningIntakes: {} };
+  save();
+  subs.forEach((f) => f());
+}
+
 export function resetDemo() {
   const session = state.session;
-  state = { ...initial, session };
+  state = { ...initial, session, screeningIntakes: {} };
   save();
   subs.forEach((f) => f());
 }

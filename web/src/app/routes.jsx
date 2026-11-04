@@ -3,10 +3,13 @@
   then add one line to your role's `items` and one case to `page()`.
 */
 import Home from './couple/Home.jsx';
-import Roots from './couple/Roots.jsx';
+import FamilyTree from './couple/FamilyTree.jsx';
+import Screening from './couple/Screening.jsx';
+import Profile from './couple/Profile.jsx';
+import MedicalReport from './couple/MedicalReport.jsx';
 import Bonds from './couple/Bonds.jsx';
-import Branches from './couple/Branches.jsx';
 import Connections from './couple/Connections.jsx';
+import Roots from './couple/Roots.jsx';
 import CoupleCounsellor from './couple/Counsellor.jsx';
 import Privacy from './couple/Privacy.jsx';
 import Queue from './counsellor/Queue.jsx';
@@ -16,32 +19,49 @@ import Overview from './admin/Overview.jsx';
 import Content from './admin/Content.jsx';
 import Audit from './admin/Audit.jsx';
 
+import {
+  HomeIcon,
+  RootsIcon,
+  BondsIcon,
+  BranchesIcon,
+  CounsellorIcon,
+  PrivacyIcon,
+  ProfileIcon,
+  QueueIcon,
+  ScheduleIcon,
+  OverviewIcon,
+  ContentIcon,
+  AuditIcon,
+  ConnectionsIcon,
+} from './shared/Icons.jsx';
+
 export const MENUS = {
   couple: {
     label: 'Couple',
     items: [
-      { to: '/app', label: 'Home', icon: '⌂' },
-      { to: '/app/roots', label: 'Roots', icon: '🌱' },
-      { to: '/app/bonds', label: 'Bonds', icon: '🤝' },
-      { to: '/app/branches', label: 'Branches', icon: '🌳' },
-      { to: '/app/connections', label: 'Connections', icon: '👥' },
-      { to: '/app/counsellor', label: 'Counsellor', icon: '💬' },
-      { to: '/app/privacy', label: 'Privacy', icon: '🔒' },
+      { to: '/app', label: 'Home', icon: <HomeIcon /> },
+      { to: '/app/familytree', label: 'Family Tree', icon: <BranchesIcon /> },
+      { to: '/app/bonds', label: 'Bonds', icon: <BondsIcon /> },
+      { to: '/app/roots', label: 'Roots', icon: <RootsIcon /> },
+      { to: '/app/connections', label: 'Connections', icon: <ConnectionsIcon /> },
+      { to: '/app/counsellor', label: 'Counsellor', icon: <CounsellorIcon /> },
+      { to: '/app/privacy', label: 'Privacy', icon: <PrivacyIcon /> },
+      { to: '/app/profile', label: 'Profile', icon: <ProfileIcon /> },
     ],
   },
   counsellor: {
     label: 'Counsellor',
     items: [
-      { to: '/app', label: 'Case queue', icon: '☰' },
-      { to: '/app/schedule', label: 'Schedule', icon: '📅' },
+      { to: '/app', label: 'Case queue', icon: <QueueIcon /> },
+      { to: '/app/schedule', label: 'Schedule', icon: <ScheduleIcon /> },
     ],
   },
   admin: {
     label: 'DoH admin',
     items: [
-      { to: '/app', label: 'Overview', icon: '▦' },
-      { to: '/app/content', label: 'Content review', icon: '✎' },
-      { to: '/app/audit', label: 'Audit log', icon: '🛡' },
+      { to: '/app', label: 'Overview', icon: <OverviewIcon /> },
+      { to: '/app/content', label: 'Content review', icon: <ContentIcon /> },
+      { to: '/app/audit', label: 'Audit log', icon: <AuditIcon /> },
     ],
   },
 };
@@ -53,16 +73,21 @@ export function page(role, path) {
   if (role === 'couple') {
     const coupleRoutes = {
       '/app': <Home />,
+      '/app/profile': <Profile />,
+      '/app/report': <MedicalReport />,
+      '/app/screening': <Screening />,
       '/app/roots': <Roots />,
       '/app/bonds': <Bonds />,
       '/app/bonds/assessment': <Bonds defaultTab="assessment" />,
       '/app/bonds/counselling': <CoupleCounsellor />,
       '/app/bonds/timeline': <Bonds defaultTab="timeline" />,
-      '/app/branches': <Branches />,
+      '/app/familytree': <FamilyTree />,
+      '/app/branches': <FamilyTree />,
       '/app/connections': <Connections />,
       '/app/connections/discover': <Connections defaultTab="discover" />,
       '/app/connections/requests': <Connections defaultTab="requests" />,
       '/app/connections/sent': <Connections defaultTab="requests" />,
+      '/app/connections/active': <Connections defaultTab="connections" />,
       '/app/counsellor': <CoupleCounsellor />,
       '/app/privacy': <Privacy />,
     };

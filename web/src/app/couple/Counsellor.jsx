@@ -1,24 +1,28 @@
 import { Page, Card, Avatar } from '../shared/ui.jsx';
-import { set, useStore } from '../shared/store.js';
-
-const SLOTS = ['Sun 9 Nov · 10:00', 'Mon 10 Nov · 13:30', 'Tue 11 Nov · 17:00', 'Wed 12 Nov · 11:00'];
+import { useStore } from '../shared/store.js';
+import { SLOTS } from '../shared/data.js';
+import { book as bookSlot, cancelBooking, isLive } from '../shared/db.js';
 
 export default function Counsellor() {
-  const booked = useStore((s) => s.booked);
-  const book = (s) => set({ booked: s }, `Couple booked a counsellor session: ${s}`);
+  const cid = useStore((s) => s.session.couple);
+  const booked = useStore((s) => s.appointments[cid]);
+  const liveSlots = useStore((s) => s.slots);
+  const counsellor = useStore((s) => s.cases[cid]?.counsellor) || 'Dr. Mariam Al Hosani';
+  const slots = isLive() ? liveSlots : SLOTS;
+  const book = (slot) => bookSlot(cid, slot);
 
   return (
     <Page title="Your counsellor" sub="A real, licensed person. Ask anything.">
       <Card>
         <div className="person">
-          <Avatar name="Dr. Mariam Al Hosani" size={56} />
-          <div><b>Dr. Mariam Al Hosani</b><small>Genetic counsellor · Arabic & English</small></div>
+          <Avatar name={counsellor} size={56} />
+          <div><b>{counsellor}</b><small>Genetic counsellor · Arabic & English</small></div>
         </div>
       </Card>
       <Card title={booked ? 'Your session' : 'Book a video session'}>
         {booked
-          ? <div className="booked"><p>✓ Booked for <b>{booked}</b>. You’ll get a reminder the day before.</p><button className="link" onClick={() => set({ booked: null }, 'Couple cancelled the counsellor session')}>Cancel</button></div>
-          : <div className="slots">{SLOTS.map((s) => <button key={s} className="slot" onClick={() => book(s)}>{s}</button>)}</div>}
+          ? <div className="booked"><p>✓ Booked for <b>{booked}</b>. You’ll get a reminder the day before.</p><button className="link" onClick={() => cancelBooking(cid)}>Cancel</button></div>
+          : <div className="slots">{slots.length ? slots.map((s) => <button key={s.id || s.label} className="slot" onClick={() => book(s)}>{s.label}</button>) : <p className="muted">No free times in the next 10 days. Your counsellor will contact you.</p>}</div>}
       </Card>
     </Page>
   );
