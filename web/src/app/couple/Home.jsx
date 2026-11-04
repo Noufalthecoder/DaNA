@@ -1,14 +1,14 @@
 import { Page, Card, Steps, Stat, Badge } from '../shared/ui.jsx';
-import { useStore } from '../shared/store.js';
+import { useStore, EMPTY_OBJ, EMPTY_ARR } from '../shared/store.js';
 import { useCouple } from './useCouple.js';
 
 export default function Home() {
   const { me, partner, result, couple } = useCouple();
-  const intakes = useStore((s) => s.screeningIntakes || {});
+  const intakes = useStore((s) => s.screeningIntakes) || EMPTY_OBJ;
   const myIntake = intakes[me.id];
   const isScreened = !!myIntake?.completed;
 
-  const sent = useStore((s) => s.alertsSent);
+  const sent = useStore((s) => s.alertsSent) || EMPTY_ARR;
   const plan = useStore((s) => (couple?.id ? s.plans[couple.id] : null) || s.plan);
   const booked = useStore((s) => (couple?.id ? s.appointments[couple.id] : null) || s.booked);
 

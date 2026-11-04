@@ -8,7 +8,7 @@ import Screening from './app/couple/Screening.jsx';
 import MedicalReport from './app/couple/MedicalReport.jsx';
 import { MENUS, page } from './app/routes.jsx';
 import { useRoute, go } from './app/shared/router.js';
-import { useStore, signOut } from './app/shared/store.js';
+import { useStore, signOut, EMPTY_OBJ } from './app/shared/store.js';
 import { Brand } from './app/shared/Logo.jsx';
 import { watchAuth, signOut as supabaseSignOut } from './app/shared/supabase.js';
 import { loadAll } from './app/shared/db.js';
@@ -69,7 +69,7 @@ export class ErrorBoundary extends Component {
 export default function Root() {
   const path = useRoute();
   const session = useStore((s) => s.session);
-  const intakes = useStore((s) => s.screeningIntakes || {});
+  const intakes = useStore((s) => s.screeningIntakes) || EMPTY_OBJ;
   const inApp = path.startsWith('/app');
   const [ready, setReady] = useState(false);
 

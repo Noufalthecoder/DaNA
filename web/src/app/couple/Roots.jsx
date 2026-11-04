@@ -1,14 +1,14 @@
 /* Roots: protect your family with anonymous Sila alerts */
 import { Page, Card } from '../shared/ui.jsx';
-import { useStore } from '../shared/store.js';
+import { useStore, EMPTY_ARR } from '../shared/store.js';
 import { sendAlerts } from '../shared/db.js';
 import { relativesFor } from '../shared/data.js';
 import { useCouple } from './useCouple.js';
 
 export default function Roots() {
   const { me } = useCouple();
-  const sent = useStore((s) => s.alertsSent || []);
-  const invites = useStore((s) => s.invites || []);
+  const sent = useStore((s) => s.alertsSent) || EMPTY_ARR;
+  const invites = useStore((s) => s.invites) || EMPTY_ARR;
   const list = relativesFor(me?.id || 'khalid');
   const send = (ids) => {
     if (typeof sendAlerts === 'function') sendAlerts(ids);

@@ -1,11 +1,11 @@
 /* The signed-in partner, their partner, the couple and the engine's assessment. */
 import { COUPLES, PEOPLE, GENES } from '../shared/data.js';
 import { assess } from '../shared/genetics.js';
-import { useStore } from '../shared/store.js';
+import { useStore, EMPTY_ARR } from '../shared/store.js';
 
 export function useCouple() {
   const session = useStore((s) => s.session);
-  const connections = useStore((s) => s.connections || []);
+  const connections = useStore((s) => s.connections) || EMPTY_ARR;
   const myId = session?.id || 'khalid';
 
   // Find active connection for current user from Connections module

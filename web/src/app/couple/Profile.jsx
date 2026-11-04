@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Page, Card, Badge } from '../shared/ui.jsx';
 import { useCouple } from './useCouple.js';
 import { SYNTHETIC_INTAKES } from '../shared/data.js';
-import { set, useStore } from '../shared/store.js';
+import { set, useStore, EMPTY_OBJ } from '../shared/store.js';
 import { go } from '../shared/router.js';
 import { EditIcon, CheckIcon } from '../shared/Icons.jsx';
 
@@ -19,7 +19,7 @@ const RELATIONS = [
 export default function Profile() {
   const { me, partner, couple } = useCouple();
   const session = useStore((s) => s.session);
-  const intakes = useStore((s) => s.screeningIntakes || {});
+  const intakes = useStore((s) => s.screeningIntakes) || EMPTY_OBJ;
   const existingIntake = intakes[me.id];
 
   const isUaePass = session?.authMethod === 'uae_pass' || session?.via === 'uaepass';
