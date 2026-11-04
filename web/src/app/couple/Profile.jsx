@@ -789,14 +789,24 @@ export default function Profile() {
               You can reopen the complete step-by-step premarital screening wizard at any time.
             </div>
           </div>
-          <button
-            type="button"
-            className="ghost"
-            onClick={() => go('/app/screening')}
-            style={{ fontSize: 13 }}
-          >
-            Open Guided Screening Wizard →
-          </button>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => go('/app/report')}
+              style={{ fontSize: 13 }}
+            >
+              View Medical Report →
+            </button>
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => go('/app/screening')}
+              style={{ fontSize: 13 }}
+            >
+              Open Guided Screening Wizard →
+            </button>
+          </div>
         </div>
       </form>
     </Page>

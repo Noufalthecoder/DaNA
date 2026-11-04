@@ -71,6 +71,7 @@ export default function Home() {
                 <p><b>{result.condition}</b> · {result.risk}</p>
                 <div style={{ display: 'flex', gap: 14, marginTop: 4, flexWrap: 'wrap' }}>
                   <a href="#/app/roots">What does this mean? →</a>
+                  <a href="#/app/report" style={{ color: 'var(--ink2)' }}>View medical report →</a>
                   <a href="#/app/profile" style={{ color: 'var(--ink2)' }}>Update profile data →</a>
                 </div>
               </>

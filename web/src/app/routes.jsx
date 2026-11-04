@@ -5,6 +5,7 @@
 import Home from './couple/Home.jsx';
 import Screening from './couple/Screening.jsx';
 import Profile from './couple/Profile.jsx';
+import MedicalReport from './couple/MedicalReport.jsx';
 import Roots from './couple/Roots.jsx';
 import Bonds from './couple/Bonds.jsx';
 import Branches from './couple/Branches.jsx';
@@ -52,6 +53,7 @@ export function page(role, path) {
     return {
       '/app': <Home />,
       '/app/profile': <Profile />,
+      '/app/report': <MedicalReport />,
       '/app/screening': <Screening />,
       '/app/roots': <Roots />,
       '/app/bonds': <Bonds />,

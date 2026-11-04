@@ -163,7 +163,7 @@ export default function Screening() {
       screeningIntakes: { ...(s.screeningIntakes || {}), [me.id]: payload },
     }), `User ${me.name} submitted premarital screening intake (${mode === 'uae_pass' ? 'UAE PASS verified' : 'Manual entry'})`);
 
-    go('/app');
+    go('/app/report');
   };
 
   if (isSubmitted) {
@@ -189,7 +189,7 @@ export default function Screening() {
             <Badge tone="grey">{new Date().toLocaleDateString('en-GB')}</Badge>
           </div>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-            <a href="#/app" className="btn">Continue to Journey Dashboard →</a>
+            <a href="#/app/report" className="btn">View Individual Medical Report →</a>
             <button className="ghost" onClick={() => setIsSubmitted(false)}>Review / Edit Intake</button>
           </div>
         </div>
