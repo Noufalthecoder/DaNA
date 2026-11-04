@@ -16,47 +16,32 @@ import Schedule from './counsellor/Schedule.jsx';
 import Overview from './admin/Overview.jsx';
 import Content from './admin/Content.jsx';
 import Audit from './admin/Audit.jsx';
-import {
-  HomeIcon,
-  RootsIcon,
-  BondsIcon,
-  BranchesIcon,
-  CounsellorIcon,
-  PrivacyIcon,
-  ProfileIcon,
-  QueueIcon,
-  ScheduleIcon,
-  OverviewIcon,
-  ContentIcon,
-  AuditIcon,
-} from './shared/Icons.jsx';
 
 export const MENUS = {
   couple: {
     label: 'Couple',
     items: [
-      { to: '/app', label: 'Home', icon: <HomeIcon /> },
-      { to: '/app/roots', label: 'Roots', icon: <RootsIcon /> },
-      { to: '/app/bonds', label: 'Bonds', icon: <BondsIcon /> },
-      { to: '/app/branches', label: 'Branches', icon: <BranchesIcon /> },
-      { to: '/app/counsellor', label: 'Counsellor', icon: <CounsellorIcon /> },
-      { to: '/app/privacy', label: 'Privacy', icon: <PrivacyIcon /> },
-      { to: '/app/profile', label: 'Profile', icon: <ProfileIcon /> },
+      { to: '/app', label: 'Home', icon: '⌂' },
+      { to: '/app/roots', label: 'Roots', icon: '🌱' },
+      { to: '/app/bonds', label: 'Bonds', icon: '🤝' },
+      { to: '/app/branches', label: 'Branches', icon: '🌳' },
+      { to: '/app/counsellor', label: 'Counsellor', icon: '💬' },
+      { to: '/app/privacy', label: 'Privacy', icon: '🔒' },
     ],
   },
   counsellor: {
     label: 'Counsellor',
     items: [
-      { to: '/app', label: 'Case queue', icon: <QueueIcon /> },
-      { to: '/app/schedule', label: 'Schedule', icon: <ScheduleIcon /> },
+      { to: '/app', label: 'Case queue', icon: '☰' },
+      { to: '/app/schedule', label: 'Schedule', icon: '📅' },
     ],
   },
   admin: {
     label: 'DoH admin',
     items: [
-      { to: '/app', label: 'Overview', icon: <OverviewIcon /> },
-      { to: '/app/content', label: 'Content review', icon: <ContentIcon /> },
-      { to: '/app/audit', label: 'Audit log', icon: <AuditIcon /> },
+      { to: '/app', label: 'Overview', icon: '▦' },
+      { to: '/app/content', label: 'Content review', icon: '✎' },
+      { to: '/app/audit', label: 'Audit log', icon: '🛡' },
     ],
   },
 };

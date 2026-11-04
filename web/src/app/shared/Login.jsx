@@ -113,17 +113,10 @@ export default function Login() {
 
         {step === 'start' && (<>
           <h1>Sign in</h1>
-          <p className="muted">Use your UAE PASS to automatically retrieve your results and records, or continue with manual entry.</p>
+          <p className="muted">Use your UAE PASS to automatically retrieve your results and records, or sign in below.</p>
           <div className="methods">
             <button className="uaepass" onClick={() => { setAuthMethod('uae_pass'); to('uaepass'); }}>
               <span className="up-logo" aria-hidden="true">UAE<br />PASS</span>Sign in with UAE PASS <em>demo</em>
-            </button>
-            <button
-              className="ghost"
-              style={{ width: '100%', padding: '12px', borderRadius: 12, fontWeight: 600, textAlign: 'center' }}
-              onClick={() => { setAuthMethod('manual'); to('uaepass'); }}
-            >
-              Manual intake (without UAE PASS)
             </button>
             <button className="method" onClick={google} disabled={!hasBackend}><GoogleIcon />Continue with Google</button>
             <button className="method" onClick={() => to('email')} disabled={!hasBackend}><span className="mi" aria-hidden="true">✉</span>Sign in with email</button>
@@ -136,12 +129,8 @@ export default function Login() {
         </>)}
 
         {step === 'uaepass' && (<>
-          <h1>{authMethod === 'uae_pass' ? 'Sign in with UAE PASS' : 'Manual Intake Account'}</h1>
-          <p className="muted">
-            {authMethod === 'uae_pass'
-              ? 'Select an account to auto-fill verified civil and Malaffi health data.'
-              : 'Select an account to start with blank manual entry fields.'}
-          </p>
+          <h1>Sign in with UAE PASS</h1>
+          <p className="muted">Select an account to auto-fill verified civil and Malaffi health data.</p>
           <div className="accounts">
             {ACCOUNTS.map((a) => (
               <button key={a.id} className="acc" onClick={() => demoSignIn(a)}>
@@ -157,7 +146,7 @@ export default function Login() {
         {step === 'connecting' && (
           <div className="connecting">
             <span className="spin" aria-hidden="true" />
-            <h1>{authMethod === 'uae_pass' ? 'Connecting to UAE PASS…' : 'Preparing Manual Session…'}</h1>
+            <h1>Connecting to UAE PASS…</h1>
             <p className="muted">Signing in as {who.name}</p>
           </div>
         )}
