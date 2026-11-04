@@ -12,10 +12,14 @@ const initial = {
   consents: { sharePartner: true, shareCounsellor: true, faithCards: true },
   notes: {},
   approved: [],
-  booked: null,
+  plans: {},          // couple id -> chosen plan
+  appointments: {},   // couple id -> booked slot label
   faith: {},
   audit: [],
   screeningIntakes: {},
+  partnerShares: null, // live mode: can I see my partner's result?
+  stats: null,         // live mode: DoH totals from the database
+  dbError: null,
 };
 
 let state = load();
@@ -50,12 +54,21 @@ export function signOut() {
     alertsSent: [],
     plan: null,
     booked: null,
+    plans: {},
+    appointments: {},
     notes: {},
     approved: [],
     faith: {},
     consents: { sharePartner: true, shareCounsellor: true, faithCards: true },
     audit: state.audit || [],
   };
+  save();
+  subs.forEach((f) => f());
+}
+
+/* wipe saved demo data but keep (or replace) the session: used when a real login starts */
+export function startFresh(session) {
+  state = { ...initial, session, screeningIntakes: {} };
   save();
   subs.forEach((f) => f());
 }

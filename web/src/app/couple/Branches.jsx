@@ -1,17 +1,15 @@
 import { Page, Card } from '../shared/ui.jsx';
-import { set, useStore } from '../shared/store.js';
-import { RELATIVES } from '../shared/data.js';
+import { useStore } from '../shared/store.js';
+import { sendAlerts } from '../shared/db.js';
+import { relativesFor } from '../shared/data.js';
 import { useCouple } from './useCouple.js';
 
 /* Branches: protect your family with anonymous Sila alerts */
 export default function Branches() {
   const { me } = useCouple();
   const sent = useStore((s) => s.alertsSent);
-  const list = RELATIVES[me.id] || [];
-  const send = (ids) => {
-    const fresh = ids.filter((id) => !sent.includes(id));
-    if (fresh.length) set({ alertsSent: [...sent, ...fresh] }, `Sent ${fresh.length} anonymous Sila alert${fresh.length > 1 ? 's' : ''}`);
-  };
+  const list = relativesFor(me.id);
+  const send = (ids) => sendAlerts(ids);
 
   return (
     <Page title="Branches" sub="Genes run in families. One private message can protect them."

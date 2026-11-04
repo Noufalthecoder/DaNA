@@ -49,12 +49,27 @@ export const RELATIVES = {
   ],
 };
 
+const DEFAULT_RELATIVES = [
+  { id: 'd1', label: 'Brother', chance: '1 in 2' },
+  { id: 'd2', label: 'Sister', chance: '1 in 2' },
+  { id: 'd3', label: 'First cousin', chance: '1 in 4' },
+];
+export const relativesFor = (personId) => RELATIVES[personId] || DEFAULT_RELATIVES;
+
 /* demo accounts, one per role. Relatives never log in: they get an invite link. */
 export const ACCOUNTS = [
   { id: 'khalid', role: 'couple', name: 'Khalid Al Mansoori', title: 'Partner · engaged', couple: 'c1' },
   { id: 'fatima', role: 'couple', name: 'Fatima Al Hammadi', title: 'Partner · engaged', couple: 'c1' },
   { id: 'mariam', role: 'counsellor', name: 'Dr. Mariam Al Hosani', title: 'Genetic counsellor' },
   { id: 'doh', role: 'admin', name: 'Programme team', title: 'DoH premarital programme' },
+];
+
+/* counsellor slots a couple can book (Gulf time) */
+export const SLOTS = [
+  { label: 'Sun 9 Nov · 10:00', iso: '2026-11-09T10:00:00+04:00' },
+  { label: 'Mon 10 Nov · 13:30', iso: '2026-11-10T13:30:00+04:00' },
+  { label: 'Tue 11 Nov · 17:00', iso: '2026-11-11T17:00:00+04:00' },
+  { label: 'Wed 12 Nov · 11:00', iso: '2026-11-12T11:00:00+04:00' },
 ];
 
 /* monthly screenings for the DoH overview (synthetic) */

@@ -3,14 +3,14 @@ import { useStore } from '../shared/store.js';
 import { useCouple } from './useCouple.js';
 
 export default function Home() {
-  const { me, partner, result } = useCouple();
+  const { me, partner, result, couple } = useCouple();
   const intakes = useStore((s) => s.screeningIntakes || {});
   const myIntake = intakes[me.id];
   const isScreened = !!myIntake?.completed;
 
   const sent = useStore((s) => s.alertsSent);
-  const plan = useStore((s) => s.plan);
-  const booked = useStore((s) => s.booked);
+  const plan = useStore((s) => (couple?.id ? s.plans[couple.id] : null) || s.plan);
+  const booked = useStore((s) => (couple?.id ? s.appointments[couple.id] : null) || s.booked);
 
   // Stepper: 0 = Screened, 1 = Results explained, 2 = Plan together, 3 = Protect family
   const step = !isScreened
