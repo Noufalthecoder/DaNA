@@ -12,9 +12,13 @@ const initial = {
   consents: { sharePartner: true, shareCounsellor: true, faithCards: true },
   notes: {},
   approved: [],
-  booked: null,
+  plans: {},          // couple id -> chosen plan
+  appointments: {},   // couple id -> booked slot label
   faith: {},
   audit: [],
+  partnerShares: null, // live mode: can I see my partner's result?
+  stats: null,         // live mode: DoH totals from the database
+  dbError: null,
 };
 
 let state = load();
@@ -40,6 +44,13 @@ export function set(patch, auditText) {
 }
 
 export function get() { return state; }
+
+/* wipe saved demo data but keep (or replace) the session: used when a real login starts */
+export function startFresh(session) {
+  state = { ...initial, session };
+  save();
+  subs.forEach((f) => f());
+}
 
 export function resetDemo() {
   const session = state.session;

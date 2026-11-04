@@ -3,10 +3,10 @@ import { useStore } from '../shared/store.js';
 import { useCouple } from './useCouple.js';
 
 export default function Home() {
-  const { me, partner, result } = useCouple();
+  const { me, partner, result, couple } = useCouple();
   const sent = useStore((s) => s.alertsSent);
-  const plan = useStore((s) => s.plan);
-  const booked = useStore((s) => s.booked);
+  const plan = useStore((s) => s.plans[couple.id]);
+  const booked = useStore((s) => s.appointments[couple.id]);
   const step = plan ? (sent.length ? 4 : 3) : 2;
   const next = !plan
     ? { to: '#/app/bonds', t: 'Choose your plan together', p: 'See every option side by side, then decide as a couple.' }

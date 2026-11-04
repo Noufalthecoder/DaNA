@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Page, Card, Priority, Badge } from '../shared/ui.jsx';
 import { COUPLES, PEOPLE, GENES } from '../shared/data.js';
 import { assess } from '../shared/genetics.js';
-import { set, useStore } from '../shared/store.js';
+import { useStore } from '../shared/store.js';
+import { addNote as saveNote, approvePlan } from '../shared/db.js';
 
 export default function CaseView({ id }) {
   const couple = COUPLES.find((c) => c.id === id);
   const notes = useStore((s) => s.notes);
   const approved = useStore((s) => s.approved);
-  const plan = useStore((s) => s.plan);
+  const plans = useStore((s) => s.plans);
   const [draft, setDraft] = useState('');
   if (!couple) return <Page title="Case not found"><a href="#/app">← Back to queue</a></Page>;
 
@@ -17,11 +18,11 @@ export default function CaseView({ id }) {
   const caseNotes = notes[id] || [];
   const addNote = () => {
     if (!draft.trim()) return;
-    set({ notes: { ...notes, [id]: [{ t: new Date().toISOString(), text: draft.trim() }, ...caseNotes] } }, `Counsellor added a note to ${id.toUpperCase()}`);
+    saveNote(id, draft.trim());
     setDraft('');
   };
-  const approve = () => set({ approved: [...approved, id] }, `Counsellor approved the plan for ${id.toUpperCase()}`);
-  const chosen = id === 'c1' ? plan : null;
+  const approve = () => approvePlan(id);
+  const chosen = plans[id];
 
   return (
     <Page title={`${PEOPLE[couple.a].short} & ${PEOPLE[couple.b].short}`} sub={`Case ${id.toUpperCase()} · screened ${couple.screened}`}
@@ -50,7 +51,7 @@ export default function CaseView({ id }) {
 
       <Card title="Couple’s plan" aside={done ? <Badge tone="green">✓ Approved</Badge> : null}>
         <p>{chosen ? <>The couple chose: <b>{chosen}</b>.</> : <span className="muted">The couple hasn’t chosen a plan yet.</span>}</p>
-        {!done && <button className="btn" onClick={approve}>Approve plan</button>}
+        {!done && chosen && <button className="btn" onClick={approve}>Approve plan</button>}
       </Card>
 
       <Card title="Notes">

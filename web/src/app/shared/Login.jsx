@@ -34,9 +34,18 @@ export default function Login() {
   const field = (k) => ({ value: form[k], onChange: (e) => setForm({ ...form, [k]: e.target.value }) });
   const to = (s) => { setError(''); setStep(s); };
 
-  const demoSignIn = (acc) => {
+  const demoPassword = import.meta.env.VITE_DEMO_PASSWORD;
+  const demoSignIn = async (acc) => {
     setWho(acc);
     setStep('connecting');
+    if (hasBackend && demoPassword) {
+      // live demo: sign in as the shared demo user, so every role sees the same data
+      window.__danaVia = 'uaepass';
+      const { error: err } = await supabase.auth.signInWithPassword({ email: `${acc.id}@dana.demo`, password: demoPassword });
+      if (!err) return; // watchAuth finishes the sign-in and opens the app
+      window.__danaVia = null;
+      console.warn('Live demo sign-in failed, using the offline demo:', err.message);
+    }
     setTimeout(() => {
       set({ session: { id: acc.id, role: acc.role, name: acc.name, title: acc.title, couple: acc.couple || null, via: 'uaepass' } }, `Signed in with UAE PASS (demo) as ${ROLE[acc.role]}`);
       go('/app');

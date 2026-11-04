@@ -1,5 +1,6 @@
 import { Page, Card, Toggle } from '../shared/ui.jsx';
-import { set, useStore } from '../shared/store.js';
+import { useStore } from '../shared/store.js';
+import { setConsent } from '../shared/db.js';
 
 const ITEMS = [
   ['sharePartner', 'Share my result with my partner', 'Your partner sees your result in Roots.'],
@@ -11,7 +12,7 @@ export default function Privacy() {
   const consents = useStore((s) => s.consents);
   const audit = useStore((s) => s.audit);
   const me = useStore((s) => s.session.name);
-  const toggle = (k, v) => set({ consents: { ...consents, [k]: v } }, `Consent ${v ? 'given' : 'withdrawn'}: ${k}`);
+  const toggle = (k, v) => setConsent(k, v);
 
   return (
     <Page title="Privacy" sub="You decide who sees what. Change it any time.">

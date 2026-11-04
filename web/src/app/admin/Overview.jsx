@@ -57,18 +57,21 @@ function ScreeningsChart() {
 export default function Overview() {
   const sent = useStore((s) => s.alertsSent);
   const approved = useStore((s) => s.approved);
+  const stats = useStore((s) => s.stats); // live: real totals from the database (DoH sees totals only)
+  const alertCount = stats ? Number(stats.alerts_sent) : sent.length;
+  const approvedCount = stats ? Number(stats.plans_approved) : approved.length;
   return (
     <Page title="Programme overview" sub="Abu Dhabi premarital genetic screening · synthetic data">
       <div className="stats four">
         <Stat label="Couples screened" value="8,405" note="since May 2026" />
         <Stat label="Same-gene couples" value="312" note="compatible, with a plan" />
-        <Stat label="Sila alerts sent" value={(1284 + sent.length).toLocaleString()} note="anonymous" />
+        <Stat label="Sila alerts sent" value={(1284 + alertCount).toLocaleString()} note="anonymous" />
         <Stat label="Relatives screened" value="417" note="after an alert" />
       </div>
       <ScreeningsChart />
       <div className="stats">
         <Stat label="Median wait for counsellor" value="2.4 days" note="urgent cases: same day" />
-        <Stat label="Plans approved" value={(268 + approved.length).toLocaleString()} />
+        <Stat label="Plans approved" value={(268 + approvedCount).toLocaleString()} />
         <Stat label="Couples who married" value="91%" note="of same-gene couples, with a plan" />
       </div>
     </Page>

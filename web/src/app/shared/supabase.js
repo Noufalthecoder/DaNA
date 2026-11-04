@@ -5,7 +5,8 @@
 */
 import { createClient } from '@supabase/supabase-js';
 import { COUPLES } from './data.js';
-import { set } from './store.js';
+import { set, startFresh } from './store.js';
+import { loadAll, logAudit, hydratePeople } from './db.js';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -25,6 +26,13 @@ export async function loadSession(user) {
     if (error) throw error;
     acc = row;
   }
+  if (acc.role === 'couple' && !acc.person_id) {
+    // temporary onboarding: give this account its own sample couple (see supabase/003_sample_journey.sql)
+    const { data: pid, error } = await supabase.rpc('start_sample_journey');
+    if (!error && pid) acc = { ...acc, person_id: pid, title: 'Partner · engaged (sample journey)' };
+    else if (error) console.warn('Sample journey not available:', error.message);
+  }
+  await hydratePeople();
   const couple = acc.person_id ? COUPLES.find((c) => c.a === acc.person_id || c.b === acc.person_id) : null;
   return {
     id: acc.person_id || user.id,
@@ -33,7 +41,8 @@ export async function loadSession(user) {
     title: acc.title || '',
     couple: couple ? couple.id : null,
     email: user.email,
-    via: user.app_metadata?.provider || 'email',
+    via: window.__danaVia || user.app_metadata?.provider || 'email',
+    backend: true,
   };
 }
 
@@ -41,13 +50,21 @@ export async function loadSession(user) {
 export function watchAuth(onReady) {
   if (!supabase) { onReady(); return () => {}; }
   let current = null; // getSession and SIGNED_IN can both fire for the same login
-  const apply = async (s) => {
+  const apply = async (s, event) => {
     if (s?.user && s.user.id !== current) {
       current = s.user.id;
       try {
         const session = await loadSession(s.user);
-        set({ session }, `Signed in with ${session.via === 'google' ? 'Google' : 'email'}`);
-        if (!window.location.hash.startsWith('#/app')) window.location.hash = '/app';
+        startFresh(session);
+        const viaDemo = !!window.__danaVia;
+        if (viaDemo) { window.__danaVia = null; await logAudit(`Signed in with UAE PASS (demo) as ${session.role}`); }
+        const fresh = event !== 'INITIAL' || window.location.search.includes('code='); // just logged in (incl. Google return)
+        if (fresh && !viaDemo) await logAudit(`Signed in with ${session.via === 'google' ? 'Google' : 'email'}`);
+        await loadAll();
+        if (fresh && !window.location.hash.startsWith('#/app')) {
+          if (window.location.search) window.history.replaceState(null, '', window.location.pathname);
+          window.location.hash = '/app';
+        }
       } catch (e) {
         console.error(e);
         set({ authError: e.message });
@@ -55,9 +72,9 @@ export function watchAuth(onReady) {
     }
     onReady();
   };
-  supabase.auth.getSession().then(({ data }) => apply(data.session));
+  supabase.auth.getSession().then(({ data }) => apply(data.session, 'INITIAL'));
   const { data } = supabase.auth.onAuthStateChange((event, s) => {
-    if (event === 'SIGNED_IN') apply(s);
+    if (event === 'SIGNED_IN') apply(s, event);
     if (event === 'SIGNED_OUT') { current = null; set({ session: null }); }
   });
   return () => data.subscription.unsubscribe();

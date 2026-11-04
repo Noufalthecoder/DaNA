@@ -6,7 +6,8 @@ import { useCouple } from './useCouple.js';
 /* Roots: understand what you carry */
 export default function Roots() {
   const { me, partner, gene } = useCouple();
-  const share = useStore((s) => s.consents.sharePartner);
+  // live: the database decides (the partner's own consent); offline demo: the local switch
+  const share = useStore((s) => (s.partnerShares ?? s.consents.sharePartner));
   const [playing, setPlaying] = useState(false);
 
   return (

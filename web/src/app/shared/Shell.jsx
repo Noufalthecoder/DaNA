@@ -4,14 +4,21 @@ import { set, useStore, resetDemo } from './store.js';
 import { go } from './router.js';
 import { Avatar } from './ui.jsx';
 import { signOut } from './supabase.js';
+import { loadAll, logAudit } from './db.js';
 
 export default function Shell({ menu, path, children }) {
   const session = useStore((s) => s.session);
+  const dbError = useStore((s) => s.dbError);
   const [open, setOpen] = useState(false);
   useEffect(() => { document.documentElement.dir = 'ltr'; document.documentElement.lang = 'en'; }, []);
   useEffect(() => setOpen(false), [path]);
 
-  const logout = async () => { set({ session: null }, 'Signed out'); await signOut(); go('/login'); };
+  const logout = async () => {
+    if (session.backend) await logAudit('Signed out');
+    set({ session: null }, session.backend ? undefined : 'Signed out');
+    await signOut();
+    go('/login');
+  };
   const active = (to) => (to === '/app' ? path === '/app' : path.startsWith(to));
 
   return (
@@ -27,7 +34,9 @@ export default function Shell({ menu, path, children }) {
           ))}
         </nav>
         <div className="side-foot">
-          <button onClick={() => { resetDemo(); }}>Reset demo data</button>
+          {session.backend
+            ? <><button onClick={() => loadAll()}>Refresh data</button><span className="live"><i />Live · shared database</span></>
+            : <><button onClick={() => { resetDemo(); }}>Reset demo data</button><span>Offline demo · this browser only</span></>}
           <span>Synthetic data · simulated UAE PASS</span>
         </div>
       </aside>
@@ -40,10 +49,11 @@ export default function Shell({ menu, path, children }) {
             <span><b>{session.name}</b><small>{session.title}</small></span>
           </div>
           <div className="top-r">
-            <a className="ghost" href="#/login" onClick={async (e) => { e.preventDefault(); set({ session: null }); await signOut(); go('/login'); }}>Switch account</a>
+            <a className="ghost" href="#/login" onClick={async (e) => { e.preventDefault(); await logout(); }}>Switch account</a>
             <button className="ghost" onClick={logout}>Sign out</button>
           </div>
         </header>
+        {dbError && <div className="db-err">{dbError} <button className="link" onClick={() => { set({ dbError: null }); loadAll(); }}>Try again</button></div>}
         <main className="content">{children}</main>
       </div>
       {open && <div className="scrim" onClick={() => setOpen(false)} />}

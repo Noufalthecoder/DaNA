@@ -1,5 +1,6 @@
 import { Page, Card, Badge } from '../shared/ui.jsx';
-import { set, useStore } from '../shared/store.js';
+import { useStore } from '../shared/store.js';
+import { choosePlan } from '../shared/db.js';
 import { useCouple } from './useCouple.js';
 
 const OPTIONS = [
@@ -10,9 +11,10 @@ const OPTIONS = [
 
 /* Bonds: compatible, with a plan */
 export default function Bonds() {
-  const { result, partner } = useCouple();
-  const plan = useStore((s) => s.plan);
-  const choose = (id) => set({ plan: id }, `Couple chose a plan: ${id}`);
+  const { result, partner, couple } = useCouple();
+  const plan = useStore((s) => s.plans[couple.id]);
+  const approved = useStore((s) => s.approved.includes(couple.id));
+  const choose = (id) => { if (id !== plan) choosePlan(couple.id, id); };
 
   return (
     <Page title="Bonds" sub="Compatible, with a plan. You decide together.">
@@ -33,7 +35,7 @@ export default function Bonds() {
             <h3>{o.id}</h3>
             <p>{o.d}</p>
             <div>{o.tags.map((t) => <Badge key={t}>{t}</Badge>)}</div>
-            <span className="pick">{plan === o.id ? '✓ Our plan' : 'Choose this'}</span>
+            <span className="pick">{plan === o.id ? (approved ? '✓ Our plan · approved by your counsellor' : '✓ Our plan · waiting for your counsellor') : 'Choose this'}</span>
           </button>
         ))}
       </div>
