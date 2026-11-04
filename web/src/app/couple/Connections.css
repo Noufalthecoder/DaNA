@@ -1,0 +1,864 @@
+/**
+ * DaNA Connections Module Stylesheet
+ * Scoped, production-quality React CSS matching the DaNA healthcare platform design language.
+ * No Tailwind CSS. No style collisions with other modules.
+ */
+
+/* -----------------------------------------------------------------------------
+ * 1. Root & Feedback Toasts
+ * ----------------------------------------------------------------------------- */
+.conn-wrapper {
+  width: 100%;
+}
+
+.conn-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 20px;
+  animation: connFadeIn 0.2s ease-out;
+}
+
+@keyframes connFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.conn-toast-success {
+  background: var(--green-l);
+  border: 1px solid #C3E2CD;
+  color: var(--green);
+}
+
+.conn-toast-error {
+  background: #FDECEE;
+  border: 1px solid #F5C6CB;
+  color: #A30E20;
+}
+
+.conn-toast-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.conn-toast-link {
+  margin-left: 8px;
+}
+
+.conn-toast-close {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  opacity: 0.8;
+  transition: opacity 0.15s;
+}
+
+.conn-toast-close:hover {
+  opacity: 1;
+}
+
+/* -----------------------------------------------------------------------------
+ * 2. User Identity Card (Header)
+ * ----------------------------------------------------------------------------- */
+.conn-identity-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FFFFFF;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px 22px;
+  margin-bottom: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.conn-identity-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.conn-identity-meta h4 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.conn-identity-username {
+  font-weight: 500;
+  color: var(--ink2);
+  margin-left: 4px;
+}
+
+.conn-identity-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.conn-id-pill {
+  font-family: var(--head), monospace;
+  font-weight: 700;
+  font-size: 12.5px;
+  background: var(--green-l);
+  color: var(--green);
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid #C2DEC9;
+  letter-spacing: 0.04em;
+}
+
+.conn-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* -----------------------------------------------------------------------------
+ * 3. Tab Navigation
+ * ----------------------------------------------------------------------------- */
+.conn-tabs-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #FFFFFF;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 6px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+
+.conn-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  font-family: var(--body);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.conn-tab-btn:hover {
+  background: #F3F5F4;
+  color: var(--ink);
+}
+
+.conn-tab-btn.active {
+  background: var(--green-l);
+  color: var(--green);
+  font-weight: 600;
+}
+
+.conn-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 12px;
+  padding: 2px 7px;
+  background: #EEF1EF;
+  color: var(--ink2);
+  min-width: 18px;
+  height: 18px;
+}
+
+.conn-tab-badge-active {
+  background: #D5EBDC;
+  color: var(--green);
+}
+
+.conn-tab-badge-amber {
+  background: #FFF3E0;
+  color: var(--amber);
+}
+
+/* -----------------------------------------------------------------------------
+ * 4. Search Bar & Strict Privacy Notice
+ * ----------------------------------------------------------------------------- */
+.conn-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin: 16px 0 20px;
+}
+
+.conn-search-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--ink3);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.conn-search-input {
+  width: 100%;
+  padding: 12px 42px 12px 42px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-family: var(--body);
+  font-size: 14px;
+  color: var(--ink);
+  background: #FFFFFF;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.conn-search-input:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-l);
+}
+
+.conn-search-clear {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: var(--ink3);
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: color 0.15s;
+}
+
+.conn-search-clear:hover {
+  color: var(--ink);
+}
+
+.conn-search-spinner {
+  position: absolute;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.conn-search-spinner .spin {
+  width: 18px;
+  height: 18px;
+  border-width: 2px;
+  margin: 0;
+}
+
+.conn-search-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #F6F7F5;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin-top: 10px;
+  font-size: 13.5px;
+  color: var(--ink2);
+  animation: connFadeIn 0.15s ease-out;
+}
+
+.conn-search-loading .spin {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+  margin: 0;
+}
+
+/* Strict Healthcare Privacy Enforced Banner */
+.conn-privacy-banner {
+  text-align: center;
+  padding: 36px 24px;
+  background: #FAFCFA;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  margin-top: 10px;
+}
+
+.conn-privacy-shield {
+  display: inline-grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--green-l);
+  color: var(--green);
+  margin-bottom: 12px;
+}
+
+.conn-privacy-banner h3 {
+  font-family: var(--head);
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--ink);
+}
+
+.conn-privacy-banner p {
+  max-width: 540px;
+  margin: 0 auto;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink2);
+}
+
+/* -----------------------------------------------------------------------------
+ * 5. Discovery Results & Partner Cards
+ * ----------------------------------------------------------------------------- */
+.conn-results-grid {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.conn-user-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FFFFFF;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  gap: 16px;
+  flex-wrap: wrap;
+  transition: border-color 0.15s;
+}
+
+.conn-user-card:hover {
+  border-color: #CCD6D0;
+}
+
+.conn-user-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.conn-user-details h4 {
+  margin: 0 0 3px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.conn-user-handle {
+  font-size: 13px;
+  color: var(--ink3);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.conn-user-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* -----------------------------------------------------------------------------
+ * 6. Unregistered Partner Invitations (WhatsApp & Gmail)
+ * ----------------------------------------------------------------------------- */
+.conn-invite-card {
+  background: #FFFFFF;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px;
+  margin-top: 18px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+.conn-invite-header h3 {
+  font-family: var(--head);
+  font-size: 16.5px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+
+.conn-invite-header p {
+  font-size: 14px;
+  color: var(--ink2);
+  margin: 0;
+  line-height: 1.55;
+}
+
+.conn-channels-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.conn-channel-box {
+  background: #F6F7F5;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.conn-channel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.conn-channel-desc {
+  font-size: 13px;
+  color: var(--ink2);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.conn-channel-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #FFFFFF;
+  font-family: var(--body);
+  font-size: 13.5px;
+  color: var(--ink);
+}
+
+.conn-channel-input:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-l);
+}
+
+.conn-btn-whatsapp {
+  background: #25D366;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-family: var(--body);
+  font-size: 13.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.conn-btn-whatsapp:hover {
+  background: #1EBE5D;
+  color: #FFFFFF;
+}
+
+.conn-btn-gmail {
+  background: #EA4335;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-family: var(--body);
+  font-size: 13.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.conn-btn-gmail:hover {
+  background: #D33828;
+  color: #FFFFFF;
+}
+
+.conn-email-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.conn-email-actions .conn-btn-gmail {
+  flex: 1;
+}
+
+.conn-direct-link-section {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.conn-direct-link-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink2);
+  margin-bottom: 6px;
+}
+
+.conn-link-copy-box {
+  display: flex;
+  gap: 8px;
+}
+
+.conn-link-input {
+  flex: 1;
+  background: #F6F7F5;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-family: monospace;
+  color: var(--ink2);
+}
+
+/* -----------------------------------------------------------------------------
+ * 7. Requests (Incoming & Outgoing)
+ * ----------------------------------------------------------------------------- */
+.conn-requests-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.conn-requests-list {
+  display: grid;
+  gap: 12px;
+}
+
+.conn-request-card {
+  background: #FFFFFF;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.conn-request-card.incoming {
+  border-left: 3px solid var(--amber);
+}
+
+.conn-request-card.outgoing {
+  border-left: 3px solid #245E86;
+}
+
+.conn-req-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.conn-req-meta h4 {
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.conn-req-handle {
+  font-size: 13px;
+  color: var(--ink3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.conn-req-date {
+  display: block;
+  font-size: 12px;
+  color: var(--ink3);
+  margin-top: 3px;
+}
+
+.conn-req-note {
+  margin: 12px 0;
+  padding: 10px 14px;
+  background: #F8FAF8;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: var(--ink2);
+  line-height: 1.5;
+  border-left: 2px solid var(--line);
+}
+
+.conn-req-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.conn-empty-state {
+  text-align: center;
+  padding: 32px 16px;
+}
+
+.conn-empty-state-p {
+  font-size: 14px;
+  color: var(--ink2);
+  margin-bottom: 14px;
+}
+
+/* -----------------------------------------------------------------------------
+ * 8. Active Connected Partner & Risk Overview
+ * ----------------------------------------------------------------------------- */
+.conn-active-card {
+  background: #FFFFFF;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px;
+}
+
+.conn-active-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.conn-active-profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.conn-active-profile h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0 0 3px;
+  color: var(--ink);
+}
+
+.conn-active-meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.conn-active-date {
+  display: block;
+  font-size: 12px;
+  color: var(--ink3);
+  margin-top: 4px;
+}
+
+/* Immediate Genetic Risk Box */
+.conn-risk-overview {
+  background: #F2F7F4;
+  border: 1px solid #C8DFD1;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 18px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.conn-risk-info h4 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.conn-risk-info p {
+  font-size: 13.5px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.conn-active-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.conn-active-actions-right {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+/* -----------------------------------------------------------------------------
+ * 9. Blocked List
+ * ----------------------------------------------------------------------------- */
+.conn-blocked-list {
+  display: grid;
+  gap: 10px;
+}
+
+.conn-blocked-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #F8FAF8;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.conn-blocked-item strong {
+  font-size: 14px;
+  color: var(--ink);
+  display: block;
+}
+
+.conn-blocked-date {
+  font-size: 12px;
+  color: var(--ink3);
+}
+
+/* -----------------------------------------------------------------------------
+ * 10. Modal Dialog
+ * ----------------------------------------------------------------------------- */
+.conn-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  padding: 16px;
+  animation: connFadeIn 0.15s ease-out;
+}
+
+.conn-modal-card {
+  width: min(520px, 100%);
+  background: #FFFFFF;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.conn-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.conn-modal-header h3 {
+  font-family: var(--head);
+  font-size: 16.5px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--ink);
+}
+
+.conn-modal-close {
+  background: transparent;
+  border: none;
+  color: var(--ink3);
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+
+.conn-modal-close:hover {
+  color: var(--ink);
+}
+
+.conn-modal-body {
+  padding: 20px 22px;
+}
+
+.conn-modal-body p {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink2);
+  margin: 0 0 16px;
+}
+
+.conn-modal-group {
+  display: grid;
+  gap: 6px;
+}
+
+.conn-modal-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.conn-modal-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-family: var(--body);
+  font-size: 13.5px;
+  color: var(--ink);
+  resize: vertical;
+}
+
+.conn-modal-textarea:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-l);
+}
+
+.conn-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px;
+  background: #F9FAF9;
+  border-top: 1px solid var(--line);
+}
+

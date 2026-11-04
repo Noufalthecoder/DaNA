@@ -55,7 +55,11 @@ export function Steps({ items, current }) {
   );
 }
 
-export function Avatar({ name, size = 36 }) {
-  const initials = name.replace(/^Dr\.\s*/, '').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+export function Avatar({ name = '', size = 36 }) {
+  const safeName = (name || '').trim() || '?';
+  const initials =
+    safeName.replace(/^Dr\.\s*/, '').split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() ||
+    safeName[0]?.toUpperCase() ||
+    '?';
   return <span className="avatar" style={{ width: size, height: size, fontSize: size * 0.38 }}>{initials}</span>;
 }

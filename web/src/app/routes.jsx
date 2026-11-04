@@ -6,6 +6,7 @@ import Home from './couple/Home.jsx';
 import Roots from './couple/Roots.jsx';
 import Bonds from './couple/Bonds.jsx';
 import Branches from './couple/Branches.jsx';
+import Connections from './couple/Connections.jsx';
 import CoupleCounsellor from './couple/Counsellor.jsx';
 import Privacy from './couple/Privacy.jsx';
 import Queue from './counsellor/Queue.jsx';
@@ -23,6 +24,7 @@ export const MENUS = {
       { to: '/app/roots', label: 'Roots', icon: '🌱' },
       { to: '/app/bonds', label: 'Bonds', icon: '🤝' },
       { to: '/app/branches', label: 'Branches', icon: '🌳' },
+      { to: '/app/connections', label: 'Connections', icon: '👥' },
       { to: '/app/counsellor', label: 'Counsellor', icon: '💬' },
       { to: '/app/privacy', label: 'Privacy', icon: '🔒' },
     ],
@@ -45,14 +47,33 @@ export const MENUS = {
 };
 
 export function page(role, path) {
-  const p = path.replace(/\/$/, '');
+  // Strip query parameters (?tab=...) and trailing slashes for robust matching
+  const clean = (path || '').split('?')[0].replace(/\/$/, '') || '/app';
+
   if (role === 'couple') {
-    return { '/app': <Home />, '/app/roots': <Roots />, '/app/bonds': <Bonds />, '/app/branches': <Branches />, '/app/counsellor': <CoupleCounsellor />, '/app/privacy': <Privacy /> }[p];
+    const coupleRoutes = {
+      '/app': <Home />,
+      '/app/roots': <Roots />,
+      '/app/bonds': <Bonds />,
+      '/app/bonds/assessment': <Bonds defaultTab="assessment" />,
+      '/app/bonds/counselling': <CoupleCounsellor />,
+      '/app/bonds/timeline': <Bonds defaultTab="timeline" />,
+      '/app/branches': <Branches />,
+      '/app/connections': <Connections />,
+      '/app/connections/discover': <Connections defaultTab="discover" />,
+      '/app/connections/requests': <Connections defaultTab="requests" />,
+      '/app/connections/sent': <Connections defaultTab="requests" />,
+      '/app/counsellor': <CoupleCounsellor />,
+      '/app/privacy': <Privacy />,
+    };
+    return coupleRoutes[clean] || null;
   }
   if (role === 'counsellor') {
-    if (p.startsWith('/app/case/')) return <CaseView id={p.split('/').pop()} />;
-    return { '/app': <Queue />, '/app/schedule': <Schedule /> }[p];
+    if (clean.startsWith('/app/case/')) return <CaseView id={clean.split('/').pop()} />;
+    return { '/app': <Queue />, '/app/schedule': <Schedule /> }[clean] || null;
   }
-  if (role === 'admin') return { '/app': <Overview />, '/app/content': <Content />, '/app/audit': <Audit /> }[p];
+  if (role === 'admin') {
+    return { '/app': <Overview />, '/app/content': <Content />, '/app/audit': <Audit /> }[clean] || null;
+  }
   return null;
 }

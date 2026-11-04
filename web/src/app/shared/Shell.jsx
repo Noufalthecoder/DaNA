@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { set, useStore, resetDemo } from './store.js';
 import { go } from './router.js';
 import { Avatar } from './ui.jsx';
+import NotificationBell from './NotificationBell.jsx';
 
 export default function Shell({ menu, path, children }) {
   const session = useStore((s) => s.session);
@@ -39,6 +40,7 @@ export default function Shell({ menu, path, children }) {
             <span><b>{session.name}</b><small>{session.title}</small></span>
           </div>
           <div className="top-r">
+            <NotificationBell />
             <a className="ghost" href="#/login" onClick={(e) => { e.preventDefault(); set({ session: null }); go('/login'); }}>Switch account</a>
             <button className="ghost" onClick={logout}>Sign out</button>
           </div>
