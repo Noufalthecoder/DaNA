@@ -1,6 +1,7 @@
 /* What a relative sees when they open a Sila alert link. No login, no names. */
 import { useEffect, useState } from 'react';
 import { supabase } from './shared/supabase.js';
+import { Brand } from './shared/Logo.jsx';
 
 export default function Invite({ token }) {
   const [booked, setBooked] = useState(false);
@@ -26,7 +27,9 @@ export default function Invite({ token }) {
     <div className="login">
       <a className="login-back" href="#/">← DaNA home</a>
       <div className="login-card">
-        <div className="login-brand"><span className="dot" />DaNA <span className="ar">دانة</span></div>
+        <div className="login-brand" style={{ marginBottom: 22 }}>
+          <Brand size={36} withArabic={true} href="#/" />
+        </div>
         <h1>Someone who cares about you</h1>
         <p className="muted">recommends free genetic screening before marriage. It’s quick, private and free for UAE nationals.</p>
         <ul className="facts">

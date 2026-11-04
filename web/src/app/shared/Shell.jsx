@@ -1,9 +1,10 @@
 /* App frame: sidebar menu per role + top bar. Owner: Platform. */
 import { useEffect, useState } from 'react';
-import { set, useStore, resetDemo } from './store.js';
+import { set, useStore, resetDemo, signOut as localSignOut } from './store.js';
 import { go } from './router.js';
 import { Avatar } from './ui.jsx';
-import { signOut } from './supabase.js';
+import { Brand } from './Logo.jsx';
+import { signOut as supabaseSignOut } from './supabase.js';
 import { loadAll, logAudit } from './db.js';
 
 export default function Shell({ menu, path, children }) {
@@ -14,17 +15,18 @@ export default function Shell({ menu, path, children }) {
   useEffect(() => setOpen(false), [path]);
 
   const logout = async () => {
-    if (session.backend) await logAudit('Signed out');
-    set({ session: null }, session.backend ? undefined : 'Signed out');
-    await signOut();
+    if (session?.backend) await logAudit('Signed out');
+    localSignOut();
+    try { await supabaseSignOut(); } catch {}
     go('/login');
   };
+  const switchAccount = async (e) => { e.preventDefault(); await logout(); };
   const active = (to) => (to === '/app' ? path === '/app' : path.startsWith(to));
 
   return (
     <div className="shell">
       <aside className={`side ${open ? 'open' : ''}`}>
-        <a className="side-brand" href="#/"><span className="dot" />DaNA</a>
+        <Brand size={32} href="#/" style={{ padding: '4px 10px 18px' }} />
         <div className="side-role">{menu.label}</div>
         <nav>
           {menu.items.map((m) => (
@@ -34,9 +36,9 @@ export default function Shell({ menu, path, children }) {
           ))}
         </nav>
         <div className="side-foot">
-          {session.backend
+          {session?.backend
             ? <><button onClick={() => loadAll()}>Refresh data</button><span className="live"><i />Live · shared database</span></>
-            : <><button onClick={() => { resetDemo(); }}>Reset demo data</button><span>Offline demo · this browser only</span></>}
+            : <><button onClick={() => { resetDemo(); if (session?.role === 'couple') go('/app/screening'); }}>Reset demo data</button><span>Offline demo · this browser only</span></>}
           <span>Synthetic data · simulated UAE PASS</span>
         </div>
       </aside>
@@ -44,12 +46,17 @@ export default function Shell({ menu, path, children }) {
       <div className="main">
         <header className="top">
           <button className="burger" onClick={() => setOpen(!open)} aria-label="Menu">☰</button>
-          <div className="top-who">
+          <a
+            href={session.role === 'couple' ? '#/app/profile' : '#/app'}
+            className="top-who"
+            style={{ textDecoration: 'none', color: 'inherit' }}
+            title={session.role === 'couple' ? 'View Profile & Health Data' : ''}
+          >
             <Avatar name={session.name} size={34} />
-            <span><b>{session.name}</b><small>{session.title}</small></span>
-          </div>
+            <span><b>{session.name}</b>{session.role !== 'couple' && <small>{session.title}</small>}</span>
+          </a>
           <div className="top-r">
-            <a className="ghost" href="#/login" onClick={async (e) => { e.preventDefault(); await logout(); }}>Switch account</a>
+            <a className="ghost" href="#/login" onClick={switchAccount}>Switch account</a>
             <button className="ghost" onClick={logout}>Sign out</button>
           </div>
         </header>

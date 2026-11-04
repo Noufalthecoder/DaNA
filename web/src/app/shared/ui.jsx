@@ -1,6 +1,7 @@
 /* Shared building blocks. Owner: Platform. Use these so every module looks the same. */
 import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+export { Logo, Brand } from './Logo.jsx';
 
 export function Page({ title, sub, actions, children }) {
   return (

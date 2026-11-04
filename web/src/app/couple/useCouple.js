@@ -5,12 +5,14 @@ import { useStore } from '../shared/store.js';
 
 export function useCouple() {
   const session = useStore((s) => s.session);
-  const couple = COUPLES.find((c) => c.id === session.couple);
-  const meId = couple.a === session.id ? couple.a : couple.b;
-  const partnerId = meId === couple.a ? couple.b : couple.a;
-  const me = { id: meId, ...PEOPLE[meId] };
-  const partner = { id: partnerId, ...PEOPLE[partnerId] };
-  const result = assess(couple);
+  const couple = (session?.couple && COUPLES.find((c) => c.id === session.couple)) || COUPLES[0];
+  const meId = couple ? (couple.a === session?.id ? couple.a : couple.b) : 'fatima';
+  const partnerId = couple ? (meId === couple.a ? couple.b : couple.a) : 'khalid';
+  const mePerson = PEOPLE[session?.id] || PEOPLE[meId] || { name: session?.name || 'Partner', short: session?.name?.split(' ')[0] || 'Partner' };
+  const partnerPerson = PEOPLE[partnerId] || { name: 'Partner', short: 'Partner' };
+  const me = { id: session?.id || meId, ...mePerson };
+  const partner = { id: partnerId, ...partnerPerson };
+  const result = couple ? assess(couple) : assess(COUPLES[0]);
   const gene = me.carrier ? { symbol: me.carrier, ...GENES[me.carrier] } : null;
   return { session, couple, me, partner, result, gene };
 }

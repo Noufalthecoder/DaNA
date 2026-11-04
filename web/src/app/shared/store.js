@@ -5,7 +5,7 @@
 */
 import { useSyncExternalStore } from 'react';
 
-const KEY = 'dana-demo-v1';
+const KEY = 'dana-demo-v2';
 const initial = {
   session: null,
   alertsSent: [],
@@ -17,6 +17,8 @@ const initial = {
   faith: {},
   audit: [],
   family: {},          // person id -> their family_members rows
+  screeningIntakes: {},
+  partnerShares: null, // live mode: can I see my partner's result?
   stats: null,         // live mode: DoH totals from the database
   dbError: null,
   reports: {},        // person id -> validated report (live)
@@ -53,16 +55,36 @@ export function set(patch, auditText) {
 
 export function get() { return state; }
 
+export function signOut() {
+  state = {
+    ...initial,
+    session: null,
+    screeningIntakes: {},
+    alertsSent: [],
+    plan: null,
+    booked: null,
+    plans: {},
+    appointments: {},
+    notes: {},
+    approved: [],
+    faith: {},
+    consents: { sharePartner: true, shareCounsellor: true, faithCards: true },
+    audit: state.audit || [],
+  };
+  save();
+  subs.forEach((f) => f());
+}
+
 /* wipe saved demo data but keep (or replace) the session: used when a real login starts */
 export function startFresh(session) {
-  state = { ...initial, session };
+  state = { ...initial, session, screeningIntakes: {} };
   save();
   subs.forEach((f) => f());
 }
 
 export function resetDemo() {
   const session = state.session;
-  state = { ...initial, session };
+  state = { ...initial, session, screeningIntakes: {} };
   save();
   subs.forEach((f) => f());
 }

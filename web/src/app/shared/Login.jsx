@@ -3,11 +3,12 @@
   - UAE PASS: simulated (demo accounts). A real pilot uses the official UAE PASS integration.
   - Google, email sign-in and new-user sign-up: real, through Supabase Auth.
 */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ACCOUNTS } from './data.js';
-import { set, useStore } from './store.js';
+import { set, useStore, signOut } from './store.js';
 import { go } from './router.js';
 import { Avatar } from './ui.jsx';
+import { Brand } from './Logo.jsx';
 import { supabase, hasBackend } from './supabase.js';
 
 const ROLE = { couple: 'Couple', counsellor: 'Counsellor', admin: 'DoH admin' };
@@ -42,6 +43,7 @@ export default function Login() {
   // start → uaepass (pick demo) → connecting | email | signup | check-email
   const [step, setStep] = useState('start');
   const [who, setWho] = useState(null);
+  const [authMethod, setAuthMethod] = useState('uae_pass');
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -50,6 +52,11 @@ export default function Login() {
   const field = (k) => ({ value: form[k], onChange: (e) => setForm({ ...form, [k]: e.target.value }) });
   const clearAuthError = () => { if (authError) set({ authError: null }); };
   const to = (s) => { setError(''); setExists(false); clearAuthError(); setStep(s); };
+
+  // Arriving at login resets any active session and restarts the journey flow
+  useEffect(() => {
+    signOut();
+  }, []);
 
   const demoPassword = import.meta.env.VITE_DEMO_PASSWORD;
   const demoSignIn = async (acc) => {
@@ -64,13 +71,26 @@ export default function Login() {
       console.warn('Live demo sign-in failed, using the offline demo:', err.message);
     }
     setTimeout(() => {
-      set({ session: { id: acc.id, role: acc.role, name: acc.name, title: acc.title, couple: acc.couple || null, via: 'uaepass' } }, `Signed in with UAE PASS (demo) as ${ROLE[acc.role]}`);
-      go('/app');
+      // Flow restarts from the beginning: reset screening intakes and journey state
+      set({
+        session: { id: acc.id, role: acc.role, name: acc.name, title: acc.title, couple: acc.couple || null, authMethod, via: 'uaepass' },
+        screeningIntakes: {},
+        alertsSent: [],
+        plan: null,
+        booked: null,
+      }, `Signed in via ${authMethod === 'uae_pass' ? 'UAE PASS' : 'Manual entry'} as ${ROLE[acc.role]}`);
+
+      if (acc.role === 'couple') {
+        go('/app/screening');
+      } else {
+        go('/app');
+      }
     }, 900);
   };
 
   const google = async () => {
     setError(''); clearAuthError();
+    window.__danaVia = null;
     const { error: e } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + window.location.pathname } });
     if (e) setError(friendly(e.message));
   };
@@ -78,6 +98,7 @@ export default function Login() {
   const emailSignIn = async (e) => {
     e.preventDefault();
     setBusy(true); setError(''); clearAuthError();
+    window.__danaVia = null;
     const { error: err } = await supabase.auth.signInWithPassword({ email: form.email.trim(), password: form.password });
     if (err) { setBusy(false); setError(friendly(err.message)); } // on success stay busy until the app opens
   };
@@ -86,6 +107,7 @@ export default function Login() {
     e.preventDefault();
     if (form.password.length < 8) { setError('Use at least 8 characters for your password.'); return; }
     setBusy(true); setError(''); setExists(false); clearAuthError();
+    window.__danaVia = null;
     const { data, error: err } = await supabase.auth.signUp({
       email: form.email.trim(), password: form.password,
       options: { data: { full_name: form.name.trim() }, emailRedirectTo: window.location.origin + window.location.pathname },
@@ -104,13 +126,15 @@ export default function Login() {
     <div className="login">
       <a className="login-back" href="#/">← Back to home</a>
       <div className="login-card">
-        <div className="login-brand"><span className="dot" />DaNA <span className="ar">دانة</span></div>
+        <div className="login-brand" style={{ marginBottom: 22 }}>
+          <Brand size={36} withArabic={true} href="#/" />
+        </div>
 
         {step === 'start' && (<>
           <h1>Sign in</h1>
-          <p className="muted">See your results and plan, privately.</p>
+          <p className="muted">Use your UAE PASS to automatically retrieve your results and records, or sign in below.</p>
           <div className="methods">
-            <button className="uaepass" onClick={() => to('uaepass')}>
+            <button className="uaepass" onClick={() => { setAuthMethod('uae_pass'); to('uaepass'); }}>
               <span className="up-logo" aria-hidden="true">UAE<br />PASS</span>Sign in with UAE PASS <em>demo</em>
             </button>
             <button className="method" onClick={google} disabled={!hasBackend}><GoogleIcon />Continue with Google</button>
@@ -120,12 +144,12 @@ export default function Login() {
           {(error || authError) && <p className="err">{error || friendly(authError)}</p>}
           <div className="or"><span>New to DaNA?</span></div>
           <button className="method outline" onClick={() => to('signup')} disabled={!hasBackend}>Create an account</button>
-          <p className="fine">Prototype · synthetic data only. UAE PASS is simulated.</p>
+          <p className="fine">Demo only: UAE PASS is simulated and all data is synthetic.</p>
         </>)}
 
         {step === 'uaepass' && (<>
-          <h1>Choose a demo account</h1>
-          <p className="muted">In a real pilot this screen is UAE PASS itself.</p>
+          <h1>Sign in with UAE PASS</h1>
+          <p className="muted">Select an account to auto-fill verified civil and Malaffi health data.</p>
           <div className="accounts">
             {ACCOUNTS.map((a) => (
               <button key={a.id} className="acc" onClick={() => demoSignIn(a)}>
