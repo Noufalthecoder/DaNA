@@ -10,6 +10,7 @@ Docs:         http://localhost:8000/docs
 """
 from fastapi import Body, Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 
 from . import config
 from .auth import User, current_user
@@ -28,6 +29,11 @@ def _account(user: User) -> dict:
     if not rows:
         raise HTTPException(404, "No DaNA account for this login yet. Open the web app once to create it.")
     return rows[0]
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse("/docs")
 
 
 @app.get("/health", tags=["system"])
