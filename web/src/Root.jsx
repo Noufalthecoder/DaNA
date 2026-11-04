@@ -49,42 +49,9 @@ export default function Root() {
   if (inApp) {
     if (!session) return null;
 
-    // Focused layout for individual medical report right after mandatory screening
+    // Full standalone layout for individual medical report right after mandatory screening
     if (isCouple && path === '/app/report') {
-      const initials = session?.name
-        ? session.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
-        : 'KM';
-      return (
-        <div className="focused-intake-shell">
-          <header className="focused-top">
-            <div className="focused-brand">
-              <Brand size={32} href="#/" />
-            </div>
-            <div className="top-r" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: '50%',
-                  background: 'var(--green-l)',
-                  color: 'var(--green)',
-                  fontWeight: 700,
-                  fontSize: 13,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {initials}
-              </span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{session.name}</span>
-            </div>
-          </header>
-          <main className="focused-content" style={{ maxWidth: 1040, margin: '0 auto', width: '100%', padding: '28px 20px 60px' }}>
-            <MedicalReport />
-          </main>
-        </div>
-      );
+      return <MedicalReport />;
     }
 
     // Focused Workday layout for screening intake (no sidebar) until completed

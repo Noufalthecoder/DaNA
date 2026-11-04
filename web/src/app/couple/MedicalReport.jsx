@@ -1,376 +1,537 @@
 import { useState } from 'react';
 import { useCouple } from './useCouple.js';
+import { useStore } from '../shared/store.js';
 import { go } from '../shared/router.js';
+import { Brand } from '../shared/Logo.jsx';
 
 export default function MedicalReport() {
   const { me, partner, gene } = useCouple();
+  const session = useStore((s) => s.session);
   const [showDetails, setShowDetails] = useState(false);
 
-  // Gene and carrier information
-  const isCarrier = !!me.carrier;
-  const conditionName = gene ? `${gene.condition} (${gene.symbol})` : 'Beta-thalassaemia (HBB)';
-  const geneSymbol = gene ? gene.symbol : 'HBB';
+  // User display name & initials
+  const userName = session?.name || me.name || 'Khalid Al Mansoori';
+  const userInitials = userName
+    .split(' ')
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'KM';
 
-  const conditionDetails = {
-    HBB: {
-      name: 'Beta-thalassaemia (HBB)',
-      subtitle: 'A common inherited blood condition.',
-      simple: 'You carry a change in the HBB gene. Carriers are usually healthy and do not have the disease.',
-      learn: 'Beta-thalassaemia is an autosomal recessive condition affecting haemoglobin production in red blood cells. As a carrier (thalassaemia minor), your body produces slightly smaller red blood cells, which is harmless and requires no medical treatment. If your partner also carries a beta-globin variant, comprehensive premarital counselling and pre-implantation or prenatal testing options are available under Abu Dhabi Department of Health guidelines.',
-    },
-    GJB2: {
-      name: 'Inherited Hearing Loss (GJB2)',
-      subtitle: 'A genetic condition affecting inner ear development.',
-      simple: 'You carry a change in the GJB2 gene. Carriers have normal hearing and no medical complications.',
-      learn: 'GJB2 encodes the Connexin 26 protein vital for inner ear potassium homeostasis. Carriers are completely unaffected. Autosomal recessive inheritance occurs only if both prospective parents carry a pathogenic GJB2 variant.',
-    },
-    SMN1: {
-      name: 'Spinal Muscular Atrophy (SMN1)',
-      subtitle: 'An inherited neuromuscular condition.',
-      simple: 'You carry a change in the SMN1 gene. Carriers do not experience muscle weakness or symptoms.',
-      learn: 'SMN1 variants affect motor neuron survival. As an asymptomatic carrier, no treatment or restrictions apply. If both partners are carriers, DoH clinical genetics protocols provide full reproductive planning support.',
-    },
-    CFTR: {
-      name: 'Cystic Fibrosis (CFTR)',
-      subtitle: 'An inherited condition affecting mucous and sweat glands.',
-      simple: 'You carry a change in the CFTR gene. Carriers live healthy lives with normal lung and digestive function.',
-      learn: 'CFTR regulates epithelial ion transport. Being a carrier causes no health complications. Reproductive counselling evaluates partner carrier status to calculate joint offspring risk.',
-    },
-    G6PD: {
-      name: 'G6PD Deficiency (G6PD)',
-      subtitle: 'An X-linked enzymatic red blood cell condition.',
-      simple: 'You carry a change in the G6PD gene. Avoid certain triggers like fava beans or specific medications.',
-      learn: 'G6PD deficiency is an X-linked enzymopathy common in the Arabian Gulf. Maintaining an updated list of oxidant triggers protects against acute hemolytic episodes.',
-    },
-  };
-
-  const activeFinding = conditionDetails[geneSymbol] || conditionDetails.HBB;
+  // Gene and carrier finding
+  const isCarrier = me.carrier !== null && me.carrier !== undefined;
+  const geneSymbol = gene?.symbol || 'HBB';
+  const geneCondition = gene?.condition || 'Beta-thalassaemia';
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto', fontFamily: 'var(--body, sans-serif)', color: '#111827' }}>
-      {/* Title Section */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontFamily: 'var(--head, Outfit, sans-serif)', fontSize: 32, fontWeight: 800, margin: '0 0 6px', color: '#111827', letterSpacing: '-0.02em' }}>
-          Your Screening Results
-        </h1>
-        <p style={{ fontSize: 16, color: '#4B5563', margin: 0 }}>
-          A simple explanation of what your report means for you.
-        </p>
-      </div>
-
-      {/* Hero Banner Card */}
-      <div
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#FAFBFA',
+        color: '#111827',
+        fontFamily: "Outfit, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      }}
+    >
+      {/* Top Header */}
+      <header
         style={{
-          background: isCarrier ? 'linear-gradient(135deg, #FFFDF0 0%, #FFFBEB 60%, #F0FDF4 100%)' : '#F0FDF4',
-          border: isCarrier ? '1px solid #FEF08A' : '1px solid #BBF7D0',
-          borderRadius: 20,
-          padding: '24px 32px',
+          width: '100%',
+          maxWidth: 1536,
+          margin: '0 auto',
+          padding: '18px 50px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: 24,
-          marginBottom: 20,
-          position: 'relative',
-          overflow: 'hidden',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          boxSizing: 'border-box',
         }}
       >
-        <div style={{ flex: 1, zIndex: 2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <Brand size={32} href="#/" />
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              background: '#D1F2D9',
+              color: '#0D7939',
+              fontWeight: 700,
+              fontSize: 13.5,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              letterSpacing: '0.02em',
+            }}
+          >
+            {userInitials}
+          </div>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>
+            {userName}
+          </span>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main
+        style={{
+          maxWidth: 1536,
+          margin: '0 auto',
+          padding: '10px 50px 60px',
+          boxSizing: 'border-box',
+        }}
+      >
+        {/* Large Heading & Subtitle */}
+        <div style={{ marginBottom: 26 }}>
+          <h1
+            style={{
+              fontSize: 34,
+              fontWeight: 800,
+              color: '#111827',
+              margin: '0 0 6px',
+              letterSpacing: '-0.025em',
+              lineHeight: 1.2,
+            }}
+          >
+            Your Screening Results
+          </h1>
+          <p
+            style={{
+              fontSize: 16,
+              color: '#4B5563',
+              margin: 0,
+              fontWeight: 400,
+            }}
+          >
+            A simple explanation of what your report means for you.
+          </p>
+        </div>
+
+        {/* Wide Horizontal Cream-Coloured Result Banner */}
+        <section
+          style={{
+            background: '#FEF6E3',
+            border: '1px solid #FDE68A',
+            borderRadius: 20,
+            padding: '24px 36px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 28,
+            marginBottom: 24,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Left Text & Icon Block */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 24, zIndex: 2, flex: 1 }}>
+            {/* DNA Icon Squircle */}
             <div
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: 14,
-                background: isCarrier ? '#FEF3C7' : '#DCFCE7',
+                width: 68,
+                height: 68,
+                borderRadius: 18,
+                background: '#FDE68A',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
               }}
             >
-              {isCarrier ? (
-                /* Amber DNA Helix Icon */
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.4" strokeLinecap="round">
-                  <path d="M4 4c2 3 5 4 8 4s6-1 8-4" />
-                  <path d="M4 20c2-3 5-4 8-4s6 1 8 4" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                  <line x1="6" y1="18" x2="18" y2="6" />
-                  <circle cx="12" cy="12" r="2" fill="#D97706" />
-                </svg>
-              ) : (
-                /* Green Check Icon */
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              )}
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.4" strokeLinecap="round">
+                <path d="M4 4c2.5 3 5 4 8 4s5.5-1 8-4" />
+                <path d="M4 20c2.5-3 5-4 8-4s5.5 1 8 4" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+                <line x1="6" y1="18" x2="18" y2="6" />
+                <circle cx="12" cy="12" r="2.2" fill="#D97706" />
+              </svg>
             </div>
+
+            {/* Subtle Divider Line */}
+            <div style={{ width: 1, height: 56, background: '#F3E8C8', flexShrink: 0 }} />
+
+            {/* Banner Text */}
             <div>
-              <h2 style={{ fontFamily: 'var(--head, Outfit, sans-serif)', fontSize: 23, fontWeight: 700, margin: 0, color: '#111827' }}>
-                {isCarrier ? 'You are a Carrier' : 'No Pathogenic Variants Detected'}
+              <h2
+                style={{
+                  fontSize: 24,
+                  fontWeight: 800,
+                  color: '#111827',
+                  margin: '0 0 6px',
+                  letterSpacing: '-0.015em',
+                }}
+              >
+                You are a Carrier
               </h2>
+              <p
+                style={{
+                  fontSize: 15,
+                  color: '#4B5563',
+                  margin: 0,
+                  maxWidth: 560,
+                  lineHeight: 1.5,
+                }}
+              >
+                We found a change in 1 gene. You are healthy, but this is important information for future family planning.
+              </p>
             </div>
           </div>
 
-          <p style={{ fontSize: 14.5, color: '#4B5563', lineHeight: 1.55, margin: 0, maxWidth: 540 }}>
-            {isCarrier
-              ? 'We found a change in 1 gene. You are healthy, but this is important information for future family planning.'
-              : 'Your premarital genetic test showed no harmful changes across the 570+ screened conditions. You have low residual risk.'}
-          </p>
-        </div>
-
-        {/* Clinical Illustration */}
-        <div style={{ flexShrink: 0, width: 220, height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="210" height="135" viewBox="0 0 210 135" fill="none">
-            {/* Glowing Backdrop */}
-            <circle cx="130" cy="70" r="58" fill="#ECFDF5" />
-            <circle cx="165" cy="50" r="35" fill="#E0F2FE" opacity="0.6" />
-
-            {/* Stylized DNA Helix loops behind */}
-            <path
-              d="M145 20 Q170 45 155 70 T175 120"
-              stroke="#A7F3D0"
-              strokeWidth="4"
-              strokeLinecap="round"
-              fill="none"
-              strokeDasharray="4 6"
-            />
-            <path
-              d="M165 20 Q140 45 155 70 T135 120"
-              stroke="#6EE7B7"
-              strokeWidth="4"
-              strokeLinecap="round"
-              fill="none"
-            />
-
-            {/* Clipboard Body */}
-            <rect x="75" y="24" width="62" height="84" rx="8" fill="#FFFFFF" stroke="#6EE7B7" strokeWidth="2.5" />
-            {/* Clipboard Top Clip */}
-            <rect x="91" y="16" width="30" height="14" rx="4" fill="#047857" />
-            <circle cx="106" cy="20" r="2.5" fill="#FFFFFF" />
-
-            {/* Clipboard Content Lines with Checkmarks */}
-            <circle cx="89" cy="42" r="3.5" fill="#10B981" />
-            <line x1="97" y1="42" x2="123" y2="42" stroke="#E5E7EB" strokeWidth="2.5" strokeLinecap="round" />
-
-            <circle cx="89" cy="56" r="3.5" fill="#10B981" />
-            <line x1="97" y1="56" x2="120" y2="56" stroke="#E5E7EB" strokeWidth="2.5" strokeLinecap="round" />
-
-            <circle cx="89" cy="70" r="3.5" fill="#10B981" />
-            <line x1="97" y1="70" x2="116" y2="70" stroke="#E5E7EB" strokeWidth="2.5" strokeLinecap="round" />
-
-            {/* Shield with Heart */}
-            <g transform="translate(118, 56)">
-              <path
-                d="M20 2C20 2 34 5 36 18C36 32 20 42 20 42C20 42 4 32 4 18C6 5 20 2 20 2Z"
-                fill="#10B981"
-                stroke="#047857"
-                strokeWidth="2"
-              />
-              {/* White Heart inside Shield */}
-              <path
-                d="M20 18.5C18.5 15.5 14 15 12.5 18C10.5 22 20 27.5 20 27.5C20 27.5 29.5 22 27.5 18C26 15 21.5 15.5 20 18.5Z"
-                fill="#FFFFFF"
-              />
-            </g>
-
-            {/* Botanical Green Leaves */}
-            <path d="M60 76C60 76 66 65 78 68C78 68 76 80 60 76Z" fill="#34D399" />
-            <path d="M54 90C54 90 62 82 72 87C72 87 68 98 54 90Z" fill="#10B981" />
-            <path d="M62 104C62 104 74 98 78 108C78 108 68 114 62 104Z" fill="#059669" />
-          </svg>
-        </div>
-      </div>
-
-      {/* 3-Column Explanatory Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 28 }}>
-        {/* Card 1: What does this mean for me? */}
-        <div
-          style={{
-            background: '#F0FDF4',
-            border: '1px solid #DCFCE7',
-            borderRadius: 16,
-            padding: '22px 20px',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
+          {/* Right Decorative Medical Illustration */}
           <div
             style={{
-              width: 42,
-              height: 42,
-              borderRadius: '50%',
-              background: '#DCFCE7',
+              flexShrink: 0,
+              width: 280,
+              height: 150,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: 14,
+              justifyContent: 'flex-end',
+              zIndex: 1,
             }}
           >
-            {/* Heart ECG Wave */}
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 7.65l.77.78L12 20.67l7.65-7.66.77-.78a5.4 5.4 0 0 0 0-7.65z" />
-              <path d="M8.5 12h2l1-2.5 1.5 5 1-2.5h2" stroke="#059669" strokeWidth="2" />
+            <svg width="270" height="150" viewBox="0 0 270 150" fill="none">
+              {/* Soft Radial Glow / Backdrop */}
+              <circle cx="175" cy="75" r="72" fill="#E6F7EC" />
+              <circle cx="215" cy="50" r="42" fill="#D1F2D9" opacity="0.6" />
+
+              {/* Looping 3D-styled DNA Double Helix */}
+              <path
+                d="M190 12 Q225 45 205 78 T228 142"
+                stroke="#6EE7B7"
+                strokeWidth="5"
+                strokeLinecap="round"
+                fill="none"
+              />
+              <path
+                d="M218 12 Q180 45 205 78 T182 142"
+                stroke="#A7F3D0"
+                strokeWidth="5"
+                strokeLinecap="round"
+                fill="none"
+                strokeDasharray="5 7"
+              />
+              {/* Helix Crossbars */}
+              <line x1="196" y1="28" x2="212" y2="28" stroke="#34D399" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
+              <line x1="200" y1="60" x2="212" y2="60" stroke="#34D399" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
+              <line x1="192" y1="96" x2="214" y2="96" stroke="#34D399" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
+              <line x1="190" y1="126" x2="222" y2="126" stroke="#34D399" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
+
+              {/* Medical Clipboard Body */}
+              <g transform="translate(108, 16)">
+                {/* Board */}
+                <rect x="0" y="8" width="76" height="106" rx="10" fill="#FFFFFF" stroke="#48BB78" strokeWidth="2.5" />
+                {/* Top Clip */}
+                <rect x="20" y="0" width="36" height="16" rx="5" fill="#15803D" />
+                <circle cx="38" cy="5" r="3" fill="#FFFFFF" />
+
+                {/* 3 Checkmark Rows */}
+                {/* Row 1 */}
+                <circle cx="16" cy="32" r="5" fill="#E6F7EC" />
+                <path d="M13.5 32l2 2 3.5-3.5" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <line x1="26" y1="32" x2="60" y2="32" stroke="#CBD5E1" strokeWidth="3" strokeLinecap="round" />
+
+                {/* Row 2 */}
+                <circle cx="16" cy="52" r="5" fill="#E6F7EC" />
+                <path d="M13.5 52l2 2 3.5-3.5" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <line x1="26" y1="52" x2="56" y2="52" stroke="#CBD5E1" strokeWidth="3" strokeLinecap="round" />
+
+                {/* Row 3 */}
+                <circle cx="16" cy="72" r="5" fill="#E6F7EC" />
+                <path d="M13.5 72l2 2 3.5-3.5" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <line x1="26" y1="72" x2="50" y2="72" stroke="#CBD5E1" strokeWidth="3" strokeLinecap="round" />
+              </g>
+
+              {/* Medical Shield with Heart */}
+              <g transform="translate(156, 68)">
+                <path
+                  d="M24 0C24 0 42 4 45 22C45 38 24 50 24 50C24 50 3 38 3 22C6 4 24 0 24 0Z"
+                  fill="#10B981"
+                  stroke="#047857"
+                  strokeWidth="2.5"
+                />
+                {/* Heart inside Shield */}
+                <path
+                  d="M24 23.5C22 19.5 17 19 15 22.5C12.5 27.5 24 34.5 24 34.5C24 34.5 35.5 27.5 33 22.5C31 19 26 19.5 24 23.5Z"
+                  fill="#FFFFFF"
+                />
+              </g>
+
+              {/* Botanical Green Leaves */}
+              <path d="M96 90C96 90 104 76 118 80C118 80 116 96 96 90Z" fill="#34D399" />
+              <path d="M88 108C88 108 98 98 110 104C110 104 105 118 88 108Z" fill="#10B981" />
+              <path d="M98 124C98 124 112 116 118 128C118 128 106 136 98 124Z" fill="#047857" />
             </svg>
           </div>
-          <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 8px', color: '#111827' }}>
-            What does this mean for me?
-          </h3>
-          <p style={{ fontSize: 14, color: '#374151', lineHeight: 1.5, margin: 0 }}>
-            {isCarrier ? (
-              <>
-                You are generally healthy.<br />
-                No treatment is needed.
-              </>
-            ) : (
-              <>
-                Your results are within normal ranges.<br />
-                No genetic risks identified.
-              </>
-            )}
-          </p>
-        </div>
+        </section>
 
-        {/* Card 2: What does this mean for my future family? */}
+        {/* Three Equally Sized Horizontal Information Cards */}
         <div
           style={{
-            background: '#F0FDFA',
-            border: '1px solid #CCFBF1',
-            borderRadius: 16,
-            padding: '22px 20px',
-            display: 'flex',
-            flexDirection: 'column',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 20,
+            marginBottom: 32,
           }}
         >
+          {/* Card 1: Green */}
           <div
             style={{
-              width: 42,
-              height: 42,
-              borderRadius: '50%',
-              background: '#CCFBF1',
+              background: '#EFF8F1',
+              border: '1px solid #DCFCE7',
+              borderRadius: 18,
+              padding: '24px 22px',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: 14,
+              alignItems: 'flex-start',
+              gap: 16,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+              minHeight: 125,
+              boxSizing: 'border-box',
+            }}
+          >
+            {/* Heart ECG Wave Icon */}
+            <div
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: '50%',
+                background: '#D1F2D9',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0D7939" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 7.65l.77.78L12 20.67l7.65-7.66.77-.78a5.4 5.4 0 0 0 0-7.65z" />
+                <path d="M8.5 12h2l1-2.5 1.5 5 1-2.5h2" stroke="#0D7939" strokeWidth="2.2" />
+              </svg>
+            </div>
+
+            <div>
+              <h3
+                style={{
+                  fontSize: 16.5,
+                  fontWeight: 700,
+                  color: '#111827',
+                  margin: '2px 0 6px',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                What does this mean for me?
+              </h3>
+              <p
+                style={{
+                  fontSize: 14,
+                  color: '#374151',
+                  lineHeight: 1.5,
+                  margin: 0,
+                }}
+              >
+                You are generally healthy.<br />
+                No treatment is needed.
+              </p>
+            </div>
+          </div>
+
+          {/* Card 2: Light Blue / Teal */}
+          <div
+            style={{
+              background: '#EDF7FD',
+              border: '1px solid #E0F2FE',
+              borderRadius: 18,
+              padding: '24px 22px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 16,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+              minHeight: 125,
+              boxSizing: 'border-box',
             }}
           >
             {/* Couple / Family Icon */}
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-          </div>
-          <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 8px', color: '#111827' }}>
-            What does this mean for my future family?
-          </h3>
-          <p style={{ fontSize: 14, color: '#374151', lineHeight: 1.5, margin: 0 }}>
-            {isCarrier ? (
-              <>
+            <div
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: '50%',
+                background: '#CEEAF8',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0284C7" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </div>
+
+            <div>
+              <h3
+                style={{
+                  fontSize: 16.5,
+                  fontWeight: 700,
+                  color: '#111827',
+                  margin: '2px 0 6px',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                What does this mean for my future family?
+              </h3>
+              <p
+                style={{
+                  fontSize: 14,
+                  color: '#374151',
+                  lineHeight: 1.5,
+                  margin: 0,
+                }}
+              >
                 If your partner is also a carrier of the same gene, there is{' '}
-                <span style={{ background: '#D1FAE5', color: '#047857', fontWeight: 700, padding: '2px 5px', borderRadius: 4 }}>
+                <span
+                  style={{
+                    background: '#C4EED0',
+                    color: '#0C6B32',
+                    fontWeight: 700,
+                    padding: '1px 6px',
+                    borderRadius: 4,
+                  }}
+                >
                   1 in 4 (25%)
                 </span>{' '}
                 chance that a child could be affected.
-              </>
-            ) : (
-              <>
-                There is a very low chance of passing on the screened conditions to your future children.
-              </>
-            )}
-          </p>
-        </div>
+              </p>
+            </div>
+          </div>
 
-        {/* Card 3: What should I do now? */}
-        <div
-          style={{
-            background: '#FAF5FF',
-            border: '1px solid #F3E8FF',
-            borderRadius: 16,
-            padding: '22px 20px',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
+          {/* Card 3: Light Purple */}
           <div
             style={{
-              width: 42,
-              height: 42,
-              borderRadius: '50%',
-              background: '#F3E8FF',
+              background: '#F5F3FE',
+              border: '1px solid #EDE9FE',
+              borderRadius: 18,
+              padding: '24px 22px',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: 14,
+              alignItems: 'flex-start',
+              gap: 16,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+              minHeight: 125,
+              boxSizing: 'border-box',
             }}
           >
             {/* Calendar Icon */}
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-              <circle cx="8" cy="14" r="1" fill="#7C3AED" />
-              <circle cx="12" cy="14" r="1" fill="#7C3AED" />
-              <circle cx="16" cy="14" r="1" fill="#7C3AED" />
-              <circle cx="8" cy="18" r="1" fill="#7C3AED" />
-              <circle cx="12" cy="18" r="1" fill="#7C3AED" />
-            </svg>
+            <div
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: 16,
+                background: '#DDD6FE',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#6D28D9" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+                <circle cx="8" cy="14" r="1.2" fill="#6D28D9" />
+                <circle cx="12" cy="14" r="1.2" fill="#6D28D9" />
+                <circle cx="16" cy="14" r="1.2" fill="#6D28D9" />
+                <circle cx="8" cy="18" r="1.2" fill="#6D28D9" />
+                <circle cx="12" cy="18" r="1.2" fill="#6D28D9" />
+              </svg>
+            </div>
+
+            <div>
+              <h3
+                style={{
+                  fontSize: 16.5,
+                  fontWeight: 700,
+                  color: '#111827',
+                  margin: '2px 0 8px',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                What should I do now?
+              </h3>
+              <ul
+                style={{
+                  listStyle: 'none',
+                  padding: 0,
+                  margin: 0,
+                  display: 'grid',
+                  gap: 6,
+                  fontSize: 13.5,
+                  color: '#374151',
+                }}
+              >
+                <li style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <svg width="16" height="16" viewBox="0 0 20 20" fill="#0D7939">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span>Consider partner screening</span>
+                </li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <svg width="16" height="16" viewBox="0 0 20 20" fill="#0D7939">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span>Talk to a genetic counsellor</span>
+                </li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <svg width="16" height="16" viewBox="0 0 20 20" fill="#0D7939">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span>Plan together with the right guidance</span>
+                </li>
+              </ul>
+            </div>
           </div>
-          <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 10px', color: '#111827' }}>
-            What should I do now?
-          </h3>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 7, fontSize: 13.5, color: '#374151' }}>
-            <li style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <svg width="17" height="17" viewBox="0 0 20 20" fill="#059669">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span>Consider partner screening</span>
-            </li>
-            <li style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <svg width="17" height="17" viewBox="0 0 20 20" fill="#059669">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span>Talk to a genetic counsellor</span>
-            </li>
-            <li style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <svg width="17" height="17" viewBox="0 0 20 20" fill="#059669">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span>Plan together with the right guidance</span>
-            </li>
-          </ul>
         </div>
-      </div>
 
-      {/* Your Finding Section */}
-      <div style={{ marginBottom: 32 }}>
-        <h3 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 14px', color: '#111827' }}>
-          Your Finding
-        </h3>
+        {/* Section Heading: Your Finding */}
+        <div style={{ marginBottom: 16 }}>
+          <h2
+            style={{
+              fontSize: 22,
+              fontWeight: 800,
+              color: '#111827',
+              margin: 0,
+              letterSpacing: '-0.015em',
+            }}
+          >
+            Your Finding
+          </h2>
+        </div>
 
+        {/* Wide Horizontal White Finding Card */}
         <div
           style={{
             background: '#FFFFFF',
             border: '1px solid #E5E7EB',
-            borderRadius: 16,
-            padding: '20px 24px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+            borderRadius: 18,
+            padding: '22px 28px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 20,
-            flexWrap: 'wrap',
+            gap: 24,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+            boxSizing: 'border-box',
           }}
         >
-          {/* Left: Condition Name */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 260 }}>
+          {/* Left: Red Icon & Condition Name */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 280 }}>
             <div
               style={{
-                width: 46,
-                height: 46,
-                borderRadius: 12,
+                width: 54,
+                height: 54,
+                borderRadius: 16,
                 background: '#FEE2E2',
                 display: 'flex',
                 alignItems: 'center',
@@ -378,141 +539,144 @@ export default function MedicalReport() {
                 flexShrink: 0,
               }}
             >
-              {/* Red Blood Droplet Icon */}
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="#DC2626">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="#DC2626">
                 <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
               </svg>
             </div>
             <div>
-              <div style={{ fontSize: 16.5, fontWeight: 700, color: '#111827' }}>
-                {activeFinding.name}
+              <div style={{ fontSize: 17, fontWeight: 700, color: '#111827', marginBottom: 3 }}>
+                Beta-thalassaemia (HBB)
               </div>
-              <div style={{ fontSize: 13.5, color: '#6B7280' }}>
-                {activeFinding.subtitle}
+              <div style={{ fontSize: 14, color: '#6B7280' }}>
+                A common inherited blood condition.
               </div>
             </div>
           </div>
 
-          {/* Vertical Divider */}
-          <div style={{ width: 1, height: 44, background: '#E5E7EB', flexShrink: 0 }} />
+          {/* Subtle Vertical Divider */}
+          <div style={{ width: 1, height: 50, background: '#E5E7EB', flexShrink: 0 }} />
 
-          {/* Middle: In simple terms */}
-          <div style={{ flex: 1, minWidth: 260 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
-              {/* Open Book Icon */}
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          {/* Centre: Green Book Icon & Explanation */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: 1, minWidth: 320 }}>
+            <div style={{ paddingTop: 2, flexShrink: 0 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0D7939" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
               </svg>
-              <span style={{ fontSize: 14.5, fontWeight: 700, color: '#059669' }}>
-                In simple terms
-              </span>
             </div>
-            <div style={{ fontSize: 13.5, color: '#4B5563', lineHeight: 1.5 }}>
-              {activeFinding.simple}
+            <div>
+              <div style={{ fontSize: 15.5, fontWeight: 700, color: '#0D7939', marginBottom: 4 }}>
+                In simple terms
+              </div>
+              <div style={{ fontSize: 14, color: '#4B5563', lineHeight: 1.5 }}>
+                You carry a change in the HBB gene. Carriers are usually healthy and do not have the disease.
+              </div>
             </div>
           </div>
 
-          {/* Right: Learn more button */}
+          {/* Right: Learn More Button */}
           <button
             type="button"
             onClick={() => setShowDetails(!showDetails)}
             style={{
-              background: '#ECFDF5',
-              color: '#047857',
-              border: '1px solid #A7F3D0',
+              background: '#EBF6EE',
+              color: '#0D7939',
+              border: '1px solid #C4EED0',
               borderRadius: 10,
-              padding: '10px 18px',
-              fontSize: 14,
-              fontWeight: 600,
+              padding: '11px 22px',
+              fontSize: 14.5,
+              fontWeight: 700,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              transition: 'all 0.15s ease',
               flexShrink: 0,
+              transition: 'background 0.15s ease',
             }}
           >
-            {showDetails ? 'Hide details' : 'Learn more →'}
+            Learn more →
           </button>
         </div>
 
-        {/* Expandable Clinical Summary */}
+        {/* Detailed Modal/Drawer for Learn More */}
         {showDetails && (
           <div
             style={{
-              marginTop: 12,
-              padding: '18px 22px',
+              marginTop: 14,
+              padding: '20px 24px',
               background: '#F9FAFB',
               border: '1px solid #E5E7EB',
-              borderRadius: 14,
+              borderRadius: 16,
               fontSize: 14,
               color: '#374151',
               lineHeight: 1.6,
             }}
           >
-            <h4 style={{ fontSize: 14.5, fontWeight: 700, margin: '0 0 6px', color: '#111827' }}>
-              Clinical Guidance & Malaffi Genomic Data
+            <h4 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 6px', color: '#111827' }}>
+              Clinical Guidance & Abu Dhabi Department of Health Notes
             </h4>
             <p style={{ margin: 0 }}>
-              {activeFinding.learn}
+              Beta-thalassaemia is an autosomal recessive haemoglobinopathy. Being a carrier means you carry one mutated HBB allele. You do not have the clinical disease, but if your fiancé/partner is also a carrier of a beta-globin mutation, every pregnancy has a 25% chance of inheriting both mutated copies. Free genetic counselling and reproductive pathway guidance are provided by the Abu Dhabi Department of Health.
             </p>
           </div>
         )}
-      </div>
 
-      {/* Bottom Action Buttons */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginTop: 32,
-          paddingTop: 16,
-          borderTop: '1px solid #E5E7EB',
-          gap: 16,
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => go('/app/screening')}
+        {/* Bottom Actions */}
+        <div
           style={{
-            background: '#FFFFFF',
-            border: '1px solid #D1D5DB',
-            borderRadius: 10,
-            padding: '12px 22px',
-            fontSize: 14.5,
-            fontWeight: 600,
-            color: '#374151',
-            cursor: 'pointer',
-            transition: 'background 0.15s ease',
-          }}
-        >
-          ← Back to Screening
-        </button>
-
-        <button
-          type="button"
-          onClick={() => go('/app')}
-          style={{
-            background: '#047857',
-            color: '#FFFFFF',
-            border: 'none',
-            borderRadius: 10,
-            padding: '12px 26px',
-            fontSize: 15,
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'inline-flex',
+            display: 'flex',
             alignItems: 'center',
-            gap: 8,
-            boxShadow: '0 2px 8px rgba(4, 120, 87, 0.28)',
-            transition: 'opacity 0.15s ease',
+            justifyContent: 'space-between',
+            marginTop: 36,
+            paddingTop: 10,
           }}
         >
-          Continue to Dashboard →
-        </button>
-      </div>
+          {/* Outlined Back to Screening Button */}
+          <button
+            type="button"
+            onClick={() => go('/app/screening')}
+            style={{
+              background: '#FFFFFF',
+              border: '1px solid #D1D5DB',
+              borderRadius: 10,
+              padding: '12px 24px',
+              fontSize: 14.5,
+              fontWeight: 600,
+              color: '#374151',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              transition: 'background 0.15s ease',
+            }}
+          >
+            ← Back to Screening
+          </button>
+
+          {/* Solid Green Continue to Dashboard Button */}
+          <button
+            type="button"
+            onClick={() => go('/app')}
+            style={{
+              background: '#0D7939',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: 10,
+              padding: '13px 28px',
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              boxShadow: '0 2px 6px rgba(13, 121, 57, 0.28)',
+              transition: 'opacity 0.15s ease',
+            }}
+          >
+            Continue to Dashboard →
+          </button>
+        </div>
+      </main>
     </div>
   );
 }
