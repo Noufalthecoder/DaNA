@@ -62,11 +62,12 @@ export function watchAuth(onReady) {
         if (viaDemo) { window.__danaVia = null; await logAudit(`Signed in with UAE PASS (demo) as ${session.role}`); }
         const fresh = event !== 'INITIAL' || window.location.search.includes('code='); // just logged in (incl. Google return)
         if (fresh && !viaDemo) await logAudit(`Signed in with ${session.via === 'google' ? 'Google' : 'email'}`);
-        await loadAll();
+        // open the app straight away; the rest of the data arrives in the background
         if (fresh && !window.location.hash.startsWith('#/app')) {
           if (window.location.search) window.history.replaceState(null, '', window.location.pathname);
           window.location.hash = '/app';
         }
+        loadAll();
       } catch (e) {
         console.error(e);
         set({ authError: e.message });

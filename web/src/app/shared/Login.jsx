@@ -79,8 +79,7 @@ export default function Login() {
     e.preventDefault();
     setBusy(true); setError(''); clearAuthError();
     const { error: err } = await supabase.auth.signInWithPassword({ email: form.email.trim(), password: form.password });
-    setBusy(false);
-    if (err) setError(friendly(err.message));
+    if (err) { setBusy(false); setError(friendly(err.message)); } // on success stay busy until the app opens
   };
 
   const signUp = async (e) => {
@@ -91,7 +90,7 @@ export default function Login() {
       email: form.email.trim(), password: form.password,
       options: { data: { full_name: form.name.trim() }, emailRedirectTo: window.location.origin + window.location.pathname },
     });
-    setBusy(false);
+    if (err || !data.session) setBusy(false); // on success stay busy until the app opens
     const taken = (err && /already (been )?registered/i.test(err.message))
       || (!err && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0);
     if (taken) setExists(true);
@@ -153,7 +152,7 @@ export default function Login() {
             <label>Email<input type="email" required autoComplete="email" {...field('email')} /></label>
             <label>Password<input type="password" required autoComplete="current-password" {...field('password')} /></label>
             {error && <p className="err">{error}</p>}
-            <button className="btn wide" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+            <button className="btn wide" disabled={busy}>{busy ? 'Signing you in…' : 'Sign in'}</button>
             <p className="swap">No account? <button type="button" className="link" onClick={() => to('signup')}>Create one</button></p>
             <button type="button" className="link" onClick={() => to('start')}>← Other ways to sign in</button>
           </form>
@@ -177,7 +176,7 @@ export default function Login() {
               </div>
             )}
             {error && <p className="err">{error}</p>}
-            <button className="btn wide" disabled={busy}>{busy ? 'Creating…' : 'Create account'}</button>
+            <button className="btn wide" disabled={busy}>{busy ? 'Setting up your account…' : 'Create account'}</button>
             <button type="button" className="method google-inline" onClick={google}><GoogleIcon />Sign up with Google</button>
             <p className="swap">Already have an account? <button type="button" className="link" onClick={() => to('email')}>Sign in</button></p>
           </form>
