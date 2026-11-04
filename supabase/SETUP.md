@@ -77,6 +77,7 @@ These two are safe to use in the browser. The privacy rules protect the data.
 | [`004_spec_v3.sql`](004_spec_v3.sql) | The full v3 schema: validated genetic reports and variants (HGVS, ClinVar, VUS), medical records (FHIR), partner consents with expiry, family tree, clinical cases with Tier 1-4 triage, counsellors, availability, assignments, referrals, Sila invitations (hashed token, 14-day expiry), note approval, and DoH analytics that hide groups under 5 |
 
 | [`005_booking.sql`](005_booking.sql) | Booking from real counsellor availability: slots get taken and freed, appointments link to the case and counsellor, counsellors mark sessions done, emergency slots reserved for Tier 1 |
+| [`006_account_email.sql`](006_account_email.sql) | Shows each user's email in `accounts` (Table Editor), kept in step with the login automatically |
 
 All are safe to re-run. `004` ends by printing `cases_computed` (one per couple).
 
