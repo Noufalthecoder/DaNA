@@ -22,7 +22,8 @@ function Dunes({ color, d, x, bottom, height }) {
 export default function JourneyWalk({ L }) {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] });
-  const p = useSpring(scrollYProgress, { stiffness: 70, damping: 20, mass: 0.5 });
+  // soft follow: the scene glides after your scroll instead of jumping with it
+  const p = useSpring(scrollYProgress, { stiffness: 38, damping: 18, mass: 0.9 });
   const [idx, setIdx] = useState(0);
   const [face, setFace] = useState(1);
   const marks = [0, 0.128, 0.272, 0.416, 0.53, 0.817, 0.939];
@@ -31,10 +32,12 @@ export default function JourneyWalk({ L }) {
 
   /* gait: phase from distance, stride amplitude from speed, facing from direction */
   const walked = useTransform(p, [0, MEET[0], MEET[1], 1], [0, STOP, STOP, DIST]);
-  const phase = useTransform(walked, (d) => (d / 168) * Math.PI * 2);
-  const childPhase = useTransform(walked, (d) => (d / 104) * Math.PI * 2);
+  // one full stride per this many px of road, matched to the calmer leg swing so feet don't slide
+  const phase = useTransform(walked, (d) => (d / 158) * Math.PI * 2);
+  const childPhase = useTransform(walked, (d) => (d / 99) * Math.PI * 2);
   const vel = useVelocity(walked);
-  const amp = useSpring(useTransform(vel, (v) => Math.min(1, Math.abs(v) / 110)), { stiffness: 140, damping: 22 });
+  // calm, decent stride: never more than 75% of a full swing; eases in and settles gently
+  const amp = useSpring(useTransform(vel, (v) => Math.min(0.75, Math.abs(v) / 160)), { stiffness: 60, damping: 20 });
   useMotionValueEvent(vel, 'change', (v) => { if (Math.abs(v) > 25) setFace(v > 0 ? 1 : -1); });
   const still = useMotionValue(0);
   /* once the family walks on, she waves goodbye and steps out of the scene */

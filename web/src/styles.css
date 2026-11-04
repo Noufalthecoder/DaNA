@@ -209,7 +209,7 @@ footer .fa{font-size:20px;color:#3CC07A;margin-inline-start:6px}
 .scroll-hint{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);font-weight:500;font-size:14px;color:var(--muted);display:flex;gap:8px;align-items:center}
 
 /* ===== walk (scroll story) ===== */
-.walk{height:620vh;position:relative}
+.walk{height:860vh;position:relative}
 /* --wh = walker height; everything vertical in the scene follows it, so short screens don't overlap */
 .walk-sticky{position:sticky;top:0;height:100vh;overflow:hidden;--wh:clamp(180px,calc(100vh - 560px),301px)}
 .walk-head{position:relative;z-index:5;padding-top:clamp(80px,12vh,110px)}
