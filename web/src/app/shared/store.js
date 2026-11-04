@@ -16,7 +16,7 @@ const initial = {
   appointments: {},   // couple id -> booked slot label
   faith: {},
   audit: [],
-  partnerShares: null, // live mode: can I see my partner's result?
+  family: {},          // person id -> their family_members rows
   stats: null,         // live mode: DoH totals from the database
   dbError: null,
   reports: {},        // person id -> validated report (live)

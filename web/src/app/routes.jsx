@@ -3,9 +3,9 @@
   then add one line to your role's `items` and one case to `page()`.
 */
 import Home from './couple/Home.jsx';
-import Roots from './couple/Roots.jsx';
+import FamilyTree from './couple/FamilyTree.jsx';
 import Bonds from './couple/Bonds.jsx';
-import Branches from './couple/Branches.jsx';
+import Roots from './couple/Roots.jsx';
 import CoupleCounsellor from './couple/Counsellor.jsx';
 import Privacy from './couple/Privacy.jsx';
 import Queue from './counsellor/Queue.jsx';
@@ -20,9 +20,9 @@ export const MENUS = {
     label: 'Couple',
     items: [
       { to: '/app', label: 'Home', icon: '⌂' },
-      { to: '/app/roots', label: 'Roots', icon: '🌱' },
+      { to: '/app/familytree', label: 'Family Tree', icon: '🌳' },
       { to: '/app/bonds', label: 'Bonds', icon: '🤝' },
-      { to: '/app/branches', label: 'Branches', icon: '🌳' },
+      { to: '/app/roots', label: 'Roots', icon: '🌱' },
       { to: '/app/counsellor', label: 'Counsellor', icon: '💬' },
       { to: '/app/privacy', label: 'Privacy', icon: '🔒' },
     ],
@@ -47,7 +47,7 @@ export const MENUS = {
 export function page(role, path) {
   const p = path.replace(/\/$/, '');
   if (role === 'couple') {
-    return { '/app': <Home />, '/app/roots': <Roots />, '/app/bonds': <Bonds />, '/app/branches': <Branches />, '/app/counsellor': <CoupleCounsellor />, '/app/privacy': <Privacy /> }[p];
+    return { '/app': <Home />, '/app/familytree': <FamilyTree />, '/app/bonds': <Bonds />, '/app/roots': <Roots />, '/app/counsellor': <CoupleCounsellor />, '/app/privacy': <Privacy /> }[p];
   }
   if (role === 'counsellor') {
     if (p.startsWith('/app/case/')) return <CaseView id={p.split('/').pop()} />;

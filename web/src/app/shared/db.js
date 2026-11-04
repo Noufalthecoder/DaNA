@@ -7,6 +7,7 @@
 import { supabase } from './supabase.js';
 import { get, set } from './store.js';
 import { SLOTS, PEOPLE, COUPLES, relativesFor } from './data.js';
+import { fromDb, toDb } from './family.js';
 
 export const isLive = () => !!(supabase && get().session?.backend);
 
@@ -91,6 +92,43 @@ export function addReferral(coupleId, destination, priority, reason) {
   return act({ referrals: { ...s.referrals, [coupleId]: [item, ...(s.referrals[coupleId] || [])] } },
     `Counsellor referred ${coupleId.toUpperCase()} to ${destination}`,
     () => supabase.from('referrals').insert({ case_id: s.cases[coupleId]?.id, destination, priority, reason }));
+}
+
+/* Family tree. Audit lines never include a relative's name: DoH can read them. */
+const familyOf = (s, ownerId) => s.family?.[ownerId] || [];
+const familyPatch = (s, ownerId, rows) => ({ family: { ...s.family, [ownerId]: rows } });
+
+export function addRelative(ownerId, added, changed) {
+  const s = get();
+  const rows = [...changed, added];
+  const ids = new Set(rows.map((r) => r.id));
+  return act(familyPatch(s, ownerId, [...familyOf(s, ownerId).filter((r) => !ids.has(r.id)), ...rows]),
+    'Added a relative to the family tree',
+    () => supabase.from('family_members').upsert(rows.map((r) => toDb(r, ownerId))));
+}
+
+export function renameRelative(ownerId, id, name) {
+  const s = get();
+  return act(familyPatch(s, ownerId, familyOf(s, ownerId).map((r) => (r.id === id ? { ...r, name } : r))),
+    'Edited a relative in the family tree',
+    () => supabase.from('family_members').update({ display_name: name }).eq('id', id));
+}
+
+export function removeRelative(ownerId, id) {
+  const s = get();
+  const isChild = (r) => r.father_id === id || r.mother_id === id;
+  const unlink = (r) => ({ ...r, father_id: r.father_id === id ? null : r.father_id, mother_id: r.mother_id === id ? null : r.mother_id });
+  const rest = familyOf(s, ownerId).filter((r) => r.id !== id);
+  const children = rest.filter(isChild).map(unlink);
+  return act(familyPatch(s, ownerId, rest.map(unlink)), 'Removed a relative from the family tree',
+    async () => {
+      // parent_ids is an array, so the database can't clear these links for us
+      if (children.length) {
+        const { error } = await supabase.from('family_members').upsert(children.map((r) => toDb(r, ownerId)));
+        if (error) return { error };
+      }
+      return supabase.from('family_members').delete().eq('id', id);
+    });
 }
 
 export function setConsent(key, value) {
@@ -205,16 +243,18 @@ async function doLoad() {
   patch.audit = (audit.data || []).map((a) => ({ t: a.at, who: a.actor_name, what: a.action }));
 
   if (s.role === 'couple' && s.couple) {
-    const [alerts, cons, partner] = await Promise.all([
+    const [alerts, cons, family] = await Promise.all([
       supabase.from('sila_alerts').select('relationship'),
       supabase.from('consents').select('kind, granted').eq('person_id', s.id),
-      supabase.from('results').select('person_id').neq('person_id', s.id),
+      supabase.from('family_members')
+        .select('id, display_name, relationship, gender, parent_ids, created_at')
+        .eq('owner_id', s.id).order('created_at').order('id'), // rows saved together share a timestamp
     ]);
     const sent = new Set((alerts.data || []).map((a) => a.relationship));
     patch.alertsSent = relativesFor(s.id).filter((r) => sent.has(r.label)).map((r) => r.id);
     patch.consents = { ...get().consents };
     (cons.data || []).forEach((c) => { patch.consents[CONSENT_KEY[c.kind]] = c.granted; });
-    patch.partnerShares = (partner.data || []).length > 0; // the partner's result is visible only with their consent
+    patch.family = { [s.id]: fromDb(family.data || [], s.id) };
     // free slots of my assigned counsellor (emergency slots only for Tier 1)
     const mine = patch.cases[s.couple];
     const { data: free } = await supabase.from('counsellor_availability')

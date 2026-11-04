@@ -1,4 +1,6 @@
 /* Shared building blocks. Owner: Platform. Use these so every module looks the same. */
+import { useEffect, useRef } from 'react';
+import { X } from 'lucide-react';
 
 export function Page({ title, sub, actions, children }) {
   return (
@@ -57,5 +59,24 @@ export function Steps({ items, current }) {
 
 export function Avatar({ name, size = 36 }) {
   const initials = name.replace(/^Dr\.\s*/, '').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
-  return <span className="avatar" style={{ width: size, height: size, fontSize: size * 0.38 }}>{initials}</span>;
+  return <span className={`avatar avatar-${size}`}>{initials}</span>;
+}
+
+/* A modal built on the native dialog, so focus and the Escape key just work. */
+export function Dialog({ title, icon, footer, onSubmit, onClose, children }) {
+  const box = useRef(null);
+  useEffect(() => { box.current.showModal(); }, []);
+  return (
+    <dialog className="dialog" ref={box} onClose={onClose} aria-label={title}>
+      <form onSubmit={onSubmit}>
+        <div className="dialog-h">
+          {icon}
+          <h2>{title}</h2>
+          <button type="button" className="dialog-x" aria-label="Close" onClick={onClose}><X size={18} /></button>
+        </div>
+        <div className="dialog-b">{children}</div>
+        <div className="dialog-f">{footer}</div>
+      </form>
+    </dialog>
+  );
 }
