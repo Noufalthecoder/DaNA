@@ -10,13 +10,16 @@ export default function Welcome() {
         <Steps items={['Account created', 'Link your results', 'Invite your partner', 'Your journey']} current={1} />
       </Card>
       <div className="grid2">
-        <Card title="Link your screening results">
-          <p className="muted">In the real service, your premarital screening results arrive from Malaffi automatically once you sign in with UAE PASS.</p>
-          <p className="fine">Prototype: new accounts have no results yet. To explore the full journey, sign out and use <b>UAE PASS (demo)</b> as Khalid or Fatima.</p>
+        <Card title="Connect with your partner">
+          <p className="muted">Find your partner on DaNA or send them an invitation link to start your premarital genetic assessment together.</p>
+          <a className="btn" href="#/app/connections">Go to Connections</a>
         </Card>
-        <Card title="Book a screening">
-          <p className="muted">Not screened yet? The premarital test is one blood sample at a nearby centre, free for UAE nationals.</p>
-          <a className="btn" href="#/invite">Find a screening centre</a>
+        <Card title="Premarital screening">
+          <p className="muted">Complete your screening intake assessment or find an accredited screening centre near you.</p>
+          <div className="btn-row">
+            <a className="btn secondary" href="#/app/screening">Screening Intake</a>
+            <a className="btn" href="#/invite">Find a Centre</a>
+          </div>
         </Card>
       </div>
     </Page>

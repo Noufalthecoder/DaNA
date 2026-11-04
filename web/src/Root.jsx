@@ -170,10 +170,11 @@ export default function Root() {
       );
     }
 
-    if (session.role === 'couple' && !session.couple) {
+    if (session.role === 'couple' && !session.couple && path === '/app' && !isScreened) {
+      const menu = MENUS[session.role] || MENUS.couple;
       return (
         <ErrorBoundary>
-          <Shell menu={{ label: 'Couple', items: [{ to: '/app', label: 'Getting started', icon: '⌂' }] }} path={path}>
+          <Shell menu={menu} path={path}>
             <Welcome />
           </Shell>
         </ErrorBoundary>
