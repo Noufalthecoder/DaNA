@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Badge } from '../shared/ui.jsx';
 import { useCouple } from './useCouple.js';
 import { SYNTHETIC_INTAKES } from '../shared/data.js';
-import { set, useStore } from '../shared/store.js';
+import { set, useStore, signOut } from '../shared/store.js';
+import { signOut as supabaseSignOut } from '../shared/supabase.js';
 import { go } from '../shared/router.js';
 
 const STEPS = [
@@ -204,8 +205,18 @@ export default function Screening() {
             ← Back to Dashboard
           </a>
         ) : (
-          <a href="#/login" className="link" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13.5 }}>
-            ← Exit to Login
+          <a
+            href="#/"
+            className="link"
+            onClick={async (e) => {
+              e.preventDefault();
+              signOut();
+              try { await supabaseSignOut(); } catch {}
+              go('/');
+            }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13.5 }}
+          >
+            ← Back to home
           </a>
         )}
         {existingIntake?.completed && (

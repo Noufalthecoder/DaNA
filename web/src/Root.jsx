@@ -9,7 +9,7 @@ import { MENUS, page } from './app/routes.jsx';
 import { useRoute, go } from './app/shared/router.js';
 import { useStore, signOut } from './app/shared/store.js';
 import { Brand } from './app/shared/Logo.jsx';
-import { watchAuth } from './app/shared/supabase.js';
+import { watchAuth, signOut as supabaseSignOut } from './app/shared/supabase.js';
 import { loadAll } from './app/shared/db.js';
 import Welcome from './app/couple/Welcome.jsx';
 import './app/app.css';
@@ -59,7 +59,16 @@ export default function Root() {
             <div className="top-r" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{session.name}</span>
               {isScreened && <a className="ghost" href="#/app">Exit to Dashboard</a>}
-              <button className="ghost" onClick={() => { signOut(); go('/login'); }}>Sign out</button>
+              <button
+                className="ghost"
+                onClick={async () => {
+                  signOut();
+                  try { await supabaseSignOut(); } catch {}
+                  go('/login');
+                }}
+              >
+                Sign out
+              </button>
             </div>
           </header>
           <main className="focused-content">
