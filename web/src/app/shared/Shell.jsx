@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { set, useStore, resetDemo } from './store.js';
 import { go } from './router.js';
 import { Avatar } from './ui.jsx';
+import { signOut } from './supabase.js';
 
 export default function Shell({ menu, path, children }) {
   const session = useStore((s) => s.session);
@@ -10,7 +11,7 @@ export default function Shell({ menu, path, children }) {
   useEffect(() => { document.documentElement.dir = 'ltr'; document.documentElement.lang = 'en'; }, []);
   useEffect(() => setOpen(false), [path]);
 
-  const logout = () => { set({ session: null }, 'Signed out'); go('/login'); };
+  const logout = async () => { set({ session: null }, 'Signed out'); await signOut(); go('/login'); };
   const active = (to) => (to === '/app' ? path === '/app' : path.startsWith(to));
 
   return (
@@ -39,7 +40,7 @@ export default function Shell({ menu, path, children }) {
             <span><b>{session.name}</b><small>{session.title}</small></span>
           </div>
           <div className="top-r">
-            <a className="ghost" href="#/login" onClick={(e) => { e.preventDefault(); set({ session: null }); go('/login'); }}>Switch account</a>
+            <a className="ghost" href="#/login" onClick={async (e) => { e.preventDefault(); set({ session: null }); await signOut(); go('/login'); }}>Switch account</a>
             <button className="ghost" onClick={logout}>Sign out</button>
           </div>
         </header>
