@@ -274,7 +274,7 @@ begin
     raise exception 'Only staff can recompute cases';
   end if;
   for c in select id from couples loop perform upsert_case(c.id); n := n + 1; end loop;
-  update counsellors k set active_caseload = (select count(*) from case_assignments a where a.counsellor_id = k.id and a.status = 'active');
+  update counsellors k set active_caseload = (select count(*) from case_assignments a where a.counsellor_id = k.id and a.status = 'active') where true;
   return n;
 end $$;
 
