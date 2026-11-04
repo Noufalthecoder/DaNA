@@ -18,7 +18,7 @@ export const PEOPLE = {
   ahmed: { name: 'Ahmed Al Ketbi', short: 'Ahmed', sex: 'M', carrier: 'GJB2' },
   noura: { name: 'Noura Al Ketbi', short: 'Noura', sex: 'F', carrier: 'GJB2' },
   saeed: { name: 'Saeed Al Nuaimi', short: 'Saeed', sex: 'M', carrier: 'SMN1' },
-  maryam: { name: 'Maryam Al Shamsi', short: 'Maryam', sex: 'F', carrier: null },
+  maryam: { name: 'Maryam Al Shamsi', short: 'Maryam', sex: 'F', carrier: null, vus: 'SMN1' },
   omar: { name: 'Omar Al Dhaheri', short: 'Omar', sex: 'M', carrier: null },
   latifa: { name: 'Latifa Al Mazrouei', short: 'Latifa', sex: 'F', carrier: 'G6PD' },
   rashid: { name: 'Rashid Al Suwaidi', short: 'Rashid', sex: 'M', carrier: 'CFTR' },
@@ -63,6 +63,27 @@ export const ACCOUNTS = [
   { id: 'mariam', role: 'counsellor', name: 'Dr. Mariam Al Hosani', title: 'Genetic counsellor' },
   { id: 'doh', role: 'admin', name: 'Programme team', title: 'DoH premarital programme' },
 ];
+
+/* offline copy of the validated lab reports (the live app reads genetic_reports + genetic_variants) */
+const LAB = { lab: 'Abu Dhabi Genomics Lab (simulated)', accreditation: 'CAP-0000000', panel: '570 genes (Abu Dhabi premarital panel)', verified: true,
+  limitations: 'A negative result lowers, but does not remove, the chance of carrying a variant.' };
+const V = (gene, hgvs_c, hgvs_p, sig = 'pathogenic') => ({ gene, hgvs_c, hgvs_p, zygosity: 'heterozygous', significance: sig, source: 'ClinVar' });
+export const DEMO_REPORTS = {
+  khalid: { ...LAB, id: 'DEMO-KHALID', date: '2026-10-12', variants: [V('HBB', 'c.20A>T', 'p.Glu7Val')] },
+  fatima: { ...LAB, id: 'DEMO-FATIMA', date: '2026-10-12', variants: [V('HBB', 'c.92+1G>A', null)] },
+  ahmed: { ...LAB, id: 'DEMO-AHMED', date: '2026-09-02', variants: [V('GJB2', 'c.35delG', 'p.Gly12fs')] },
+  noura: { ...LAB, id: 'DEMO-NOURA', date: '2026-09-02', variants: [V('GJB2', 'c.35delG', 'p.Gly12fs')] },
+  saeed: { ...LAB, id: 'DEMO-SAEED', date: '2026-10-20', variants: [V('SMN1', 'c.840C>T', null)] },
+  maryam: { ...LAB, id: 'DEMO-MARYAM', date: '2026-10-20', variants: [V('SMN1', 'c.275G>C', 'p.Trp92Ser', 'vus')] },
+  omar: { ...LAB, id: 'DEMO-OMAR', date: '2026-08-15', variants: [] },
+  latifa: { ...LAB, id: 'DEMO-LATIFA', date: '2026-08-15', variants: [V('G6PD', 'c.563C>T', 'p.Ser188Phe')] },
+  rashid: { ...LAB, id: 'DEMO-RASHID', date: '2026-10-28', variants: [V('CFTR', 'c.1521_1523delCTT', 'p.Phe508del')] },
+  aisha: { ...LAB, id: 'DEMO-AISHA', date: '2026-10-28', variants: [V('CFTR', 'c.1521_1523delCTT', 'p.Phe508del')] },
+  hamdan: { ...LAB, id: 'DEMO-HAMDAN', date: '2026-10-30', variants: [] },
+  shamma: { ...LAB, id: 'DEMO-SHAMMA', date: '2026-10-30', variants: [] },
+};
+
+export const REFERRAL_DESTINATIONS = ['IVF / PGT-M', 'Fetal medicine', 'Haematology', 'Paediatrics', 'Other'];
 
 /* counsellor slots a couple can book (Gulf time) */
 export const SLOTS = [

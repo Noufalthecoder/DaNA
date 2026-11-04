@@ -8,6 +8,7 @@ import { useCouple } from './useCouple.js';
 export default function Branches() {
   const { me } = useCouple();
   const sent = useStore((s) => s.alertsSent);
+  const invites = useStore((s) => s.invites);
   const list = relativesFor(me.id);
   const send = (ids) => sendAlerts(ids);
 
@@ -32,8 +33,14 @@ export default function Branches() {
           <div className="sms">
             <small>SMS · from DaNA</small>
             <p>Someone who cares about you recommends free genetic screening before marriage. It’s quick, private and free for UAE nationals.</p>
-            <a href="#/invite">dana.ae/i/7Kq2</a>
+            <a href={invites.length ? `#/invite/${invites.at(-1).token}` : '#/invite'}>{invites.length ? `dana.ae/i/${invites.at(-1).token.slice(0, 8)}…` : 'dana.ae/i/7Kq2'}</a>
           </div>
+          {invites.length > 0 && (
+            <div className="invite-links">
+              <span className="muted">One-time links created now (each expires in 14 days, shown only once):</span>
+              {invites.map((x) => <span key={x.token}>{x.label}: <a href={`#/invite/${x.token}`}><code>#/invite/{x.token}</code></a></span>)}
+            </div>
+          )}
           <ul className="facts">
             <li>No names, no condition, no family details.</li>
             <li>They never learn who sent it.</li>

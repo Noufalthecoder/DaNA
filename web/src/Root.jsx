@@ -30,7 +30,7 @@ export default function Root() {
   }, [session?.backend]);
 
   if (path === '/login') return <Login />;
-  if (path === '/invite') return <Invite />;
+  if (path === '/invite' || path.startsWith('/invite/')) return <Invite token={path.split('/')[2]} />;
   if (inApp) {
     if (!session) return null;
     if (session.role === 'couple' && !session.couple) {

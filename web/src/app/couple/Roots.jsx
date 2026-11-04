@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Page, Card, Badge } from '../shared/ui.jsx';
 import { useStore } from '../shared/store.js';
 import { useCouple } from './useCouple.js';
+import Report from '../shared/Report.jsx';
 
 /* Roots: understand what you carry */
 export default function Roots() {
@@ -26,6 +27,10 @@ export default function Roots() {
           </ul>
         </>) : <p className="lead-in">No disease-causing variant was found in the genes we screened.</p>}
         <button className="btn-soft" onClick={() => setPlaying(!playing)}>{playing ? '❚❚ Pause' : '▶ Listen in Arabic (voice note)'}</button>
+      </Card>
+
+      <Card title="Your lab report">
+        <Report personId={me.id} />
       </Card>
 
       <Card title={`${partner.short}’s result`}>

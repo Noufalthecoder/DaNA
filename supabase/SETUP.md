@@ -69,6 +69,17 @@ These two are safe to use in the browser. The privacy rules protect the data.
 
 **Email confirmation:** Authentication → Sign In / Providers → Email. Leave **Confirm email** on for real use; turn it off while testing so sign-up logs in straight away.
 
+## 7b. Upgrade the database (run in this order, each in a New query)
+
+| File | What it adds |
+|---|---|
+| [`003_sample_journey.sql`](003_sample_journey.sql) | New Google/email users get their own sample couple and land in the full app |
+| [`004_spec_v3.sql`](004_spec_v3.sql) | The full v3 schema: validated genetic reports and variants (HGVS, ClinVar, VUS), medical records (FHIR), partner consents with expiry, family tree, clinical cases with Tier 1-4 triage, counsellors, availability, assignments, referrals, Sila invitations (hashed token, 14-day expiry), note approval, and DoH analytics that hide groups under 5 |
+
+| [`005_booking.sql`](005_booking.sql) | Booking from real counsellor availability: slots get taken and freed, appointments link to the case and counsellor, counsellors mark sessions done, emergency slots reserved for Tier 1 |
+
+All are safe to re-run. `004` ends by printing `cases_computed` (one per couple).
+
 ## 8. Turn on Google sign-in
 
 1. [Google Cloud Console](https://console.cloud.google.com/) → create a project → **APIs & Services → OAuth consent screen**: External, app name *DaNA*, your email.
