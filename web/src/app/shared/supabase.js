@@ -34,6 +34,8 @@ export async function loadSession(user) {
   }
   await hydratePeople();
   const couple = acc.person_id ? COUPLES.find((c) => c.a === acc.person_id || c.b === acc.person_id) : null;
+  const isUae = window.__danaVia === 'uaepass';
+  const authMethod = isUae ? 'uae_pass' : 'manual';
   return {
     id: acc.person_id || user.id,
     role: acc.role,
@@ -42,6 +44,7 @@ export async function loadSession(user) {
     couple: couple ? couple.id : null,
     email: user.email,
     via: window.__danaVia || user.app_metadata?.provider || 'email',
+    authMethod, // Google and email lead to manual by default
     backend: true,
   };
 }
@@ -63,7 +66,7 @@ export function watchAuth(onReady) {
         await loadAll();
         if (fresh && !window.location.hash.startsWith('#/app')) {
           if (window.location.search) window.history.replaceState(null, '', window.location.pathname);
-          window.location.hash = '/app';
+          window.location.hash = session.role === 'couple' ? '/app/screening' : '/app';
         }
       } catch (e) {
         console.error(e);

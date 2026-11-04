@@ -73,6 +73,7 @@ export default function Login() {
 
   const google = async () => {
     setError('');
+    window.__danaVia = null;
     const { error: e } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + window.location.pathname } });
     if (e) setError(e.message);
   };
@@ -80,6 +81,7 @@ export default function Login() {
   const emailSignIn = async (e) => {
     e.preventDefault();
     setBusy(true); setError('');
+    window.__danaVia = null;
     const { error: err } = await supabase.auth.signInWithPassword({ email: form.email.trim(), password: form.password });
     setBusy(false);
     if (err) setError(err.message === 'Invalid login credentials' ? 'Wrong email or password.' : err.message);
@@ -89,6 +91,7 @@ export default function Login() {
     e.preventDefault();
     if (form.password.length < 8) { setError('Use at least 8 characters for your password.'); return; }
     setBusy(true); setError('');
+    window.__danaVia = null;
     const { data, error: err } = await supabase.auth.signUp({
       email: form.email.trim(), password: form.password,
       options: { data: { full_name: form.name.trim() }, emailRedirectTo: window.location.origin + window.location.pathname },

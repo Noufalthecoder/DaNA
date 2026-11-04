@@ -30,19 +30,21 @@ export default function Screening() {
   const intakes = useStore((s) => s.screeningIntakes || {});
   const existingIntake = intakes[me.id];
 
-  const isManual = session?.authMethod === 'manual';
+  // Only UAE PASS auto-fills. Google sign-in, email, signup, and manual all default strictly to manual.
+  const isUaePass = session?.authMethod === 'uae_pass' || session?.via === 'uaepass';
+  const isManual = !isUaePass;
   const mode = isManual ? 'manual' : 'uae_pass';
 
   const defaultPreset = isManual
     ? {
         personal: {
-          fullName: '',
+          fullName: session?.name || '',
           fullNameAr: '',
           emiratesId: '',
           dob: '',
           gender: 'Female',
           phone: '',
-          email: '',
+          email: session?.email || '',
           nationality: 'United Arab Emirates',
           city: 'Abu Dhabi',
         },
