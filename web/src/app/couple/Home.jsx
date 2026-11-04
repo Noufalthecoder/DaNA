@@ -69,7 +69,10 @@ export default function Home() {
               <>
                 <Badge tone={result.type === 'clear' ? 'green' : 'amber'}>{result.label}</Badge>
                 <p><b>{result.condition}</b> · {result.risk}</p>
-                <a href="#/app/roots">What does this mean? →</a>
+                <div style={{ display: 'flex', gap: 14, marginTop: 4, flexWrap: 'wrap' }}>
+                  <a href="#/app/roots">What does this mean? →</a>
+                  <a href="#/app/profile" style={{ color: 'var(--ink2)' }}>Update profile data →</a>
+                </div>
               </>
             ) : (
               <>
@@ -84,9 +87,9 @@ export default function Home() {
 
       <div className="stats four">
         <Stat
-          label="Screening Intake"
+          label="Health Profile"
           value={isScreened ? 'Verified' : 'Pending'}
-          note={isScreened ? (myIntake.mode === 'uae_pass' ? 'UAE PASS verified' : 'Manual entry') : 'Action required'}
+          note={isScreened ? (myIntake?.mode === 'uae_pass' ? 'UAE PASS verified · Profile' : 'Manual entry · Profile') : 'Action required'}
         />
         <Stat label="Your plan" value={plan ? plan.split(':')[0] : 'Not chosen'} />
         <Stat label="Relatives invited" value={sent.length} note="anonymously" />

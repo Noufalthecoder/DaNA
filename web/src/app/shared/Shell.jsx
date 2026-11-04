@@ -46,10 +46,15 @@ export default function Shell({ menu, path, children }) {
       <div className="main">
         <header className="top">
           <button className="burger" onClick={() => setOpen(!open)} aria-label="Menu">☰</button>
-          <div className="top-who">
+          <a
+            href={session.role === 'couple' ? '#/app/profile' : '#/app'}
+            className="top-who"
+            style={{ textDecoration: 'none', color: 'inherit' }}
+            title={session.role === 'couple' ? 'View Profile & Health Data' : ''}
+          >
             <Avatar name={session.name} size={34} />
             <span><b>{session.name}</b>{session.role !== 'couple' && <small>{session.title}</small>}</span>
-          </div>
+          </a>
           <div className="top-r">
             <a className="ghost" href="#/login" onClick={switchAccount}>Switch account</a>
             <button className="ghost" onClick={logout}>Sign out</button>
