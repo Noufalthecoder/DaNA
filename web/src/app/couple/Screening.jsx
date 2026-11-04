@@ -29,7 +29,7 @@ export default function Screening() {
   const { me, partner } = useCouple();
   const session = useStore((s) => s.session);
   const intakes = useStore((s) => s.screeningIntakes || {});
-  const existingIntake = intakes[me.id];
+  const existingIntake = (me && me.id) ? intakes[me.id] : null;
 
   // Only UAE PASS auto-fills. Google sign-in, email, signup, and manual all default strictly to manual.
   const isUaePass = session?.authMethod === 'uae_pass' || session?.via === 'uaepass';
@@ -75,7 +75,7 @@ export default function Screening() {
           anonymizedResearch: false,
         },
       }
-    : (SYNTHETIC_INTAKES[me.id] || SYNTHETIC_INTAKES.fatima);
+    : ((me && me.id && SYNTHETIC_INTAKES[me.id]) || SYNTHETIC_INTAKES.fatima || { personal: {}, medical: {}, family: [], compliance: {}, consent: {} });
 
   const [step, setStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(!!existingIntake?.completed);
@@ -100,7 +100,7 @@ export default function Screening() {
     setConsent(defaultPreset.consent);
     setCertified(false);
     setErrors({});
-  }, [me.id, isManual, existingIntake?.completed]);
+  }, [me?.id, isManual, existingIntake?.completed]);
 
   // Family dynamic table helpers (Image 2 style)
   const addFamilyRow = () => {

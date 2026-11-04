@@ -34,9 +34,8 @@ export async function loadSession(user) {
   let { data: acc } = await supabase.from('accounts').select('*').eq('user_id', user.id).maybeSingle();
   if (!acc) {
     // first sign-in (new user or Google): create a couple account with nothing linked yet
-    const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
+    const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User';
     const row = { user_id: user.id, role: 'couple', person_id: null, display_name: name, title: 'New member' };
-    // two sign-in events can arrive at once: "do nothing if it already exists", then read whichever row won
     const { error } = await supabase.from('accounts').upsert(row, { onConflict: 'user_id', ignoreDuplicates: true });
     if (error && error.code !== '23505') throw error;
     const again = await supabase.from('accounts').select('*').eq('user_id', user.id).maybeSingle();
@@ -50,7 +49,7 @@ export async function loadSession(user) {
   }
   await hydratePeople();
   const couple = acc.person_id ? COUPLES.find((c) => c.a === acc.person_id || c.b === acc.person_id) : null;
-  const isUae = window.__danaVia === 'uaepass';
+  const isUae = typeof window !== 'undefined' && window.__danaVia === 'uaepass';
   const authMethod = isUae ? 'uae_pass' : 'manual';
   return {
     id: acc.person_id || user.id,
@@ -59,8 +58,8 @@ export async function loadSession(user) {
     title: acc.title || '',
     couple: couple ? couple.id : null,
     email: user.email,
-    via: window.__danaVia || user.app_metadata?.provider || 'email',
-    authMethod, // Google and email lead to manual by default
+    via: (typeof window !== 'undefined' && window.__danaVia) || user.app_metadata?.provider || 'email',
+    authMethod,
     backend: true,
   };
 }
@@ -68,19 +67,29 @@ export async function loadSession(user) {
 /* keep the app's session in step with Supabase (also handles the Google redirect) */
 export function watchAuth(onReady) {
   if (!supabase) { onReady(); return () => {}; }
-  let current = null; // getSession and SIGNED_IN can both fire for the same login
+  let current = null;
+  let readyCalled = false;
+  const notifyReady = () => {
+    if (!readyCalled) {
+      readyCalled = true;
+      onReady();
+    }
+  };
+
+  // 1-second fallback timeout: never block UI on white screen if network is slow/offline
+  const timer = setTimeout(notifyReady, 1000);
+
   const apply = async (s, event) => {
     if (s?.user && s.user.id !== current) {
       current = s.user.id;
       try {
         const session = await loadSession(s.user);
         startFresh(session);
-        const viaDemo = !!window.__danaVia;
+        const viaDemo = typeof window !== 'undefined' && !!window.__danaVia;
         if (viaDemo) { window.__danaVia = null; await logAudit(`Signed in with UAE PASS (demo) as ${session.role}`); }
-        const fresh = event !== 'INITIAL' || window.location.search.includes('code='); // just logged in (incl. Google return)
+        const fresh = event !== 'INITIAL' || (typeof window !== 'undefined' && window.location.search.includes('code='));
         if (fresh && !viaDemo) await logAudit(`Signed in with ${session.via === 'google' ? 'Google' : 'email'}`);
-        // open the app straight away; the rest of the data arrives in the background
-        if (fresh && !window.location.hash.startsWith('#/app')) {
+        if (fresh && typeof window !== 'undefined' && !window.location.hash.startsWith('#/app')) {
           if (window.location.search) window.history.replaceState(null, '', window.location.pathname);
           window.location.hash = session.role === 'couple' ? '/app/screening' : '/app';
         }
@@ -90,18 +99,43 @@ export function watchAuth(onReady) {
         set({ authError: e.message });
       }
     }
-    onReady();
+    clearTimeout(timer);
+    notifyReady();
   };
-  supabase.auth.getSession().then(({ data }) => apply(data.session, 'INITIAL'));
-  const { data } = supabase.auth.onAuthStateChange((event, s) => {
-    if (event === 'SIGNED_IN') apply(s, event);
-    if (event === 'SIGNED_OUT') { current = null; set({ session: null }); }
-  });
-  return () => data.subscription.unsubscribe();
+
+  try {
+    supabase.auth.getSession()
+      .then(({ data }) => apply(data?.session, 'INITIAL'))
+      .catch((err) => {
+        console.warn('Supabase auth getSession notice:', err?.message);
+        clearTimeout(timer);
+        notifyReady();
+      });
+  } catch {
+    clearTimeout(timer);
+    notifyReady();
+  }
+
+  try {
+    const { data } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === 'SIGNED_IN') apply(s, event);
+      if (event === 'SIGNED_OUT') { current = null; set({ session: null }); }
+    });
+    return () => {
+      clearTimeout(timer);
+      if (data?.subscription?.unsubscribe) data.subscription.unsubscribe();
+    };
+  } catch {
+    clearTimeout(timer);
+    notifyReady();
+    return () => {};
+  }
 }
 
 export async function signOut() {
-  if (supabase) await supabase.auth.signOut();
+  if (supabase) {
+    try { await supabase.auth.signOut(); } catch {}
+  }
 }
 
 export default supabase;
