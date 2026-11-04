@@ -22,9 +22,11 @@ export async function loadSession(user) {
     // first sign-in (new user or Google): create a couple account with nothing linked yet
     const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
     const row = { user_id: user.id, role: 'couple', person_id: null, display_name: name, title: 'New member' };
-    const { error } = await supabase.from('accounts').insert(row);
-    if (error) throw error;
-    acc = row;
+    // two sign-in events can arrive at once: "do nothing if it already exists", then read whichever row won
+    const { error } = await supabase.from('accounts').upsert(row, { onConflict: 'user_id', ignoreDuplicates: true });
+    if (error && error.code !== '23505') throw error;
+    const again = await supabase.from('accounts').select('*').eq('user_id', user.id).maybeSingle();
+    acc = again.data || row;
   }
   if (acc.role === 'couple' && !acc.person_id) {
     // temporary onboarding: give this account its own sample couple (see supabase/003_sample_journey.sql)

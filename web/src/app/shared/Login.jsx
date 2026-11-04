@@ -22,6 +22,8 @@ function friendly(msg = '') {
   if (m.includes('password should be') || m.includes('weak password')) return 'Choose a stronger password: at least 8 characters.';
   if (m.includes('invalid') && m.includes('email')) return 'Please enter a valid email address.';
   if (m.includes('signups not allowed') || m.includes('signup is disabled')) return 'New accounts are switched off right now.';
+  if (m.includes('duplicate key') || m.includes('accounts_pkey')) return 'Your account is ready. Please sign in again.';
+  if (m.includes('failed to fetch') || m.includes('network')) return 'Can’t reach DaNA right now. Check your internet and try again.';
   return msg;
 }
 
@@ -46,7 +48,8 @@ export default function Login() {
   const [exists, setExists] = useState(false); // sign-up hit an email that already has an account
   const authError = useStore((s) => s.authError);
   const field = (k) => ({ value: form[k], onChange: (e) => setForm({ ...form, [k]: e.target.value }) });
-  const to = (s) => { setError(''); setExists(false); setStep(s); };
+  const clearAuthError = () => { if (authError) set({ authError: null }); };
+  const to = (s) => { setError(''); setExists(false); clearAuthError(); setStep(s); };
 
   const demoPassword = import.meta.env.VITE_DEMO_PASSWORD;
   const demoSignIn = async (acc) => {
@@ -67,14 +70,14 @@ export default function Login() {
   };
 
   const google = async () => {
-    setError('');
+    setError(''); clearAuthError();
     const { error: e } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + window.location.pathname } });
     if (e) setError(friendly(e.message));
   };
 
   const emailSignIn = async (e) => {
     e.preventDefault();
-    setBusy(true); setError('');
+    setBusy(true); setError(''); clearAuthError();
     const { error: err } = await supabase.auth.signInWithPassword({ email: form.email.trim(), password: form.password });
     setBusy(false);
     if (err) setError(friendly(err.message));
@@ -83,7 +86,7 @@ export default function Login() {
   const signUp = async (e) => {
     e.preventDefault();
     if (form.password.length < 8) { setError('Use at least 8 characters for your password.'); return; }
-    setBusy(true); setError(''); setExists(false);
+    setBusy(true); setError(''); setExists(false); clearAuthError();
     const { data, error: err } = await supabase.auth.signUp({
       email: form.email.trim(), password: form.password,
       options: { data: { full_name: form.name.trim() }, emailRedirectTo: window.location.origin + window.location.pathname },
@@ -115,7 +118,7 @@ export default function Login() {
             <button className="method" onClick={() => to('email')} disabled={!hasBackend}><span className="mi" aria-hidden="true">✉</span>Sign in with email</button>
           </div>
           {!hasBackend && notConnected}
-          {(error || authError) && <p className="err">{error || authError}</p>}
+          {(error || authError) && <p className="err">{error || friendly(authError)}</p>}
           <div className="or"><span>New to DaNA?</span></div>
           <button className="method outline" onClick={() => to('signup')} disabled={!hasBackend}>Create an account</button>
           <p className="fine">Prototype · synthetic data only. UAE PASS is simulated.</p>
