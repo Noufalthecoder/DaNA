@@ -400,6 +400,96 @@ export async function syncConnectionsFromSupabase(userId) {
   }
 }
 
+/**
+ * Sync connection requests from Supabase connection_requests table
+ */
+export async function syncRequestsFromSupabase(userId) {
+  try {
+    const { data, error } = await supabase
+      .from('connection_requests')
+      .select('id, sender_id, receiver_id, recipient_email, recipient_phone, channel, invitation_sent, invitation_sent_at, accepted, accepted_at, status, created_at')
+      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
+
+    if (!error && Array.isArray(data) && data.length > 0) {
+      const state = get();
+      const existing = state.connectionRequests || [];
+      const updated = [...existing];
+      let modified = false;
+
+      for (const row of data) {
+        const foundIndex = updated.findIndex(
+          (r) =>
+            r.id === row.id ||
+            (r.senderId === row.sender_id && r.receiverId === row.receiver_id && r.status === row.status)
+        );
+        if (foundIndex >= 0) {
+          if (updated[foundIndex].status !== row.status) {
+            updated[foundIndex] = {
+              ...updated[foundIndex],
+              status: row.status,
+              respondedAt: row.accepted_at || updated[foundIndex].respondedAt,
+            };
+            modified = true;
+          }
+        } else {
+          updated.push({
+            id: row.id,
+            senderId: row.sender_id,
+            receiverId: row.receiver_id,
+            channel: row.channel || 'in_app',
+            recipientEmail: row.recipient_email,
+            recipientPhone: row.recipient_phone,
+            invitationSent: row.invitation_sent,
+            invitationSentAt: row.invitation_sent_at,
+            accepted: row.accepted,
+            acceptedAt: row.accepted_at,
+            status: row.status || 'PENDING',
+            createdAt: row.created_at || new Date().toISOString(),
+          });
+          modified = true;
+        }
+      }
+
+      if (modified) {
+        set({ connectionRequests: updated });
+      }
+    }
+  } catch (err) {
+    console.warn('Sync connection requests notice:', err?.message);
+  }
+}
+
+/**
+ * Record an external invitation (WhatsApp or Gmail) in Supabase connection_requests
+ */
+export async function recordExternalInvitation({ senderId, channel, recipientContact = '' }) {
+  try {
+    const isEmail = channel === 'gmail' || recipientContact.includes('@');
+    const isPhone = channel === 'whatsapp' || !isEmail;
+
+    const payload = {
+      sender_id: senderId,
+      receiver_id: null,
+      recipient_email: isEmail ? recipientContact.trim() : null,
+      recipient_phone: isPhone ? recipientContact.trim() : null,
+      channel: channel || (isEmail ? 'gmail' : 'whatsapp'),
+      invitation_sent: true,
+      invitation_sent_at: new Date().toISOString(),
+      accepted: false,
+      status: 'PENDING',
+    };
+
+    const { data, error } = await supabase.from('connection_requests').insert(payload).select();
+    if (error) {
+      console.warn('Record external invitation notice (Supabase):', error.message);
+    }
+    return data?.[0] || null;
+  } catch (err) {
+    console.warn('Record external invitation error:', err?.message);
+    return null;
+  }
+}
+
 // -----------------------------------------------------------------------------
 // 2. UNREGISTERED USER INVITATIONS (WhatsApp & Gmail)
 // -----------------------------------------------------------------------------
@@ -499,6 +589,27 @@ export function sendConnectionRequest(senderId, receiverId, note = '') {
     },
     `Sent connection request to ${PEOPLE[receiverId]?.name || receiverId}`
   );
+
+  // Sync to Supabase connection_requests table in the background
+  try {
+    supabase
+      .from('connection_requests')
+      .insert({
+        sender_id: senderId,
+        receiver_id: receiverId,
+        channel: 'in_app',
+        invitation_sent: true,
+        invitation_sent_at: new Date().toISOString(),
+        accepted: false,
+        status: 'PENDING',
+      })
+      .then(() => {})
+      .catch((err) => {
+        console.warn('Supabase connection_requests insert notice:', err?.message);
+      });
+  } catch (err) {
+    console.warn('Supabase connection_requests sync error:', err?.message);
+  }
 
   return newRequest;
 }
@@ -605,6 +716,22 @@ export function acceptConnectionRequest(requestId, actingUserId) {
 
   // Sync to Supabase in the background (zero blocking)
   try {
+    // 1. Update connection_requests record
+    supabase
+      .from('connection_requests')
+      .update({
+        status: 'ACCEPTED',
+        accepted: true,
+        accepted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .or(`and(sender_id.eq.${req.senderId},receiver_id.eq.${actingUserId}),and(sender_id.eq.${actingUserId},receiver_id.eq.${req.senderId})`)
+      .then(() => {})
+      .catch((err) => {
+        console.warn('Supabase connection_requests update notice:', err?.message);
+      });
+
+    // 2. Upsert matched couple record
     supabase
       .from('couples')
       .upsert({
@@ -652,6 +779,19 @@ export function rejectConnectionRequest(requestId, actingUserId) {
     `Rejected connection request from ${PEOPLE[req.senderId]?.name || req.senderId}`
   );
 
+  // Sync rejection to Supabase connection_requests
+  try {
+    supabase
+      .from('connection_requests')
+      .update({
+        status: 'REJECTED',
+        updated_at: new Date().toISOString(),
+      })
+      .or(`and(sender_id.eq.${req.senderId},receiver_id.eq.${actingUserId})`)
+      .then(() => {})
+      .catch(() => {});
+  } catch {}
+
   return true;
 }
 
@@ -681,6 +821,19 @@ export function cancelConnectionRequest(requestId, actingUserId) {
     { connectionRequests: updatedRequests },
     `Cancelled connection request to ${PEOPLE[req.receiverId]?.name || req.receiverId}`
   );
+
+  // Sync cancellation to Supabase connection_requests
+  try {
+    supabase
+      .from('connection_requests')
+      .update({
+        status: 'CANCELLED',
+        updated_at: new Date().toISOString(),
+      })
+      .or(`and(sender_id.eq.${actingUserId},receiver_id.eq.${req.receiverId})`)
+      .then(() => {})
+      .catch(() => {});
+  } catch {}
 
   return true;
 }

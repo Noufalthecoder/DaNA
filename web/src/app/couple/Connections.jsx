@@ -36,6 +36,8 @@ import {
   generateGmailInviteUrl,
   initConnectionsStore,
   syncConnectionsFromSupabase,
+  syncRequestsFromSupabase,
+  recordExternalInvitation,
 } from '../shared/connectionsService.js';
 import './Connections.css';
 
@@ -83,8 +85,9 @@ export default function Connections({ defaultTab = 'discover' }) {
       setTab(parseHashParams());
     };
     window.addEventListener('hashchange', handleHash);
-    // Background sync active couples from Supabase
+    // Background sync active couples and connection requests from Supabase
     syncConnectionsFromSupabase(meId);
+    syncRequestsFromSupabase(meId);
     return () => window.removeEventListener('hashchange', handleHash);
   }, [meId]);
 
@@ -486,6 +489,14 @@ export default function Connections({ defaultTab = 'discover' }) {
                       target="_blank"
                       rel="noreferrer"
                       className="conn-btn-whatsapp"
+                      onClick={() => {
+                        recordExternalInvitation({
+                          senderId: meId,
+                          channel: 'whatsapp',
+                          recipientContact: partnerPhone,
+                        });
+                        notify('WhatsApp invitation recorded. Link opened!');
+                      }}
                     >
                       <IconWhatsApp size={16} />
                       <span>Open in WhatsApp</span>
@@ -515,6 +526,14 @@ export default function Connections({ defaultTab = 'discover' }) {
                         target="_blank"
                         rel="noreferrer"
                         className="conn-btn-gmail"
+                        onClick={() => {
+                          recordExternalInvitation({
+                            senderId: meId,
+                            channel: 'gmail',
+                            recipientContact: partnerEmail,
+                          });
+                          notify('Email invitation recorded. Gmail opened!');
+                        }}
                       >
                         <IconMail size={16} />
                         <span>Open Gmail</span>
@@ -524,6 +543,14 @@ export default function Connections({ defaultTab = 'discover' }) {
                         href={gmailData.mailtoUrl}
                         className="btn-soft btn-sm"
                         title="Open default email application"
+                        onClick={() => {
+                          recordExternalInvitation({
+                            senderId: meId,
+                            channel: 'gmail',
+                            recipientContact: partnerEmail,
+                          });
+                          notify('Email invitation recorded.');
+                        }}
                       >
                         Default Mail
                       </a>
