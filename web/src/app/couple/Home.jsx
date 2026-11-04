@@ -11,7 +11,7 @@ export default function Home() {
   const next = !plan
     ? { to: '#/app/bonds', t: 'Choose your plan together', p: 'See every option side by side, then decide as a couple.' }
     : !sent.length
-      ? { to: '#/app/branches', t: 'Protect your family', p: 'Send private Sila alerts so relatives can screen early.' }
+      ? { to: '#/app/roots', t: 'Protect your family', p: 'Send private Sila alerts so relatives can screen early.' }
       : { to: '#/app/counsellor', t: 'Talk to your counsellor', p: 'Ask anything, any time. Dr. Mariam is one tap away.' };
 
   return (
@@ -31,7 +31,7 @@ export default function Home() {
           <div className="result-mini">
             <Badge tone={result.type === 'clear' ? 'green' : 'amber'}>{result.label}</Badge>
             <p><b>{result.condition}</b> · {result.risk}</p>
-            <a href="#/app/roots">What does this mean? →</a>
+            <a href={result.type === 'plan' ? '#/app/bonds' : '#/app/counsellor'}>What does this mean? →</a>
           </div>
         </Card>
       </div>

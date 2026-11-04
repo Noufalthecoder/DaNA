@@ -1,0 +1,73 @@
+/* ===== Family tree: one column per generation, joined by a spine. Layout follows the HMS infrastructure map. =====
+   Every row is the same height, so columns line up and the spine needs no measuring. */
+.ftree{
+  --ftree-row:72px;
+  --ftree-gap-y:16px;
+  --ftree-gap-x:48px;
+  --ftree-stub:8px;
+  --ftree-accent:#12A150;
+  --ftree-idle:#E2E8E4;
+  overflow-x:auto;
+  padding:2px 2px 14px;
+  scrollbar-width:thin;
+}
+.ftree__cols{display:flex;gap:var(--ftree-gap-x)}
+.ftree__col{flex:1 0 210px;min-width:0}
+
+/* column header */
+.ftree__head{display:flex;align-items:center;justify-content:space-between;gap:8px;height:46px;padding:0 14px;margin-bottom:16px;background:#fff;border:1px solid rgba(0,0,0,.05);border-radius:12px;box-shadow:0 2px 4px rgba(0,0,0,.01)}
+.ftree__title{display:flex;align-items:center;gap:9px;min-width:0;overflow:hidden;font-size:13.5px;font-weight:600;color:var(--ink);white-space:nowrap}
+.ftree__title svg{flex:none;color:var(--ftree-accent)}
+.ftree__count{flex:none;padding:3px 9px;border-radius:999px;background:#F0F3F1;color:var(--ink2);font-size:11px;font-weight:700}
+
+/* the spine: from the middle of the first row to the middle of the last */
+.ftree__list{position:relative;display:flex;flex-direction:column;gap:var(--ftree-gap-y)}
+.ftree__list.is-connected::before{content:'';position:absolute;left:calc(var(--ftree-stub) * -1 - 2px);top:calc(var(--ftree-row) / 2 - 1px);bottom:calc(var(--ftree-row) / 2 - 1px);width:2px;background:var(--ftree-accent)}
+
+/* a row, and its stub into the spine */
+.ftree-slot{position:relative;display:flex;align-items:center;height:var(--ftree-row)}
+.ftree__list.is-connected .ftree-slot:not(.is-loose):not(.is-spacer)::before{content:'';position:absolute;left:calc(var(--ftree-stub) * -1 - 2px);top:50%;width:calc(var(--ftree-stub) + 2px);height:2px;margin-top:-1px;background:var(--ftree-accent)}
+
+/* the card */
+.ftree-card{position:relative;width:100%;height:100%;background:#fff;border:1px solid rgba(0,0,0,.05);border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.02),0 1px 2px rgba(0,0,0,.01);transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease,background .2s ease}
+.ftree-card:hover{transform:translateY(-2px);border-color:rgba(0,0,0,.09);box-shadow:0 4px 12px rgba(0,0,0,.05)}
+.ftree-card.is-active{background:#F2FBF6;border-color:rgba(18,161,80,.35);box-shadow:0 4px 16px rgba(18,161,80,.08)}
+.ftree-card__main{display:flex;align-items:center;gap:12px;width:100%;height:100%;padding:0 14px;border:0;border-radius:inherit;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.ftree-card__main:focus-visible{outline:2px solid var(--ftree-accent);outline-offset:2px}
+.ftree-card__icon{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:8px;background:#F4F7F5;color:var(--ink2);transition:background .2s,color .2s}
+.ftree-card.is-active .ftree-card__icon{background:var(--green-l);color:var(--ftree-accent)}
+.ftree-card__info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.ftree-card__name{overflow:hidden;font-size:13.5px;font-weight:700;color:var(--ink);white-space:nowrap;text-overflow:ellipsis}
+.ftree-card.is-active .ftree-card__name{color:#006B31}
+.ftree-card__meta{display:flex;flex-wrap:wrap;align-items:center;gap:1px 6px;font-size:11px;color:var(--ink3)}
+
+/* relation tag */
+.ftree-tag{padding:1px 5px;border-radius:4px;background:#EEF1EF;color:var(--ink2);font-size:9px;font-style:normal;font-weight:700;letter-spacing:.02em;text-transform:uppercase;white-space:nowrap}
+.ftree-tag.is-paternal{background:var(--green-l);color:var(--ftree-accent)}
+.ftree-tag.is-maternal{background:#FFF3E0;color:#8F5500}
+.ftree-tag.is-you{background:var(--ftree-accent);color:#fff}
+
+/* edit and remove, shown on hover like HMS. Touch screens show them on the selected card. */
+.ftree-card__actions{position:absolute;top:50%;right:10px;display:flex;gap:4px;padding-left:6px;border-radius:8px;background:inherit;opacity:0;pointer-events:none;transform:translateY(-50%);transition:opacity .2s}
+.ftree-card:hover .ftree-card__actions,.ftree-card:has(:focus-visible) .ftree-card__actions{opacity:1;pointer-events:auto}
+@media (hover:none){.ftree-card.is-active .ftree-card__actions{opacity:1;pointer-events:auto}}
+.ftree-card__btn{display:grid;place-items:center;width:26px;height:26px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink2);cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.ftree-card__btn:hover{background:var(--bg);color:var(--ink);border-color:#CBD6CF}
+.ftree-card__btn.is-danger:hover{background:#FDECEE;color:#A30E20;border-color:#F4C7CD}
+
+/* the line out of a card, and its count pill */
+.ftree-card.has-children::after,.ftree-card.is-active::after{content:'';position:absolute;top:50%;right:-26px;width:26px;height:2px;margin-top:-1px;background:var(--ftree-idle);pointer-events:none}
+.ftree-card.is-active::after{right:calc((var(--ftree-gap-x) - var(--ftree-stub)) * -1 - 1px);width:calc(var(--ftree-gap-x) - var(--ftree-stub));background:var(--ftree-accent)}
+.ftree-badge{position:absolute;top:50%;right:-38px;z-index:2;display:grid;place-items:center;min-width:24px;height:22px;padding:0 6px;border:1px solid var(--ftree-idle);border-radius:12px;background:#fff;color:var(--ink2);font-size:11px;font-weight:600;transform:translateY(-50%);pointer-events:none}
+.ftree-badge.is-active{background:var(--ftree-accent);border-color:var(--ftree-accent);color:#fff;box-shadow:0 2px 6px rgba(18,161,80,.25)}
+.ftree__col:last-child .ftree-card::after,.ftree__col:last-child .ftree-badge{display:none}
+
+/* with nobody open in a column, its Add row carries the line on, so the columns always join up */
+.ftree-slot.feeds-next::after{content:'';position:absolute;top:50%;right:calc((var(--ftree-gap-x) - var(--ftree-stub)) * -1 - 1px);width:calc(var(--ftree-gap-x) - var(--ftree-stub));height:2px;margin-top:-1px;background:var(--ftree-accent)}
+
+/* add row */
+.ftree-add{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border:1px dashed #CBD6CF;border-radius:12px;background:none;color:var(--ink2);font:600 13px var(--body);cursor:pointer;transition:color .2s,border-color .2s,background .2s}
+.ftree-add:hover{border-color:var(--ftree-accent);background:#F3FAF6;color:var(--ftree-accent)}
+.ftree-add:focus-visible{outline:2px solid var(--ftree-accent);outline-offset:2px}
+
+.ftree-warn{flex:none;color:var(--red)}
