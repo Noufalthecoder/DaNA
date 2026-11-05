@@ -111,7 +111,7 @@ export default function Welcome() {
         </Card>
 
         <Card title="3 · Your results from Malaffi">
-          {!hasProfile ? <p className="muted">Create your profile first.</p> : report ? (<>
+          {!hasProfile ? <p className="muted">Available after step 2, <b>Create my profile</b>.</p> : report ? (<>
             <p><Badge tone="green">Verified</Badge> <span className="muted">{report.lab || 'Accredited lab'} · {report.date}</span></p>
             <p>{carrierGene ? <>You carry a change in <b>{carrierGene}</b> ({GENES[carrierGene]?.condition || 'see your report'}). This is common and does not affect your own health. What matters is your partner's result.</> : 'No changes found in the genes we screen for.'}</p>
             <a href="#/app/report">View my medical report →</a>
@@ -124,7 +124,7 @@ export default function Welcome() {
         </Card>
 
         <Card title="4 · Link your partner">
-          {!hasProfile ? <p className="muted">Create your profile first.</p> : (<>
+          {!hasProfile ? <p className="muted">Your invite code and link appear here as soon as you choose Female or Male and click <b>Create my profile</b> in step 2.</p> : (<>
             <p className="muted">Send your code to your fiancé(e). When they enter it, you are linked and see your result as a couple. Entering a code is your consent to link.</p>
             <div className="code-box">
               <small>Your code</small>
