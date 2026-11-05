@@ -59,7 +59,6 @@ export async function logAudit(action, metaOrDanaId = {}) {
     console.warn('audit error', e);
   }
 }
-}
 
 /* run an action: update the screen at once, then save it (live) or log it locally (demo) */
 async function act(patch, text, remote) {

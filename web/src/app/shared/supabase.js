@@ -71,7 +71,6 @@ export async function loadSession(user) {
     if (!error && pid) acc = { ...acc, person_id: pid, title: 'Partner · engaged (sample journey)' };
     else if (error) console.warn('Sample journey not available:', error.message);
   }
-  }
   // a new couple account has no health profile yet: the Welcome page walks them through it (009_onboarding.sql)
   await hydratePeople();
   // prefer a real couple over an old sample one (013 removes the sample couple when a real partner links)
