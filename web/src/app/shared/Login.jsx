@@ -117,11 +117,7 @@ export default function Login() {
         booked: null,
       }, `Signed in via ${authMethod === 'uae_pass' ? 'UAE PASS' : 'Manual entry'} as ${ROLE[acc.role]}`);
 
-      if (acc.role === 'couple') {
-        go('/app/screening');
-      } else {
-        go('/app');
-      }
+      go('/app'); // Home shows the journey and the one next step
     }, 900);
   };
 

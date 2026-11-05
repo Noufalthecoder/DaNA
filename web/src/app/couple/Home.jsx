@@ -1,4 +1,5 @@
-import { Page, Card, Steps, Stat, Badge } from '../shared/ui.jsx';
+import { Page, Card, Stat, Badge } from '../shared/ui.jsx';
+import Journey from '../shared/Journey.jsx';
 import { useStore, EMPTY_OBJ, EMPTY_ARR } from '../shared/store.js';
 import { useState } from 'react';
 import { useCouple } from './useCouple.js';
@@ -28,63 +29,16 @@ export default function Home() {
   const plan = useStore((s) => (couple?.id ? s.plans[couple.id] : null) || s.plan);
   const booked = useStore((s) => (couple?.id ? s.appointments[couple.id] : null) || s.booked);
 
-  // Stepper: 0 = Screened, 1 = Results explained, 2 = Plan together, 3 = Protect family
-  const step = !isScreened
-    ? 0
-    : waiting
-      ? 1
-    : plan
-      ? (sent.length ? 3 : 2)
-      : 2;
-
-  const next = !isScreened
-    ? {
-        to: '#/app/screening',
-        t: 'Complete your screening intake',
-        p: 'Auto-fill with UAE PASS or enter medical, family pedigree & compliance details.',
-      }
-    : waiting
-      ? (!mine
-        ? { to: '#/app', t: 'Fetch your results from Malaffi', p: 'Use the button on the right. We check your lab report and save it securely.' }
-        : { to: '#/app/counsellor', t: `Waiting for ${partner.short}'s results`, p: `Your result is in. Your couple result appears when ${partner.short} fetches theirs.` })
-    : !plan
-      ? {
-          to: '#/app/bonds',
-          t: 'Choose your plan together',
-          p: 'See every option side by side, then decide as a couple.',
-        }
-      : !sent.length
-        ? {
-            to: '#/app/roots',
-            t: 'Protect your family',
-            p: 'Send private Sila alerts so relatives can screen early.',
-          }
-        : {
-            to: '#/app/counsellor',
-            t: 'Talk to your counsellor',
-            p: 'Ask anything, any time. Dr. Mariam is one tap away.',
-          };
-
   return (
     <Page
       title={`Welcome, ${me.short}`}
       sub={
-        isScreened
-          ? `You and ${partner.short} · ${waiting ? 'waiting for lab results' : 'premarital screening complete'}`
-          : `You and ${partner.short} · screening intake pending`
+        `You and ${partner.short} · ${waiting ? 'waiting for lab results' : 'premarital screening'}`
       }
     >
-      <Card title="Your journey">
-        <Steps items={['Screened', 'Results explained', 'Plan together', 'Protect family']} current={step} />
-      </Card>
+      <Journey />
 
       <div className="grid2">
-        <a className="card next" href={next.to}>
-          <span className="eyebrow">Next step</span>
-          <h2>{next.t}</h2>
-          <p>{next.p}</p>
-          <span className="go">Continue →</span>
-        </a>
         <Card title="Your couple result">
           <div className="result-mini">
             {waiting ? (
@@ -98,24 +52,23 @@ export default function Home() {
                   : <p className="muted">We'll show your couple result as soon as {partner.short}'s report arrives.</p>}
                 {err && <p className="err">{err}</p>}
               </>
-            ) : isScreened ? (
+            ) : (
               <>
                 <Badge tone={result.type === 'clear' ? 'green' : 'amber'}>{result.label}</Badge>
-                <p><b>{result.condition}</b> · {result.risk}</p>
+                <p><b>{result.condition || 'No shared finding'}</b> · {result.risk}</p>
                 <div style={{ display: 'flex', gap: 14, marginTop: 4, flexWrap: 'wrap' }}>
                   <a href="#/app/result">What does this mean? →</a>
                   <a href="#/app/report" style={{ color: 'var(--ink2)' }}>View medical report →</a>
                   <a href="#/app/profile" style={{ color: 'var(--ink2)' }}>Update profile data →</a>
                 </div>
               </>
-            ) : (
-              <>
-                <Badge tone="amber">Intake Pending Verification</Badge>
-                <p>Complete the screening intake to unlock full variant comparison & clinical options.</p>
-                <a href="#/app/screening">Start screening intake →</a>
-              </>
             )}
           </div>
+        </Card>
+        <Card title="Your counsellor">
+          <p className="muted">A genetics counsellor can explain your result, answer questions and help you think through options. Free and confidential.</p>
+          <p>{booked ? <><Badge tone="green">Booked</Badge> {booked}</> : <Badge tone="grey">Not booked yet</Badge>}</p>
+          <a className="btn secondary" href="#/app/counsellor">{booked ? 'View booking' : 'Book a conversation'}</a>
         </Card>
       </div>
 

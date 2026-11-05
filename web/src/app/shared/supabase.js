@@ -71,6 +71,7 @@ export async function loadSession(user) {
     avatar: acc.avatar || null,
     title: acc.title || '',
     couple: couple ? couple.id : null,
+    partnerId: couple ? (couple.a === acc.person_id ? couple.b : couple.a) : null,
     // paired with a 'Sample partner' (p_...) before real onboarding: may still link a real partner (013)
     sampleCouple: !!couple && [couple.a, couple.b].some((x) => String(x).startsWith('p_')),
     email: user.email,
@@ -118,7 +119,7 @@ export function watchAuth(onReady) {
         if (fresh && !viaDemo) await logAudit(`Signed in with ${session.via === 'google' ? 'Google' : 'email'}`);
         if (fresh && typeof window !== 'undefined' && !window.location.hash.startsWith('#/app')) {
           if (window.location.search) window.history.replaceState(null, '', window.location.pathname);
-          window.location.hash = session.role === 'couple' ? '/app/screening' : '/app';
+          window.location.hash = '/app'; // Home shows the journey and the one next step
         }
         loadAll();
       } catch (e) {

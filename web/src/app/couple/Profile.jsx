@@ -6,6 +6,8 @@ import { set, useStore, EMPTY_OBJ } from '../shared/store.js';
 import { go } from '../shared/router.js';
 import { EditIcon, CheckIcon } from '../shared/Icons.jsx';
 import AvatarPicker from '../shared/AvatarPicker.jsx';
+import { setMySex } from '../shared/db.js';
+import { PEOPLE } from '../shared/data.js';
 import { Avatar } from '../shared/ui.jsx';
 
 const RELATIONS = [
@@ -153,6 +155,8 @@ export default function Profile() {
 
   const isIntakeCompleted = !!existingIntake?.completed;
   const account = useStore((s) => s.session) || {};
+  const [mySex, setMySexState] = useState(PEOPLE[account.id]?.sex || '');
+  const [sexErr, setSexErr] = useState('');
 
   return (
     <Page
@@ -216,6 +220,22 @@ export default function Profile() {
           <div style={{ flex: 1, minWidth: 220 }}><AvatarPicker session={account} /></div>
         </div>
       </Card>
+
+      {account.backend && !account.needsProfile && (
+        <Card title="About you">
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span>I am</span>
+            <div className="seg" role="radiogroup" aria-label="I am" style={{ marginBottom: 0 }}>
+              {[['F', 'Female'], ['M', 'Male']].map(([v, l]) => (
+                <button key={v} type="button" role="radio" aria-checked={mySex === v} className={mySex === v ? 'on' : ''}
+                  onClick={async () => { if (v === mySex) return; setSexErr(''); try { await setMySex(v); setMySexState(v); } catch (e) { setSexErr(e.message); } }}>{l}</button>
+              ))}
+            </div>
+            <small className="muted">Used to read your result and to find your partner. Locked once you are linked.</small>
+          </div>
+          {sexErr && <p className="err">{sexErr}</p>}
+        </Card>
+      )}
 
       {/* Profile Overview Card */}
       <Card>
