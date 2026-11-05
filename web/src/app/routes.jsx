@@ -52,7 +52,6 @@ export const MENUS = {
       { to: '/app/connections', label: 'Connections', icon: <ConnectionsIcon /> },
       { to: '/app/counsellor', label: 'Counsellor', icon: <CounsellorIcon /> },
       { to: '/app/privacy', label: 'Privacy', icon: <PrivacyIcon /> },
-      { to: '/app/profile', label: 'Profile', icon: <ProfileIcon /> },
     ],
   },
   counsellor: {
