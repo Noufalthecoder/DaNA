@@ -1,6 +1,6 @@
 /* Shared building blocks. Owner: Platform. Use these so every module looks the same. */
 import { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 export { Logo, Brand } from './Logo.jsx';
 import { Chibi, isChibi } from './Chibi.jsx';
 
@@ -71,11 +71,11 @@ export function Avatar({ name = '', size = 36, icon = null }) {
 }
 
 /* A modal built on the native dialog, so focus and the Escape key just work. */
-export function Dialog({ title, icon, footer, onSubmit, onClose, children }) {
+export function Dialog({ title, icon, footer, onSubmit, onClose, wide = false, children }) {
   const box = useRef(null);
   useEffect(() => { box.current?.showModal(); }, []);
   return (
-    <dialog className="dialog" ref={box} onClose={onClose} aria-label={title}>
+    <dialog className={`dialog${wide ? ' is-wide' : ''}`} ref={box} onClose={onClose} aria-label={title}>
       <form onSubmit={onSubmit}>
         <div className="dialog-h">
           {icon}
@@ -86,5 +86,18 @@ export function Dialog({ title, icon, footer, onSubmit, onClose, children }) {
         <div className="dialog-f">{footer}</div>
       </form>
     </dialog>
+  );
+}
+
+/* A collapsible section on the native details element, so keyboard and screen readers just work. */
+export function Accordion({ title, hint, defaultOpen = false, children }) {
+  return (
+    <details className="accordion" open={defaultOpen}>
+      <summary>
+        <span className="accordion-t"><b>{title}</b>{hint && <small>{hint}</small>}</span>
+        <ChevronDown size={18} className="accordion-chev" aria-hidden="true" />
+      </summary>
+      <div className="accordion-b">{children}</div>
+    </details>
   );
 }
