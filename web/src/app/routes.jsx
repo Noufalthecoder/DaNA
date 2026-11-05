@@ -39,7 +39,7 @@ export const MENUS = {
     label: 'Couple',
     items: [
       { to: '/app', label: 'Home', icon: <HomeIcon /> },
-      { to: '/app/familytree', label: 'Family Tree', icon: <FamilyTreeIcon /> },
+      { to: '/app/familytree', label: 'Branches', icon: <BranchesIcon /> },
       { to: '/app/roots', label: 'Roots', icon: <RootsIcon /> },
       { to: '/app/bonds', label: 'Bonds', icon: <BondsIcon /> },
       { to: '/app/counsellor', label: 'Counsellor', icon: <CounsellorIcon /> },
@@ -73,6 +73,7 @@ export function page(role, path) {
       '/app/report': <MedicalReport />,
       '/app/screening': <Screening />,
       '/app/familytree': <FamilyTree />,
+      '/app/branches': <FamilyTree />,
       '/app/roots': <Roots />,
       '/app/bonds': <Bonds />,
       '/app/counsellor': <CoupleCounsellor />,

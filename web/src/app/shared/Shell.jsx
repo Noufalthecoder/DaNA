@@ -1,8 +1,9 @@
 /* App frame: sidebar menu per role + top bar. Owner: Platform. */
 import { useEffect, useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { set, useStore, resetDemo, signOut as localSignOut } from './store.js';
 import { go } from './router.js';
-import { Avatar } from './ui.jsx';
+import { Avatar, Dialog } from './ui.jsx';
 import { Brand } from './Logo.jsx';
 import { signOut as supabaseSignOut } from './supabase.js';
 import { loadAll, logAudit } from './db.js';
@@ -11,8 +12,25 @@ export default function Shell({ menu, path, children }) {
   const session = useStore((s) => s.session);
   const dbError = useStore((s) => s.dbError);
   const [open, setOpen] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetting, setResetting] = useState(false);
   useEffect(() => { document.documentElement.dir = 'ltr'; document.documentElement.lang = 'en'; }, []);
   useEffect(() => setOpen(false), [path]);
+
+  const confirmResetDemo = async (e) => {
+    e?.preventDefault();
+    setResetting(true);
+    try {
+      if (session?.backend) await logAudit('Reset demo data & restarted onboarding');
+      resetDemo();
+      localSignOut();
+      try { await supabaseSignOut(); } catch {}
+      setShowResetConfirm(false);
+      go('/login');
+    } finally {
+      setResetting(false);
+    }
+  };
 
   const logout = async () => {
     if (session?.backend) await logAudit('Signed out');
@@ -36,9 +54,18 @@ export default function Shell({ menu, path, children }) {
           ))}
         </nav>
         <div className="side-foot">
-          {session?.backend
-            ? <><button onClick={() => loadAll()}>Refresh data</button><span className="live"><i />Live · shared database</span></>
-            : <><button onClick={() => { resetDemo(); if (session?.role === 'couple') go('/app/screening'); }}>Reset demo data</button><span>Offline demo · this browser only</span></>}
+          {session?.backend ? (
+            <>
+              <button onClick={() => loadAll()}>Refresh data</button>
+              <button onClick={() => setShowResetConfirm(true)}>Reset demo data</button>
+              <span className="live"><i />Live · shared database</span>
+            </>
+          ) : (
+            <>
+              <button onClick={() => setShowResetConfirm(true)}>Reset demo data</button>
+              <span>Offline demo · this browser only</span>
+            </>
+          )}
           <span>Synthetic data · simulated UAE PASS</span>
         </div>
       </aside>
@@ -64,6 +91,41 @@ export default function Shell({ menu, path, children }) {
         <main className="content">{children}</main>
       </div>
       {open && <div className="scrim" onClick={() => setOpen(false)} />}
+
+      {showResetConfirm && (
+        <Dialog
+          title="Reset demo data?"
+          icon={<AlertTriangle size={20} style={{ color: 'var(--red)', flexShrink: 0 }} />}
+          onSubmit={confirmResetDemo}
+          onClose={() => setShowResetConfirm(false)}
+          footer={
+            <>
+              <button
+                type="button"
+                className="btn-line"
+                onClick={() => setShowResetConfirm(false)}
+                disabled={resetting}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn-danger"
+                disabled={resetting}
+              >
+                {resetting ? 'Resetting...' : 'Reset & Restart'}
+              </button>
+            </>
+          }
+        >
+          <p>
+            Reset demo data and restart onboarding?
+          </p>
+          <p style={{ margin: 0, color: 'var(--ink3)', fontSize: '13px' }}>
+            This will reset intake completion to false and sign you out to the login page so you can start over.
+          </p>
+        </Dialog>
+      )}
     </div>
   );
 }

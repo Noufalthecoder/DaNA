@@ -4,8 +4,8 @@ import { Card, Dialog, Page } from '../shared/ui.jsx';
 import Report from '../shared/Report.jsx';
 import { useStore } from '../shared/store.js';
 import { addRelative, removeRelative, renameRelative, sendAlerts } from '../shared/db.js';
-import { relativesFor } from '../shared/data.js';
-import { RELATION_GROUPS, buildMember, childrenOf, hasParents, isFull, relationLabel, withSelf } from '../shared/family.js';
+import { relativesFor, getSyntheticIntake } from '../shared/data.js';
+import { RELATION_GROUPS, buildMember, buildTreeFromIntake, childrenOf, hasParents, isFull, relationLabel, withSelf } from '../shared/family.js';
 import { useCouple } from './useCouple.js';
 import FamilyMemberForm from './FamilyMemberForm.jsx';
 import '../family-tree.css';
@@ -50,14 +50,17 @@ function branchTo(rows, byId, id, line, prefer) {
 
 function Person({ r, Icon, kids, active, note, onSelect, onEdit, onRemove, onAlert }) {
   const self = !!r.person_id;
+  const isPartner = r.isPartner || r.name?.includes('Partner');
   return (
     <div className={`ftree-card${active ? ' is-active' : ''}${kids ? ' has-children' : ''}`} data-id={r.id}>
       <button type="button" className="ftree-card__main" aria-pressed={active} title={r.name} onClick={onSelect}>
-        <span className="ftree-card__icon">{self ? <UserRoundCheck size={18} /> : <Icon size={18} />}</span>
+        <span className="ftree-card__icon">{self ? <UserRoundCheck size={18} /> : isPartner ? <Users size={18} /> : <Icon size={18} />}</span>
         <span className="ftree-card__info">
           <span className="ftree-card__name">{r.name}</span>
           <span className="ftree-card__meta">
-            <em className={`ftree-tag ${self ? 'is-you' : r.side ? `is-${r.side}` : ''}`}>{relationLabel(r)}</em>
+            <em className={`ftree-tag ${self ? 'is-you' : isPartner ? 'is-partner' : r.side ? `is-${r.side}` : ''}`}>
+              {isPartner ? 'Partner · Kinship' : relationLabel(r)}
+            </em>
             {note}
           </span>
         </span>
@@ -75,10 +78,25 @@ function Person({ r, Icon, kids, active, note, onSelect, onEdit, onRemove, onAle
 }
 
 export default function FamilyTree() {
-  const { me, gene } = useCouple();
+  const { me, partner, gene } = useCouple();
   const saved = useStore((s) => s.family?.[me.id]);
+  const intake = useStore((s) => s.screeningIntakes?.[me.id]);
   const sent = useStore((s) => s.alertsSent);
-  const rows = useMemo(() => withSelf(saved || [], me), [saved, me.id, me.name]);
+
+  // Derive rows from saved tree, or from screening intake family records & consanguinity status
+  const effectiveBase = useMemo(() => {
+    if (saved && saved.length > 0) return saved;
+    if (intake?.family && intake.family.length > 0) {
+      return buildTreeFromIntake(me, partner, intake);
+    }
+    const syn = getSyntheticIntake(me.id);
+    if (syn?.family) {
+      return buildTreeFromIntake(me, partner, syn);
+    }
+    return [];
+  }, [saved, intake, me, partner]);
+
+  const rows = useMemo(() => withSelf(effectiveBase, me), [effectiveBase, me.id, me.name]);
   const byId = useMemo(() => Object.fromEntries(rows.map((r) => [r.id, r])), [rows]);
   const selfId = rows.find((r) => r.person_id === me.id).id;
   const line = useMemo(() => bloodline(byId, selfId), [byId, selfId]);
@@ -100,6 +118,7 @@ export default function FamilyTree() {
   // on narrow screens, bring the selected person into view without moving the page
   useEffect(() => {
     const box = scroller.current;
+    if (!box) return;
     const card = box.querySelector(`[data-id="${CSS.escape(selected)}"]`);
     if (!card || box.scrollWidth <= box.clientWidth) return;
     const left = card.getBoundingClientRect().left - box.getBoundingClientRect().left + box.scrollLeft;
@@ -109,8 +128,11 @@ export default function FamilyTree() {
   /* the line under a name. Chances come only from the Sila list. */
   const noteFor = (r) => {
     if (r.person_id) return gene ? `${gene.symbol} carrier` : 'Nothing found';
+    if (r.isPartner || r.name?.includes('Partner')) {
+      return r.condition || (gene ? `${gene.symbol} carrier` : 'Partner');
+    }
     const entry = gene && r.sila_ref ? sila[r.sila_ref] : null;
-    if (!entry) return null;
+    if (!entry) return r.condition || null;
     return sent.includes(entry.id) ? 'Alert sent' : `${entry.chance} chance`;
   };
   const canAlert = (r) => !!(gene && r.sila_ref && sila[r.sila_ref] && !sent.includes(r.sila_ref));
@@ -157,7 +179,7 @@ export default function FamilyTree() {
   });
 
   return (
-    <Page title="Family Tree" sub="Select a person to open their branch."
+    <Page title="Branches" sub="Explore your family pedigree and genetic kinship lines."
       actions={<button className="btn" onClick={() => openAdd()}><Plus size={16} />Add family member</button>}>
       <div className="ftree" ref={scroller}>
         <div className="ftree__cols">

@@ -10,7 +10,9 @@ export function useCouple() {
   const partnerId = couple ? (meId === couple.a ? couple.b : couple.a) : 'khalid';
   const mePerson = PEOPLE[session?.id] || PEOPLE[meId] || { name: session?.name || 'Partner', short: session?.name?.split(' ')[0] || 'Partner' };
   const partnerPerson = PEOPLE[partnerId] || { name: 'Partner', short: 'Partner' };
-  const me = { id: session?.id || meId, ...mePerson };
+  const displayName = session?.name || mePerson.name || 'Partner';
+  const shortName = displayName.split(' ')[0] || 'Partner';
+  const me = { id: session?.id || meId, ...mePerson, name: displayName, short: shortName };
   const partner = { id: partnerId, ...partnerPerson };
   const result = couple ? assess(couple) : assess(COUPLES[0]);
   const gene = me.carrier ? { symbol: me.carrier, ...GENES[me.carrier] } : null;

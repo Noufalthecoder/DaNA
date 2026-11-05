@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Badge } from '../shared/ui.jsx';
 import { useCouple } from './useCouple.js';
-import { SYNTHETIC_INTAKES } from '../shared/data.js';
+import { SYNTHETIC_INTAKES, generateDanaId } from '../shared/data.js';
 import { set, useStore, signOut } from '../shared/store.js';
 import { signOut as supabaseSignOut } from '../shared/supabase.js';
+import { saveScreeningIntake } from '../shared/db.js';
+import { buildTreeFromIntake } from '../shared/family.js';
 import { go } from '../shared/router.js';
 
 const STEPS = [
-  { id: 1, label: 'Patient info' },
+  { id: 1, label: 'User info' },
   { id: 2, label: 'Health history' },
   { id: 3, label: 'Family history' },
-  { id: 4, label: 'Compliance Q&A' },
+  { id: 4, label: 'Compliance' },
   { id: 5, label: 'Consent' },
   { id: 6, label: 'Verify & Submit' },
 ];
@@ -22,6 +24,7 @@ const RELATIONS = [
   'Maternal Uncle', 'Maternal Aunt',
   'Paternal Uncle', 'Paternal Aunt',
   'First Cousin (Paternal)', 'First Cousin (Maternal)',
+  'Second Cousin', 'Partner / First Cousin', 'Partner / Second Cousin',
   'Child', 'Other Relative'
 ];
 
@@ -32,22 +35,31 @@ export default function Screening() {
   const existingIntake = intakes[me.id];
 
   // Only UAE PASS auto-fills. Google sign-in, email, signup, and manual all default strictly to manual.
-  const isUaePass = session?.authMethod === 'uae_pass' || session?.via === 'uaepass';
+  const isUaePass = session?.authMethod === 'uae_pass' || session?.via === 'uaepass' || session?.email?.endsWith('@dana.demo');
   const isManual = !isUaePass;
   const mode = isManual ? 'manual' : 'uae_pass';
+
+  // Extract authenticated user details (from Google OAuth, email signup, or session)
+  const authName = session?.name || session?.userMetadata?.full_name || session?.userMetadata?.name || '';
+  const authEmail = session?.email || session?.userMetadata?.email || '';
+  const authPhone = session?.phone || session?.userMetadata?.phone || '';
 
   const defaultPreset = isManual
     ? {
         personal: {
-          fullName: session?.name || '',
+          danaId: generateDanaId(session?.id || authEmail || 'user'),
+          fullName: authName,
           fullNameAr: '',
           emiratesId: '',
           dob: '',
           gender: 'Female',
-          phone: '',
-          email: session?.email || '',
+          phone: authPhone,
+          email: authEmail,
           nationality: 'United Arab Emirates',
           city: 'Abu Dhabi',
+          partnerName: '',
+          maritalStatus: '',
+          pregnancyStatus: '',
         },
         medical: {
           bloodGroup: 'O+',
@@ -61,12 +73,19 @@ export default function Screening() {
           { id: 2, relation: 'Father', condition: '', cancerHistory: '' },
         ],
         compliance: {
-          isPregnant: 'no',
+          isPregnant: '',
           gestationalWeeks: '',
           isConsanguineous: 'no',
           relationToPartner: '',
           weddingDate: '',
+          courtScheduled: 'no',
+          timeSensitivity: 'standard',
+          marriageDuration: '1-3 years',
+          hasChildren: 'no',
+          reproductiveGoal: 'preconception',
           previousScreening: 'no',
+          recurrentLossHistory: 'no',
+          uaeResidencyStatus: 'yes',
         },
         consent: {
           malaffiSync: false,
@@ -75,7 +94,7 @@ export default function Screening() {
           anonymizedResearch: false,
         },
       }
-    : (SYNTHETIC_INTAKES[me.id] || SYNTHETIC_INTAKES.fatima);
+    : (SYNTHETIC_INTAKES[me.id] || (me.sex === 'M' ? SYNTHETIC_INTAKES.khalid : SYNTHETIC_INTAKES.fatima));
 
   const [step, setStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(!!existingIntake?.completed);
@@ -91,16 +110,76 @@ export default function Screening() {
 
   // Reset wizard flow whenever user, intake state, or manual mode changes
   useEffect(() => {
-    setStep(1);
-    setIsSubmitted(!!existingIntake?.completed);
-    setPersonal(defaultPreset.personal);
-    setMedical(defaultPreset.medical);
-    setFamily(defaultPreset.family);
-    setCompliance(defaultPreset.compliance);
-    setConsent(defaultPreset.consent);
-    setCertified(false);
-    setErrors({});
-  }, [me.id, isManual, existingIntake?.completed]);
+    if (existingIntake) {
+      const alreadyDone = !!existingIntake.completed;
+      setIsSubmitted(alreadyDone);
+      setStep(1);
+      const isMale = (existingIntake.personal?.gender || defaultPreset.personal?.gender) === 'Male';
+      const needsMedRefresh = existingIntake.medical?.conditions === 'None reported' || !existingIntake.medical?.conditions;
+      const initialPersonal = existingIntake.personal || defaultPreset.personal;
+      setPersonal({
+        ...initialPersonal,
+        pregnancyStatus: isMale ? 'no' : (initialPersonal.pregnancyStatus || ''),
+      });
+      setMedical(needsMedRefresh ? defaultPreset.medical : (existingIntake.medical || defaultPreset.medical));
+      setFamily(existingIntake.family || defaultPreset.family);
+      setCompliance({
+        ...defaultPreset.compliance,
+        ...(existingIntake.compliance || {}),
+        isPregnant: isMale ? 'no' : (existingIntake.compliance?.isPregnant || defaultPreset.compliance.isPregnant),
+        gestationalWeeks: isMale ? '' : (existingIntake.compliance?.gestationalWeeks || ''),
+      });
+      // Consent should always be manual in all cases unless already submitted & locked
+      setConsent(alreadyDone ? (existingIntake.consent || defaultPreset.consent) : {
+        malaffiSync: false,
+        partnerShare: false,
+        counsellorAccess: false,
+        anonymizedResearch: false,
+      });
+      setCertified(false);
+      setErrors({});
+    } else if (isManual) {
+      setStep(1);
+      setIsSubmitted(false);
+      // In manual mode, whenever auth data arrives or loads, populate name, email, phone if currently empty
+      setPersonal((prev) => ({
+        ...prev,
+        fullName: prev.fullName || authName,
+        email: prev.email || authEmail,
+        phone: prev.phone || authPhone,
+      }));
+      setConsent({
+        malaffiSync: false,
+        partnerShare: false,
+        counsellorAccess: false,
+        anonymizedResearch: false,
+      });
+    } else {
+      setStep(1);
+      setIsSubmitted(false);
+      const isMale = defaultPreset.personal?.gender === 'Male';
+      setPersonal({
+        ...defaultPreset.personal,
+        pregnancyStatus: isMale ? 'no' : defaultPreset.personal.pregnancyStatus,
+      });
+      setMedical(defaultPreset.medical);
+      setFamily(defaultPreset.family);
+      setCompliance({
+        ...defaultPreset.compliance,
+        isPregnant: isMale ? 'no' : defaultPreset.compliance.isPregnant,
+        gestationalWeeks: isMale ? '' : defaultPreset.compliance.gestationalWeeks,
+      });
+      // Consent must be manual in all cases
+      setConsent({
+        malaffiSync: false,
+        partnerShare: false,
+        counsellorAccess: false,
+        anonymizedResearch: false,
+      });
+      setCertified(false);
+      setErrors({});
+    }
+  }, [me.id, isManual, isUaePass, existingIntake?.completed, authName, authEmail, authPhone]);
 
   // Family dynamic table helpers (Image 2 style)
   const addFamilyRow = () => {
@@ -117,22 +196,80 @@ export default function Screening() {
     setFamily(family.filter((row) => row.id !== id));
   };
 
+  // Consanguinity relationship handler: include or exclude partner from family tree pedigree
+  const handleConsanguinityChange = (val) => {
+    const isYes = val === 'yes';
+    const partnerName = personal.partnerName || partner?.name || 'Partner';
+    const defaultRel = 'Second cousin (Maternal grandmothers are sisters)';
+
+    setCompliance((prev) => ({
+      ...prev,
+      isConsanguineous: val,
+      relationToPartner: isYes ? (prev.relationToPartner && prev.relationToPartner !== 'None' ? prev.relationToPartner : defaultRel) : 'None',
+    }));
+
+    if (isYes) {
+      setFamily((prev) => {
+        if (prev.some((r) => r.isPartner || r.relation?.startsWith('Partner'))) return prev;
+        return [
+          ...prev,
+          {
+            id: 'partner_pedigree_row',
+            relation: 'Partner / Second Cousin',
+            name: partnerName,
+            condition: 'Beta-thalassaemia trait (Carrier)',
+            cancerHistory: 'None',
+            isPartner: true,
+          },
+        ];
+      });
+    } else {
+      setFamily((prev) => prev.filter((r) => !r.isPartner && !r.relation?.startsWith('Partner')));
+    }
+  };
+
   // Step navigation validator
   const handleContinue = () => {
     const errs = {};
+    const isMale = personal.gender === 'Male';
+
     if (step === 1) {
       if (!personal.fullName?.trim()) errs.fullName = 'Full legal name is required.';
       if (!personal.emiratesId?.trim()) errs.emiratesId = 'Emirates ID is required.';
       if (!personal.dob) errs.dob = 'Date of birth is required.';
+      if (!personal.partnerName?.trim()) errs.partnerName = "Partner's full legal name is required.";
+      if (!personal.maritalStatus) errs.maritalStatus = 'Marital status is required.';
+      if (!isMale && !personal.pregnancyStatus) {
+        errs.pregnancyStatus = 'Pregnancy status declaration is required.';
+      }
     } else if (step === 4) {
-      if (compliance.isPregnant === 'yes' && !compliance.gestationalWeeks) {
+      if (!isMale && compliance.isPregnant === 'yes' && !compliance.gestationalWeeks) {
         errs.gestationalWeeks = 'Gestational weeks required for urgent clinical triage.';
+      }
+      if (personal.maritalStatus !== 'Married' && !compliance.weddingDate) {
+        errs.weddingDate = 'Target wedding date is required for premarital clearance.';
+      }
+    } else if (step === 5) {
+      if (!consent.malaffiSync || !consent.partnerShare || !consent.counsellorAccess) {
+        errs.consent = 'Mandatory: Please review and manually grant authorizations 1, 2, and 3 to proceed.';
       }
     }
 
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
       return;
+    }
+
+    if (step === 1) {
+      if (isMale) {
+        setCompliance((c) => ({ ...c, isPregnant: 'no', gestationalWeeks: '' }));
+      } else if (personal.pregnancyStatus) {
+        setCompliance((c) => ({
+          ...c,
+          isPregnant: personal.pregnancyStatus,
+          gestationalWeeks: personal.pregnancyStatus === 'no' ? '' : c.gestationalWeeks,
+        }));
+      }
     }
 
     setErrors({});
@@ -143,25 +280,37 @@ export default function Screening() {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!certified) {
-      setErrors({ certified: 'Certification & electronic signature is required before submitting your intake.' });
+      setErrors({
+        certified: mode === 'uae_pass'
+          ? 'Mandatory: You must verify and electronically sign your records before proceeding to the screening report.'
+          : 'Certification & electronic signature is required before submitting your intake.'
+      });
       return;
     }
 
     setErrors({});
+    const danaId = existingIntake?.danaId || personal.danaId || generateDanaId(session?.id || me.id);
     const payload = {
+      danaId,
       completed: true,
       mode,
       submittedAt: new Date().toISOString(),
-      personal,
+      personal: { ...personal, danaId },
       medical,
       family,
       compliance,
       consent,
     };
 
+    saveScreeningIntake(me.id, payload);
+
+    // Sync to Family Tree (Branches)
     set((s) => ({
-      screeningIntakes: { ...(s.screeningIntakes || {}), [me.id]: payload },
-    }), `User ${me.name} submitted premarital screening intake (${mode === 'uae_pass' ? 'UAE PASS verified' : 'Manual entry'})`);
+      family: {
+        ...s.family,
+        [me.id]: buildTreeFromIntake(me, partner, payload),
+      },
+    }));
 
     go('/app/report');
   };
@@ -244,7 +393,13 @@ export default function Screening() {
               <li
                 key={s.id}
                 className={`workday-step ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}
-                onClick={() => { setErrors({}); setStep(s.id); }}
+                onClick={() => {
+                  if (s.id <= step) {
+                    setErrors({});
+                    setStep(s.id);
+                  }
+                }}
+                style={{ cursor: s.id <= step ? 'pointer' : 'default' }}
               >
                 <div className="step-circle">{isCompleted ? '✓' : s.id}</div>
                 <span className="step-label">{s.label}</span>
@@ -261,8 +416,8 @@ export default function Screening() {
             <h4>{mode === 'uae_pass' ? 'UAE PASS & Malaffi Synchronized' : 'Manual Intake Entry'}</h4>
             <p>
               {mode === 'uae_pass'
-                ? 'Data retrieved from verified civil identity and synthetic health exchange records.'
-                : 'Enter patient information, medical history, and family pedigree manually.'}
+                ? 'Civil and clinical data retrieved from verified records. Please complete mandatory partner and marital details below.'
+                : 'Enter user information, medical history, and family pedigree manually.'}
             </p>
           </div>
         </div>
@@ -294,7 +449,13 @@ export default function Screening() {
                     disabled={mode === 'uae_pass'}
                   />
                   {errors.fullName && <span className="field-error">* {errors.fullName}</span>}
-                  {mode === 'uae_pass' && <span className="form-hint">Verified via UAE PASS</span>}
+                  {mode === 'uae_pass' ? (
+                    <span className="form-hint">Verified via UAE PASS</span>
+                  ) : authName && personal.fullName === authName ? (
+                    <span className="form-hint" style={{ color: '#00843D', fontWeight: 500 }}>
+                      Retrieved from {session?.via === 'google' ? 'Google' : 'account'} authentication
+                    </span>
+                  ) : null}
                 </div>
                 <div className="form-group">
                   <label>Full Name (Arabic) <span className="req">*</span></label>
@@ -343,7 +504,19 @@ export default function Screening() {
                   <select
                     className="form-control"
                     value={personal.gender}
-                    onChange={(e) => setPersonal({ ...personal, gender: e.target.value })}
+                    onChange={(e) => {
+                      const newGender = e.target.value;
+                      const isMale = newGender === 'Male';
+                      setPersonal((p) => ({
+                        ...p,
+                        gender: newGender,
+                        pregnancyStatus: isMale ? 'no' : p.pregnancyStatus,
+                      }));
+                      if (isMale) {
+                        setCompliance((c) => ({ ...c, isPregnant: 'no', gestationalWeeks: '' }));
+                        setErrors((prev) => ({ ...prev, pregnancyStatus: null }));
+                      }
+                    }}
                     disabled={mode === 'uae_pass'}
                   >
                     <option value="Female">Female</option>
@@ -361,6 +534,11 @@ export default function Screening() {
                     value={personal.phone}
                     onChange={(e) => setPersonal({ ...personal, phone: e.target.value })}
                   />
+                  {mode !== 'uae_pass' && authPhone && personal.phone === authPhone && (
+                    <span className="form-hint" style={{ color: '#00843D', fontWeight: 500 }}>
+                      Retrieved from account authentication
+                    </span>
+                  )}
                 </div>
                 <div className="form-group">
                   <label>Email Address</label>
@@ -370,6 +548,11 @@ export default function Screening() {
                     value={personal.email}
                     onChange={(e) => setPersonal({ ...personal, email: e.target.value })}
                   />
+                  {mode !== 'uae_pass' && authEmail && personal.email === authEmail && (
+                    <span className="form-hint" style={{ color: '#00843D', fontWeight: 500 }}>
+                      Retrieved from {session?.via === 'google' ? 'Google' : 'account'} authentication
+                    </span>
+                  )}
                 </div>
                 <div className="form-group">
                   <label>City / Emirate</label>
@@ -386,6 +569,82 @@ export default function Screening() {
                     <option value="Fujairah">Fujairah</option>
                     <option value="Umm Al Quwain">Umm Al Quwain</option>
                   </select>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px solid var(--line)' }}>
+                <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px', color: 'var(--ink)' }}>
+                  Partner &amp; Marriage Details <span className="req">*</span>
+                </h3>
+                <p className="muted" style={{ fontSize: 13, margin: '0 0 14px' }}>
+                  Required to link records and initiate premarital genetic risk evaluation.
+                </p>
+
+                <div className={personal.gender === 'Male' ? 'form-grid-2' : 'form-grid-3'}>
+                  <div className="form-group">
+                    <label>Partner's Full Legal Name <span className="req">*</span></label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={personal.partnerName || ''}
+                      placeholder={partner.name || 'e.g. Full Legal Name'}
+                      onChange={(e) => {
+                        setPersonal({ ...personal, partnerName: e.target.value });
+                        if (e.target.value) setErrors((prev) => ({ ...prev, partnerName: null }));
+                      }}
+                    />
+                    {errors.partnerName && <span className="field-error">* {errors.partnerName}</span>}
+                    <span className="form-hint">Civil name matching their Emirates ID</span>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Marital / Relationship Status <span className="req">*</span></label>
+                    <select
+                      className="form-control"
+                      value={personal.maritalStatus || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setPersonal({ ...personal, maritalStatus: val });
+                        if (val) setErrors((prev) => ({ ...prev, maritalStatus: null }));
+                      }}
+                    >
+                      <option value="">Select marital status...</option>
+                      <option value="Engaged">Engaged / Planning Marriage</option>
+                      <option value="Married">Married</option>
+                      <option value="Preconception">Preconception Planning</option>
+                    </select>
+                    {errors.maritalStatus && <span className="field-error">* {errors.maritalStatus}</span>}
+                  </div>
+
+                  {personal.gender !== 'Male' && (
+                    <div className="form-group">
+                      <label>Active Pregnancy Status <span className="req">*</span></label>
+                      <select
+                        className="form-control"
+                        value={personal.pregnancyStatus || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setPersonal({ ...personal, pregnancyStatus: val });
+                          setCompliance((c) => ({
+                            ...c,
+                            isPregnant: val,
+                            gestationalWeeks: val === 'no' ? '' : c.gestationalWeeks,
+                          }));
+                          if (val) setErrors((prev) => ({ ...prev, pregnancyStatus: null }));
+                        }}
+                      >
+                        <option value="">Select pregnancy status...</option>
+                        <option value="no">Not currently pregnant</option>
+                        <option value="yes">Currently pregnant</option>
+                      </select>
+                      {errors.pregnancyStatus && <span className="field-error">* {errors.pregnancyStatus}</span>}
+                      {personal.pregnancyStatus === 'yes' && (
+                        <span className="form-hint" style={{ color: 'var(--red)', fontWeight: 600 }}>
+                          Priority clinical routing required
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -480,17 +739,24 @@ export default function Screening() {
                   </thead>
                   <tbody>
                     {family.map((row) => (
-                      <tr key={row.id}>
+                      <tr key={row.id} style={row.isPartner ? { background: '#F0F9F4' } : {}}>
                         <td>
-                          <select
-                            className="form-control"
-                            value={row.relation}
-                            onChange={(e) => updateFamilyRow(row.id, 'relation', e.target.value)}
-                          >
-                            {RELATIONS.map((rel) => (
-                              <option key={rel} value={rel}>{rel}</option>
-                            ))}
-                          </select>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <select
+                              className="form-control"
+                              value={row.relation}
+                              onChange={(e) => updateFamilyRow(row.id, 'relation', e.target.value)}
+                            >
+                              {RELATIONS.map((rel) => (
+                                <option key={rel} value={rel}>{rel}</option>
+                              ))}
+                            </select>
+                            {row.isPartner && (
+                              <span className="badge b-green" style={{ whiteSpace: 'nowrap', fontSize: 10 }}>
+                                Partner
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td>
                           <input
@@ -538,7 +804,7 @@ export default function Screening() {
 
               <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid var(--line)' }}>
                 <label style={{ fontSize: 14, fontWeight: 700, display: 'block', marginBottom: 8 }}>
-                  Consanguinity & Family Relationship
+                  Consanguinity &amp; Family Relationship
                 </label>
                 <div className="radio-cards">
                   <label className={`radio-card ${compliance.isConsanguineous === 'yes' ? 'selected' : ''}`}>
@@ -547,7 +813,7 @@ export default function Screening() {
                       name="consanguinity"
                       value="yes"
                       checked={compliance.isConsanguineous === 'yes'}
-                      onChange={() => setCompliance({ ...compliance, isConsanguineous: 'yes' })}
+                      onChange={() => handleConsanguinityChange('yes')}
                     />
                     <div className="radio-card-content">
                       <strong>Yes, we are related</strong>
@@ -560,7 +826,7 @@ export default function Screening() {
                       name="consanguinity"
                       value="no"
                       checked={compliance.isConsanguineous === 'no'}
-                      onChange={() => setCompliance({ ...compliance, isConsanguineous: 'no', relationToPartner: 'None' })}
+                      onChange={() => handleConsanguinityChange('no')}
                     />
                     <div className="radio-card-content">
                       <strong>No known biological relation</strong>
@@ -569,104 +835,237 @@ export default function Screening() {
                   </label>
                 </div>
                 {compliance.isConsanguineous === 'yes' && (
-                  <div className="form-group" style={{ marginTop: 14 }}>
-                    <label>How are you related to {partner.name}?</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={compliance.relationToPartner}
-                      placeholder="e.g. Second cousins (maternal grandmothers are sisters)"
-                      onChange={(e) => setCompliance({ ...compliance, relationToPartner: e.target.value })}
-                    />
+                  <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div className="form-group">
+                      <label>How are you related to {personal.partnerName || partner.name}?</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={compliance.relationToPartner}
+                        placeholder="e.g. Second cousin (Maternal grandmothers are sisters)"
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCompliance({ ...compliance, relationToPartner: val });
+                          setFamily((prev) => prev.map((r) => (r.isPartner ? { ...r, relation: val.toLowerCase().includes('first') ? 'Partner / First Cousin' : 'Partner / Second Cousin' } : r)));
+                        }}
+                      />
+                    </div>
+                    <div style={{ background: '#F0F9F4', border: '1px solid #C3E6D0', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#0B6B3A' }}>
+                      <b>Pedigree &amp; Branches Sequence:</b> {personal.partnerName || partner.name} is included in your family pedigree and reflected in Branches along your shared ancestral lineage.
+                    </div>
                   </div>
                 )}
               </div>
             </div>
           )}
 
-          {/* STEP 4: COMPLIANCE & PREGNANCY TRIAGE Q&A */}
+          {/* STEP 4: COMPLIANCE & CLINICAL GOVERNANCE */}
           {step === 4 && (
             <div className="form-section">
-              <div>
-                <label style={{ fontSize: 14, fontWeight: 700, display: 'block', marginBottom: 6 }}>
-                  Active Pregnancy Declaration <span className="req">*</span>
-                </label>
-                <p className="muted" style={{ fontSize: 13, marginBottom: 10 }}>
-                  Declaring pregnancy triggers expedited clinical triage so prenatal diagnostic windows
-                  (10–13 weeks for CVS, 15–20 weeks for amniocentesis) are never missed.
-                </p>
-                <div className="radio-cards">
-                  <label className={`radio-card ${compliance.isPregnant === 'yes' ? 'selected' : ''}`}>
-                    <input
-                      type="radio"
-                      name="pregnancy"
-                      value="yes"
-                      checked={compliance.isPregnant === 'yes'}
-                      onChange={() => setCompliance({ ...compliance, isPregnant: 'yes' })}
-                    />
-                    <div className="radio-card-content">
-                      <strong>Yes, currently pregnant</strong>
-                      <small>Time-sensitive case &mdash; routed directly to Tier 1 Urgent clinical queue</small>
-                    </div>
+              {personal.gender !== 'Male' && (
+                <div>
+                  <label style={{ fontSize: 14, fontWeight: 700, display: 'block', marginBottom: 6 }}>
+                    Active Pregnancy Declaration <span className="req">*</span>
                   </label>
-                  <label className={`radio-card ${compliance.isPregnant === 'no' ? 'selected' : ''}`}>
-                    <input
-                      type="radio"
-                      name="pregnancy"
-                      value="no"
-                      checked={compliance.isPregnant === 'no'}
-                      onChange={() => setCompliance({ ...compliance, isPregnant: 'no', gestationalWeeks: '' })}
-                    />
-                    <div className="radio-card-content">
-                      <strong>No current pregnancy</strong>
-                      <small>Standard pre-marital or preconception pathway</small>
+                  <p className="muted" style={{ fontSize: 13, marginBottom: 10 }}>
+                    Declaring pregnancy triggers expedited clinical triage so prenatal diagnostic windows
+                    (10–13 weeks for CVS, 15–20 weeks for amniocentesis) are never missed.
+                  </p>
+                  <div className="radio-cards">
+                    <label className={`radio-card ${compliance.isPregnant === 'yes' ? 'selected' : ''}`}>
+                      <input
+                        type="radio"
+                        name="pregnancy"
+                        value="yes"
+                        checked={compliance.isPregnant === 'yes'}
+                        onChange={() => setCompliance({ ...compliance, isPregnant: 'yes' })}
+                      />
+                      <div className="radio-card-content">
+                        <strong>Yes, currently pregnant</strong>
+                        <small>Time-sensitive case &mdash; routed directly to Tier 1 Urgent clinical queue</small>
+                      </div>
+                    </label>
+                    <label className={`radio-card ${compliance.isPregnant === 'no' ? 'selected' : ''}`}>
+                      <input
+                        type="radio"
+                        name="pregnancy"
+                        value="no"
+                        checked={compliance.isPregnant === 'no'}
+                        onChange={() => setCompliance({ ...compliance, isPregnant: 'no', gestationalWeeks: '' })}
+                      />
+                      <div className="radio-card-content">
+                        <strong>No current pregnancy</strong>
+                        <small>Standard pre-marital or preconception pathway</small>
+                      </div>
+                    </label>
+                  </div>
+                  {compliance.isPregnant === 'yes' && (
+                    <div className="form-group" style={{ marginTop: 14 }}>
+                      <label>Gestational Age (in weeks) <span className="req">*</span></label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="40"
+                        className="form-control"
+                        style={{ maxWidth: 220 }}
+                        placeholder="e.g. 11"
+                        value={compliance.gestationalWeeks}
+                        onChange={(e) => {
+                          setCompliance({ ...compliance, gestationalWeeks: e.target.value });
+                          if (e.target.value) setErrors((prev) => ({ ...prev, gestationalWeeks: null }));
+                        }}
+                      />
+                      {errors.gestationalWeeks && <span className="field-error">* {errors.gestationalWeeks}</span>}
+                      <span className="form-hint" style={{ color: 'var(--red)', fontWeight: 600 }}>
+                        [Priority Notice] Urgent clinical escalation will be flagged for Dr. Mariam Al Hosani.
+                      </span>
                     </div>
-                  </label>
+                  )}
                 </div>
-                {compliance.isPregnant === 'yes' && (
-                  <div className="form-group" style={{ marginTop: 14 }}>
-                    <label>Gestational Age (in weeks) <span className="req">*</span></label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="40"
-                      className="form-control"
-                      style={{ maxWidth: 220 }}
-                      placeholder="e.g. 11"
-                      value={compliance.gestationalWeeks}
-                      onChange={(e) => {
-                        setCompliance({ ...compliance, gestationalWeeks: e.target.value });
-                        if (e.target.value) setErrors((prev) => ({ ...prev, gestationalWeeks: null }));
-                      }}
-                    />
-                    {errors.gestationalWeeks && <span className="field-error">* {errors.gestationalWeeks}</span>}
-                    <span className="form-hint" style={{ color: 'var(--red)', fontWeight: 600 }}>
-                      [Priority Notice] Urgent clinical escalation will be flagged for Dr. Mariam Al Hosani.
-                    </span>
+              )}
+
+              <div style={{ marginTop: personal.gender !== 'Male' ? 18 : 0, paddingTop: personal.gender !== 'Male' ? 18 : 0, borderTop: personal.gender !== 'Male' ? '1px solid var(--line)' : 'none' }}>
+                <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px', color: 'var(--ink)' }}>
+                  {personal.maritalStatus === 'Married' ? 'Marital & Family Planning Background' : 'Premarital Clearance & Wedding Scheduling'}
+                </h3>
+                <p className="muted" style={{ fontSize: 13, margin: '0 0 14px' }}>
+                  {personal.maritalStatus === 'Married'
+                    ? 'Information to support post-marital screening, family carrier assessment, and preconception care.'
+                    : 'Target wedding timeline for issuance of the official UAE Premarital Certificate.'}
+                </p>
+
+                {personal.maritalStatus !== 'Married' ? (
+                  <div className="form-grid-3">
+                    <div className="form-group">
+                      <label>Target Wedding Date <span className="req">*</span></label>
+                      <input
+                        type="date"
+                        className="form-control"
+                        value={compliance.weddingDate || ''}
+                        onChange={(e) => {
+                          setCompliance({ ...compliance, weddingDate: e.target.value });
+                          if (e.target.value) setErrors((prev) => ({ ...prev, weddingDate: null }));
+                        }}
+                      />
+                      {errors.weddingDate && <span className="field-error">* {errors.weddingDate}</span>}
+                      <span className="form-hint">Used to pace laboratory and counsellor workflows</span>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Court Marriage Contract Appointment</label>
+                      <select
+                        className="form-control"
+                        value={compliance.courtScheduled || 'no'}
+                        onChange={(e) => setCompliance({ ...compliance, courtScheduled: e.target.value })}
+                      >
+                        <option value="no">Not yet scheduled (awaiting clearance)</option>
+                        <option value="yes">Yes, appointment scheduled with court / Mazoon</option>
+                      </select>
+                      <span className="form-hint">Abu Dhabi Judicial Department (ADJD)</span>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Certification Urgency</label>
+                      <select
+                        className="form-control"
+                        value={compliance.timeSensitivity || 'standard'}
+                        onChange={(e) => setCompliance({ ...compliance, timeSensitivity: e.target.value })}
+                      >
+                        <option value="standard">Standard processing (3–5 working days)</option>
+                        <option value="urgent">Urgent issuance requested (&lt; 48 hours)</option>
+                      </select>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="form-grid-3">
+                    <div className="form-group">
+                      <label>Duration of Marriage</label>
+                      <select
+                        className="form-control"
+                        value={compliance.marriageDuration || '1-3 years'}
+                        onChange={(e) => setCompliance({ ...compliance, marriageDuration: e.target.value })}
+                      >
+                        <option value="< 1 year">Recently married (&lt; 1 year)</option>
+                        <option value="1-3 years">1 to 3 years</option>
+                        <option value="3-5 years">3 to 5 years</option>
+                        <option value="5+ years">Over 5 years</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Existing Biological Children Together?</label>
+                      <select
+                        className="form-control"
+                        value={compliance.hasChildren || 'no'}
+                        onChange={(e) => setCompliance({ ...compliance, hasChildren: e.target.value })}
+                      >
+                        <option value="no">No biological children yet</option>
+                        <option value="yes_healthy">Yes, healthy biological children</option>
+                        <option value="yes_affected">Yes, child with a genetic/chronic condition</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Reproductive Healthcare Objective</label>
+                      <select
+                        className="form-control"
+                        value={compliance.reproductiveGoal || 'preconception'}
+                        onChange={(e) => setCompliance({ ...compliance, reproductiveGoal: e.target.value })}
+                      >
+                        <option value="preconception">Preconception planning for next pregnancy</option>
+                        <option value="ivf_pgtm">Exploring IVF with PGT-M</option>
+                        <option value="carrier_clarity">Carrier status clarity for family health records</option>
+                      </select>
+                    </div>
                   </div>
                 )}
               </div>
 
               <div style={{ marginTop: 18, paddingTop: 18, borderTop: '1px solid var(--line)' }}>
-                <div className="form-grid-2">
+                <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px', color: 'var(--ink)' }}>
+                  Clinical Genetics &amp; Regulatory Verification
+                </h3>
+                <p className="muted" style={{ fontSize: 13, margin: '0 0 14px' }}>
+                  Abu Dhabi Department of Health premarital genomics programme parameters.
+                </p>
+
+                <div className="form-grid-3">
                   <div className="form-group">
-                    <label>Target Wedding Date</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={compliance.weddingDate}
-                      onChange={(e) => setCompliance({ ...compliance, weddingDate: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Have you had prior premarital screening?</label>
+                    <label>Prior Genetic Carrier Testing</label>
                     <select
                       className="form-control"
-                      value={compliance.previousScreening}
+                      value={compliance.previousScreening || 'no'}
                       onChange={(e) => setCompliance({ ...compliance, previousScreening: e.target.value })}
                     >
-                      <option value="no">No, this is my first test</option>
-                      <option value="yes">Yes, previously screened</option>
+                      <option value="no">No, this is our first test</option>
+                      <option value="yes">Yes, previously screened in the UAE</option>
+                      <option value="yes_abroad">Yes, clinical genetics evaluation abroad</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Recurrent Loss or Infant Mortality History</label>
+                    <select
+                      className="form-control"
+                      value={compliance.recurrentLossHistory || 'no'}
+                      onChange={(e) => setCompliance({ ...compliance, recurrentLossHistory: e.target.value })}
+                    >
+                      <option value="no">No known history reported</option>
+                      <option value="yes">Yes, personal or family history documented</option>
+                      <option value="discuss">Prefer to discuss confidentially with counsellor</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>UAE Identification / Residency Status</label>
+                    <select
+                      className="form-control"
+                      value={compliance.uaeResidencyStatus || 'yes'}
+                      onChange={(e) => setCompliance({ ...compliance, uaeResidencyStatus: e.target.value })}
+                    >
+                      <option value="yes">Both partners hold valid Emirates ID</option>
+                      <option value="one_resident">One partner is a resident, partner is non-resident</option>
+                      <option value="gcc">GCC National without UAE residency</option>
                     </select>
                   </div>
                 </div>
@@ -678,17 +1077,26 @@ export default function Screening() {
           {step === 5 && (
             <div className="form-section">
               <p className="muted" style={{ margin: '0 0 14px' }}>
-                In accordance with <b>Federal Decree-Law No. 49 of 2023 on the Human Genome</b> and the UAE Personal Data Protection Law (PDPL), your consent is specific, informed, and revocable at any time.
+                In accordance with <b>Federal Decree-Law No. 49 of 2023 on the Human Genome</b> and the UAE Personal Data Protection Law (PDPL), your consent is specific, informed, and revocable at any time. <b>Authorizations must be manually granted.</b>
               </p>
+
+              {errors.consent && (
+                <div style={{ background: '#FDE8E8', border: '1px solid #F8B4B4', color: '#9B1C1C', borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: 13.5, fontWeight: 600 }}>
+                  * {errors.consent}
+                </div>
+              )}
 
               <label className={`consent-item ${consent.malaffiSync ? 'checked' : ''}`}>
                 <input
                   type="checkbox"
                   checked={consent.malaffiSync}
-                  onChange={(e) => setConsent({ ...consent, malaffiSync: e.target.checked })}
+                  onChange={(e) => {
+                    setConsent({ ...consent, malaffiSync: e.target.checked });
+                    if (e.target.checked && errors.consent) setErrors((prev) => ({ ...prev, consent: null }));
+                  }}
                 />
                 <div className="consent-item-text">
-                  <h4>1. Authorize Malaffi Genetic Data Retrieval</h4>
+                  <h4>1. Authorize Malaffi Genetic Data Retrieval <span className="req">*</span></h4>
                   <p>
                     I authorize DaNA to securely retrieve and parse my 570-gene premarital screening report from the Malaffi Health Information Exchange.
                   </p>
@@ -699,12 +1107,15 @@ export default function Screening() {
                 <input
                   type="checkbox"
                   checked={consent.partnerShare}
-                  onChange={(e) => setConsent({ ...consent, partnerShare: e.target.checked })}
+                  onChange={(e) => {
+                    setConsent({ ...consent, partnerShare: e.target.checked });
+                    if (e.target.checked && errors.consent) setErrors((prev) => ({ ...prev, consent: null }));
+                  }}
                 />
                 <div className="consent-item-text">
-                  <h4>2. Authorize Bilateral Partner Variant Matching</h4>
+                  <h4>2. Authorize Bilateral Partner Variant Matching <span className="req">*</span></h4>
                   <p>
-                    I consent to cross-matching my genetic screening findings with <b>{partner.name}</b> exclusively to calculate shared reproductive risks. Neither partner gains unrestricted access to the other’s medical record.
+                    I consent to cross-matching my genetic screening findings with <b>{personal.partnerName || partner.name}</b> exclusively to calculate shared reproductive risks. Neither partner gains unrestricted access to the other’s medical record.
                   </p>
                 </div>
               </label>
@@ -713,10 +1124,13 @@ export default function Screening() {
                 <input
                   type="checkbox"
                   checked={consent.counsellorAccess}
-                  onChange={(e) => setConsent({ ...consent, counsellorAccess: e.target.checked })}
+                  onChange={(e) => {
+                    setConsent({ ...consent, counsellorAccess: e.target.checked });
+                    if (e.target.checked && errors.consent) setErrors((prev) => ({ ...prev, consent: null }));
+                  }}
                 />
                 <div className="consent-item-text">
-                  <h4>3. Grant Clinical Dossier Access to Licensed Counsellor</h4>
+                  <h4>3. Grant Clinical Dossier Access to Licensed Counsellor <span className="req">*</span></h4>
                   <p>
                     I grant permission for assigned Department of Health genetic counsellors (e.g. Dr. Mariam Al Hosani) to view my summary for consultations.
                   </p>
@@ -737,7 +1151,7 @@ export default function Screening() {
                 </div>
               </label>
 
-              <div className="disclaimer">
+              <div className="disclaimer" style={{ marginTop: 14 }}>
                 Note: You may revoke any of these consents independently from the <b>Privacy</b> tab. Revocation immediately terminates partner sharing.
               </div>
             </div>
@@ -758,8 +1172,14 @@ export default function Screening() {
                 <div className="review-grid">
                   <div><span>Full Name</span><b>{personal.fullName} ({personal.fullNameAr})</b></div>
                   <div><span>Emirates ID</span><b>{personal.emiratesId}</b></div>
+                  <div><span>Assigned DaNA ID</span><b style={{ color: 'var(--green)' }}>{personal.danaId || existingIntake?.danaId || generateDanaId(session?.id || me.id)}</b></div>
                   <div><span>Date of Birth / Sex</span><b>{personal.dob} · {personal.gender}</b></div>
                   <div><span>Contact</span><b>{personal.phone} · {personal.city}</b></div>
+                  <div><span>Partner's Legal Name</span><b>{personal.partnerName || 'Not specified'}</b></div>
+                  <div><span>Marital Status</span><b>{personal.maritalStatus || 'Not specified'}</b></div>
+                  {personal.gender !== 'Male' && (
+                    <div><span>Pregnancy Declaration</span><b>{personal.pregnancyStatus === 'yes' ? 'Declared pregnant' : 'No active pregnancy'}</b></div>
+                  )}
                 </div>
               </div>
 
@@ -791,14 +1211,20 @@ export default function Screening() {
 
               <div className="review-block">
                 <div className="review-block-h">
-                  <h3>Triage & Legal Consent</h3>
-                  <button type="button" className="link" onClick={() => setStep(5)}>Edit</button>
+                  <h3>Compliance &amp; Authorizations</h3>
+                  <button type="button" className="link" onClick={() => setStep(4)}>Edit</button>
                 </div>
                 <div className="review-grid">
-                  <div><span>Active Pregnancy</span><b>{compliance.isPregnant === 'yes' ? `Yes (${compliance.gestationalWeeks} wks)` : 'No'}</b></div>
-                  <div><span>Target Wedding</span><b>{compliance.weddingDate}</b></div>
-                  <div><span>Malaffi Data Sync</span><b>{consent.malaffiSync ? '✓ Granted' : '✗ Withheld'}</b></div>
-                  <div><span>Partner Matching</span><b>{consent.partnerShare ? '✓ Granted' : '✗ Withheld'}</b></div>
+                  {personal.gender !== 'Male' && (
+                    <div><span>Active Pregnancy</span><b>{compliance.isPregnant === 'yes' ? `Yes (${compliance.gestationalWeeks} wks)` : 'No'}</b></div>
+                  )}
+                  {personal.maritalStatus !== 'Married' ? (
+                    <div><span>Target Wedding</span><b>{compliance.weddingDate || 'Not specified'}</b></div>
+                  ) : (
+                    <div><span>Marriage Duration</span><b>{compliance.marriageDuration || 'Not specified'}</b></div>
+                  )}
+                  <div><span>Malaffi Data Sync</span><b>{consent.malaffiSync ? '✓ Granted' : '✗ Pending'}</b></div>
+                  <div><span>Partner Matching</span><b>{consent.partnerShare ? '✓ Granted' : '✗ Pending'}</b></div>
                 </div>
               </div>
 
@@ -815,9 +1241,9 @@ export default function Screening() {
                   }}
                 />
                 <div className="consent-item-text">
-                  <h4>Certification & Electronic Signature</h4>
+                  <h4>Certification &amp; Electronic Signature <span className="req">*</span></h4>
                   <p>
-                    I, <b>{personal.fullName}</b>, certify that all information submitted in this premarital screening intake is true, accurate, and complete.
+                    I, <b>{personal.fullName}</b>, certify that all information submitted in this premarital screening intake is true, accurate, and complete. I confirm that <b>{personal.partnerName}</b> is my declared partner and electronically sign this premarital submission under Federal Decree-Law No. 49 of 2023.
                   </p>
                 </div>
               </label>
@@ -850,7 +1276,7 @@ export default function Screening() {
                   style={{ background: 'var(--green)', padding: '12px 24px', fontSize: 15 }}
                   onClick={handleSubmit}
                 >
-                  Submit Premarital Screening Intake
+                  Verify &amp; eSign Intake →
                 </button>
               )}
             </div>

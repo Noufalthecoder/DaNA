@@ -4,8 +4,8 @@
   runs in demo mode: only the simulated UAE PASS login works.
 */
 import { createClient } from '@supabase/supabase-js';
-import { COUPLES } from './data.js';
-import { set, startFresh } from './store.js';
+import { COUPLES, generateDanaId } from './data.js';
+import { set, get, startFresh } from './store.js';
 import { loadAll, logAudit, hydratePeople } from './db.js';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
@@ -18,16 +18,26 @@ export const hasBackend = !!supabase;
 /* turn a Supabase user into the app's session (role, name, couple) */
 export async function loadSession(user) {
   let { data: acc } = await supabase.from('accounts').select('*').eq('user_id', user.id).maybeSingle();
+  const metaName = user.user_metadata?.full_name || user.user_metadata?.name || null;
+  const metaEmail = user.email || user.user_metadata?.email || '';
+  const metaPhone = user.phone || user.user_metadata?.phone || '';
+
   if (!acc) {
     // first sign-in (new user or Google): create a couple account with nothing linked yet
-    const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
+    const name = metaName || (metaEmail ? metaEmail.split('@')[0] : '') || 'New member';
     const row = { user_id: user.id, role: 'couple', person_id: null, display_name: name, title: 'New member' };
     // two sign-in events can arrive at once: "do nothing if it already exists", then read whichever row won
     const { error } = await supabase.from('accounts').upsert(row, { onConflict: 'user_id', ignoreDuplicates: true });
     if (error && error.code !== '23505') throw error;
     const again = await supabase.from('accounts').select('*').eq('user_id', user.id).maybeSingle();
     acc = again.data || row;
+  } else if (metaName && (!acc.display_name || acc.display_name === 'New member')) {
+    acc.display_name = metaName;
+    if (supabase) {
+      supabase.from('accounts').update({ display_name: metaName }).eq('user_id', user.id).then();
+    }
   }
+
   if (acc.role === 'couple' && !acc.person_id) {
     // temporary onboarding: give this account its own sample couple (see supabase/003_sample_journey.sql)
     const { data: pid, error } = await supabase.rpc('start_sample_journey');
@@ -36,17 +46,31 @@ export async function loadSession(user) {
   }
   await hydratePeople();
   const couple = acc.person_id ? COUPLES.find((c) => c.a === acc.person_id || c.b === acc.person_id) : null;
-  const isUae = window.__danaVia === 'uaepass';
+  const isUae = window.__danaVia === 'uaepass' || user.email?.endsWith('@dana.demo');
   const authMethod = isUae ? 'uae_pass' : 'manual';
+  const via = isUae ? 'uaepass' : (user.app_metadata?.provider || 'email');
+  const resolvedName = (acc.display_name && acc.display_name !== 'New member')
+    ? acc.display_name
+    : (metaName || (metaEmail ? metaEmail.split('@')[0] : 'Member'));
+
+  const assignedDanaId = acc.dana_id || generateDanaId(user.id);
+  if (!acc.dana_id && supabase) {
+    supabase.from('accounts').update({ dana_id: assignedDanaId }).eq('user_id', user.id).then();
+  }
+
   return {
     id: acc.person_id || user.id,
+    userId: user.id,
+    danaId: assignedDanaId,
     role: acc.role,
-    name: acc.display_name,
+    name: resolvedName,
     title: acc.title || '',
     couple: couple ? couple.id : null,
-    email: user.email,
-    via: window.__danaVia || user.app_metadata?.provider || 'email',
-    authMethod, // Google and email lead to manual by default
+    email: metaEmail,
+    phone: metaPhone,
+    userMetadata: user.user_metadata || {},
+    via,
+    authMethod, // UAE PASS auto-fills for demo; Google & email lead to manual entry
     backend: true,
   };
 }
@@ -68,7 +92,8 @@ export function watchAuth(onReady) {
         // open the app straight away; the rest of the data arrives in the background
         if (fresh && !window.location.hash.startsWith('#/app')) {
           if (window.location.search) window.history.replaceState(null, '', window.location.pathname);
-          window.location.hash = session.role === 'couple' ? '/app/screening' : '/app';
+          const isScreened = !!get().screeningIntakes?.[session.id]?.completed;
+          window.location.hash = (session.role === 'couple' && !isScreened) ? '/app/screening' : '/app';
         }
         loadAll();
       } catch (e) {

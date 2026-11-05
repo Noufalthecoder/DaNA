@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useCouple } from './useCouple.js';
 import { useStore } from '../shared/store.js';
+import { generateDanaId } from '../shared/data.js';
 import { go } from '../shared/router.js';
 import { Brand } from '../shared/Logo.jsx';
 
@@ -201,6 +202,10 @@ export default function MedicalReport() {
   const [showDetails, setShowDetails] = useState(false);
 
   const userName = session?.name || me?.name || 'Khalid Al Mansoori';
+  const intakes = useStore((s) => s.screeningIntakes || {});
+  const myIntake = intakes[me?.id || session?.id];
+  const danaId = myIntake?.danaId || myIntake?.personal?.danaId || generateDanaId(session?.id || me?.id);
+
   const userInitials = userName
     .split(' ')
     .map((n) => n[0])
@@ -245,7 +250,22 @@ export default function MedicalReport() {
       >
         <Brand size={34} href="#/" />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span
+            style={{
+              fontSize: 12.5,
+              fontWeight: 700,
+              padding: '5px 12px',
+              borderRadius: 8,
+              background: '#E8F5EC',
+              color: '#0D7939',
+              fontFamily: 'monospace',
+              letterSpacing: '0.04em',
+              border: '1px solid #C6F0D4',
+            }}
+          >
+            {danaId}
+          </span>
           <div
             style={{
               width: 38,
