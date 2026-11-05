@@ -152,12 +152,9 @@ export function watchAuth(onReady) {
         if (viaDemo) { window.__danaVia = null; await logAudit(`Signed in with UAE PASS (demo) as ${session.role}`); }
         const fresh = event !== 'INITIAL' || (typeof window !== 'undefined' && window.location.search.includes('code='));
         if (fresh && !viaDemo) await logAudit(`Signed in with ${session.via === 'google' ? 'Google' : 'email'}`);
-        const isCouple = session.role === 'couple';
-        const isDone = !!session.intakeDone || !!get().screeningIntakes?.[session.id]?.completed || !!get().screeningIntakes?.[session.personId]?.completed;
-        const targetHash = (isCouple && !isDone) ? '/app/screening' : '/app';
         if (fresh && typeof window !== 'undefined' && !window.location.hash.startsWith('#/app')) {
           if (window.location.search) window.history.replaceState(null, '', window.location.pathname);
-          window.location.hash = targetHash;
+          window.location.hash = '/app'; // Home shows the journey and its one next step
         }
         loadAll();
       } catch (e) {
