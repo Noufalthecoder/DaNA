@@ -14,7 +14,7 @@ import { PEOPLE, ACCOUNTS, COUPLES, SUPABASE_ACCOUNTS } from './data.js';
 import { get, set } from './store.js';
 import { assess } from './genetics.js';
 import { supabase, refreshSession } from './supabase.js';
-import { loadAll } from './db.js';
+import { loadAll, logAudit } from './db.js';
 
 // Canonical ordering helper for bidirectional connections
 function canonicalPair(id1, id2) {
@@ -612,6 +612,10 @@ export async function recordExternalInvitation({ senderId, channel, recipientCon
     if (supabase) {
       await supabase.from('connection_requests').insert(payload);
     }
+    logAudit(`Generated ${channel} invitation for ${recipientContact || 'partner'}`, {
+      resourceType: 'connection_requests',
+      resourceId: payload.id,
+    });
     return payload;
   } catch (err) {
     console.warn('recordExternalInvitation notice:', err?.message);
@@ -723,11 +727,18 @@ export function sendConnectionRequest(senderId, receiverId, note = '', meta = {}
     `Sent connection request to ${PEOPLE[receiverId]?.name || receiverId}`
   );
 
+  const targetName = PEOPLE[receiverId]?.name || receiverId;
+  logAudit(`Sent connection request to ${targetName}`, {
+    resourceType: 'connection_requests',
+    resourceId: uuid,
+  });
+
   // Sync to Supabase connection_requests table
   if (supabase) {
+    const liveSenderId = state.session?.personId || state.session?.userId || senderId;
     const payload = {
       id: uuid,
-      sender_id: senderId,
+      sender_id: liveSenderId,
       receiver_id: receiverId,
       recipient_email: targetEmail,
       channel: 'in_app',
@@ -864,6 +875,11 @@ export function acceptConnectionRequest(requestId, actingUserId) {
     `Connected ${senderName} and ${receiverName}. Risk assessed: ${assessmentResult.label} (${assessmentResult.risk})`
   );
 
+  logAudit(`Connected with ${senderName}. Risk assessed: ${assessmentResult.label} (${assessmentResult.risk})`, {
+    resourceType: 'couples',
+    resourceId: couple.id,
+  });
+
   // Live: the database creates the real couple and case (010: accept_connection_request).
   // The request is the sender's consent; accepting is mine. Then reload my session.
   if (supabase && state.session?.backend) {
@@ -904,6 +920,11 @@ export function rejectConnectionRequest(requestId, actingUserId) {
     `Rejected connection request from ${PEOPLE[req.senderId]?.name || req.senderId}`
   );
 
+  logAudit(`Declined connection request from ${PEOPLE[req.senderId]?.name || req.senderId}`, {
+    resourceType: 'connection_requests',
+    resourceId: req.id,
+  });
+
   // Sync rejection to Supabase connection_requests
   try {
     supabase
@@ -912,7 +933,7 @@ export function rejectConnectionRequest(requestId, actingUserId) {
         status: 'REJECTED',
         updated_at: new Date().toISOString(),
       })
-      .or(`and(sender_id.eq.${req.senderId},receiver_id.eq.${actingUserId})`)
+      .eq('id', req.id)
       .then(() => {})
       .catch(() => {});
   } catch {}
@@ -947,6 +968,11 @@ export function cancelConnectionRequest(requestId, actingUserId) {
     `Cancelled connection request to ${PEOPLE[req.receiverId]?.name || req.receiverId}`
   );
 
+  logAudit(`Cancelled connection request to ${PEOPLE[req.receiverId]?.name || req.receiverId}`, {
+    resourceType: 'connection_requests',
+    resourceId: req.id,
+  });
+
   // Sync cancellation to Supabase connection_requests
   try {
     supabase
@@ -955,7 +981,7 @@ export function cancelConnectionRequest(requestId, actingUserId) {
         status: 'CANCELLED',
         updated_at: new Date().toISOString(),
       })
-      .or(`and(sender_id.eq.${actingUserId},receiver_id.eq.${req.receiverId})`)
+      .eq('id', req.id)
       .then(() => {})
       .catch(() => {});
   } catch {}
@@ -1003,6 +1029,11 @@ export function removeConnection(connectionId, actingUserId) {
     },
     `Removed connection with ${PEOPLE[otherUserId]?.name || otherUserId}`
   );
+
+  logAudit(`Disconnected from ${PEOPLE[otherUserId]?.name || otherUserId}`, {
+    resourceType: 'couples',
+    resourceId: connectionId,
+  });
 
   return true;
 }
@@ -1054,6 +1085,11 @@ export function blockUser(actingUserId, targetUserId) {
     `Blocked user ${PEOPLE[targetUserId]?.name || targetUserId}`
   );
 
+  logAudit(`Blocked user ${PEOPLE[targetUserId]?.name || targetUserId}`, {
+    resourceType: 'blocked_users',
+    resourceId: targetUserId,
+  });
+
   return true;
 }
 
@@ -1068,6 +1104,11 @@ export function unblockUser(actingUserId, targetUserId) {
     { blockedUsers: blocked },
     `Unblocked user ${PEOPLE[targetUserId]?.name || targetUserId}`
   );
+
+  logAudit(`Unblocked user ${PEOPLE[targetUserId]?.name || targetUserId}`, {
+    resourceType: 'blocked_users',
+    resourceId: targetUserId,
+  });
 
   return true;
 }
