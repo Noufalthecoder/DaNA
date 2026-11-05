@@ -16,7 +16,7 @@ services:
       - key: SUPABASE_URL
         value: https://oflqmhfivyzttlivgusr.supabase.co
       - key: ALLOWED_ORIGINS
-        value: https://dana-gamma-seven.vercel.app,http://localhost:5173
+        value: https://dana-gamma-seven.vercel.app,http://localhost:5173,http://127.0.0.1:5173
       - key: SUPABASE_ANON_KEY
         sync: false   # entered in the Render dashboard
       - key: SUPABASE_SERVICE_ROLE_KEY

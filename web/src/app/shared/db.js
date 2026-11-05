@@ -8,6 +8,7 @@ import { supabase } from './supabase.js';
 import { get, set } from './store.js';
 import { SLOTS, PEOPLE, COUPLES, relativesFor, generateDanaId } from './data.js';
 import { fromDb, toDb } from './family.js';
+import { api } from './api.js';
 
 export const isLive = () => !!(supabase && get().session?.backend);
 
@@ -26,14 +27,38 @@ export const slotLabel = (iso) => {
 };
 
 /* write one audit entry to the database (live) */
-export async function logAudit(action, danaId) {
+export async function logAudit(action, metaOrDanaId = {}) {
   if (!isLive()) return;
-  const s = get().session;
-  const currentDanaId = danaId || s?.danaId || s?.personal?.danaId;
-  const payload = { actor_name: s?.name || 'System', action };
-  if (currentDanaId) payload.dana_id = currentDanaId;
-  const { error } = await supabase.from('audit_log').insert(payload);
-  if (error) console.error('audit', error.message);
+  try {
+    const s = get();
+    const session = s?.session || {};
+    const actorName = session.name || 'User';
+    const actorId = session.userId || (await supabase?.auth.getUser())?.data?.user?.id;
+    const row = { actor_name: actorName, action };
+    if (actorId) row.actor = actorId;
+
+    const danaId = typeof metaOrDanaId === 'string' ? metaOrDanaId : (metaOrDanaId?.danaId || session?.danaId || session?.personal?.danaId);
+    if (danaId) row.dana_id = danaId;
+
+    if (typeof metaOrDanaId === 'object' && metaOrDanaId !== null) {
+      if (metaOrDanaId.resourceType) row.resource_type = metaOrDanaId.resourceType;
+      if (metaOrDanaId.resourceId) row.resource_id = String(metaOrDanaId.resourceId);
+      if (metaOrDanaId.metadata) row.metadata = metaOrDanaId.metadata;
+    }
+
+    const { error } = await supabase.from('audit_log').insert(row);
+    if (error) {
+      if (error.message?.includes('actor') || error.code === '23502') {
+        delete row.actor;
+        await supabase.from('audit_log').insert(row);
+      } else {
+        console.warn('audit', error.message);
+      }
+    }
+  } catch (e) {
+    console.warn('audit error', e);
+  }
+}
 }
 
 /* run an action: update the screen at once, then save it (live) or log it locally (demo) */
@@ -244,7 +269,16 @@ export async function hydratePeople() {
   const gene = Object.fromEntries((r.data || []).map((x) => [x.person_id, x.gene]));
   (p.data || []).forEach((x) => {
     if (!PEOPLE[x.id]) PEOPLE[x.id] = { name: x.name, short: x.short_name, sex: x.sex, carrier: gene[x.id] ?? null };
+    else {
+      PEOPLE[x.id].sex = x.sex; // the database is the source of truth
+      if (x.id in gene) PEOPLE[x.id].carrier = gene[x.id]; // a fresh Malaffi result replaces the old one
+    }
   });
+  // couples created in the database (k_...) that no longer exist there were removed, e.g. a released sample couple
+  if (c.data) {
+    const alive = new Set(c.data.map((x) => x.id));
+    for (let i = COUPLES.length - 1; i >= 0; i--) if (COUPLES[i].id.startsWith('k_') && !alive.has(COUPLES[i].id)) COUPLES.splice(i, 1);
+  }
   (c.data || []).forEach((x) => {
     if (!COUPLES.find((k) => k.id === x.id)) {
       COUPLES.push({ id: x.id, a: x.partner_a, b: x.partner_b, stage: x.stage === 'married' ? 'Married' : 'Engaged', pregnantWeeks: x.pregnant_weeks, screened: x.screened_on });
@@ -353,4 +387,58 @@ async function doLoad() {
     patch.breakdown = br.data || null;
   }
   set(patch);
+}
+
+/* Profile menu: change my display name (live: saved to my account). */
+export async function setDisplayName(name) {
+  const clean = (name || '').trim().slice(0, 80);
+  if (clean.length < 2) throw new Error('Use at least 2 characters.');
+  if (isLive()) {
+    const { error } = await supabase.rpc('set_display_name', { new_name: clean });
+    if (error) throw new Error(error.message);
+  }
+  set({ session: { ...get().session, name: clean } }, 'Changed display name');
+  return clean;
+}
+
+/* Profile picture: an icon from AVATARS (null = initials). */
+export async function setAvatar(icon) {
+  if (isLive()) {
+    const { error } = await supabase.rpc('set_avatar', { new_avatar: icon });
+    if (error) throw new Error(error.message);
+  }
+  set({ session: { ...get().session, avatar: icon } }, 'Changed profile picture');
+}
+
+/* ---------- onboarding (009_onboarding.sql + the API) ---------- */
+const rpc = async (fn, args) => {
+  const { data, error } = await supabase.rpc(fn, args);
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/* step 1: my own health profile (sex is needed to interpret X-linked results) */
+export async function startMyProfile(sex) {
+  const old = get().session?.id;
+  const pid = await rpc('start_my_profile', { p_sex: sex });
+  // the screening intake was saved under the login id before the profile existed: move it across
+  const intakes = get().screeningIntakes || {};
+  if (old && old !== pid && intakes[old]) set({ screeningIntakes: { ...intakes, [pid]: intakes[old] } });
+  return pid;
+}
+
+/* step 3: fetch my lab report from Malaffi (validated and saved by the API) */
+export async function fetchMalaffi() {
+  const r = await api('/ingest/malaffi', { method: 'POST' });
+  await loadAll();
+  return r;
+}
+
+export const createPartnerInvite = () => rpc('create_partner_invite');
+export const acceptPartnerInvite = (code) => rpc('accept_partner_invite', { p_code: code });
+export const startSampleJourney = () => rpc('start_sample_journey');
+export async function setMySex(sex) {
+  await rpc('set_my_sex', { p_sex: sex });
+  const id = get().session?.id;
+  if (id && PEOPLE[id]) PEOPLE[id].sex = sex;
 }

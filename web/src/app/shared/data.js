@@ -11,20 +11,25 @@ export const GENES = {
   G6PD: { condition: 'G6PD deficiency', inheritance: 'XL' },
 };
 
+/* Real accounts are never listed here: the database provides them (privacy rules apply). */
+export const SUPABASE_ACCOUNTS = [];
+
 /* people: `carrier` is a gene symbol, or null when nothing was found */
 export const PEOPLE = {
-  khalid: { name: 'Khalid Al Mansoori', short: 'Khalid', sex: 'M', carrier: 'HBB' },
-  fatima: { name: 'Fatima Al Hammadi', short: 'Fatima', sex: 'F', carrier: 'HBB' },
-  ahmed: { name: 'Ahmed Al Ketbi', short: 'Ahmed', sex: 'M', carrier: 'GJB2' },
-  noura: { name: 'Noura Al Ketbi', short: 'Noura', sex: 'F', carrier: 'GJB2' },
-  saeed: { name: 'Saeed Al Nuaimi', short: 'Saeed', sex: 'M', carrier: 'SMN1' },
-  maryam: { name: 'Maryam Al Shamsi', short: 'Maryam', sex: 'F', carrier: null, vus: 'SMN1' },
-  omar: { name: 'Omar Al Dhaheri', short: 'Omar', sex: 'M', carrier: null },
-  latifa: { name: 'Latifa Al Mazrouei', short: 'Latifa', sex: 'F', carrier: 'G6PD' },
-  rashid: { name: 'Rashid Al Suwaidi', short: 'Rashid', sex: 'M', carrier: 'CFTR' },
-  aisha: { name: 'Aisha Al Falasi', short: 'Aisha', sex: 'F', carrier: 'CFTR' },
-  hamdan: { name: 'Hamdan Al Qubaisi', short: 'Hamdan', sex: 'M', carrier: null },
-  shamma: { name: 'Shamma Al Zaabi', short: 'Shamma', sex: 'F', carrier: null },
+  khalid: { name: 'Khalid Al Mansoori', short: 'Khalid', username: 'khalid', danaId: 'DANA-7701', sex: 'M', carrier: 'HBB' },
+  fatima: { name: 'Fatima Al Hammadi', short: 'Fatima', username: 'fatima', danaId: 'DANA-8822', sex: 'F', carrier: 'HBB' },
+  ahmed: { name: 'Ahmed Al Ketbi', short: 'Ahmed', username: 'ahmed', danaId: 'DANA-3319', sex: 'M', carrier: 'GJB2' },
+  noura: { name: 'Noura Al Ketbi', short: 'Noura', username: 'noura', danaId: 'DANA-4412', sex: 'F', carrier: 'GJB2' },
+  saeed: { name: 'Saeed Al Nuaimi', short: 'Saeed', username: 'saeed', danaId: 'DANA-5590', sex: 'M', carrier: 'SMN1' },
+  maryam: { name: 'Maryam Al Shamsi', short: 'Maryam', username: 'maryam', danaId: 'DANA-6623', sex: 'F', carrier: null, vus: 'SMN1' },
+  omar: { name: 'Omar Al Dhaheri', short: 'Omar', username: 'omar', danaId: 'DANA-2211', sex: 'M', carrier: null },
+  latifa: { name: 'Latifa Al Mazrouei', short: 'Latifa', username: 'latifa', danaId: 'DANA-1198', sex: 'F', carrier: 'G6PD' },
+  rashid: { name: 'Rashid Al Suwaidi', short: 'Rashid', username: 'rashid', danaId: 'DANA-9944', sex: 'M', carrier: 'CFTR' },
+  aisha: { name: 'Aisha Al Falasi', short: 'Aisha', username: 'aisha', danaId: 'DANA-8833', sex: 'F', carrier: 'CFTR' },
+  hamdan: { name: 'Hamdan Al Qubaisi', short: 'Hamdan', username: 'hamdan', danaId: 'DANA-5577', sex: 'M', carrier: null },
+  shamma: { name: 'Shamma Al Zaabi', short: 'Shamma', username: 'shamma', danaId: 'DANA-6688', sex: 'F', carrier: null },
+
+  // Registered users from Supabase accounts
 };
 
 export const COUPLES = [
@@ -761,4 +766,3 @@ export function getSyntheticIntake(id) {
     ...data,
   };
 }
-

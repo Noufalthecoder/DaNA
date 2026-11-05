@@ -4,6 +4,7 @@
   - Google, email sign-in and new-user sign-up: real, through Supabase Auth.
 */
 import { useState, useEffect } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { ACCOUNTS, getSyntheticIntake } from './data.js';
 import { set, get, useStore, signOut } from './store.js';
 import { go } from './router.js';
@@ -39,12 +40,48 @@ function GoogleIcon() {
   );
 }
 
+/* password box with a show/hide eye on the right */
+function PasswordField({ label, hint, ...props }) {
+  const [show, setShow] = useState(false);
+  return (
+    <label>{label}
+      <span className="pw-wrap">
+        <input type={show ? 'text' : 'password'} {...props} />
+        <button type="button" className="pw-eye" onClick={() => setShow(!show)} aria-label={show ? 'Hide password' : 'Show password'} title={show ? 'Hide password' : 'Show password'}>
+          {show ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      </span>
+      {hint && <small>{hint}</small>}
+    </label>
+  );
+}
+
+/* staff role chosen at sign-up; claimed in the database right after the account exists (016) */
+export const STAFF_CLAIM_KEY = 'dana.staffClaim';
+const ROLES = [['couple', 'Couple', 'Planning to marry'], ['counsellor', 'Counsellor', 'Genetic counsellor'], ['admin', 'DoH admin', 'Programme team']];
+const saveClaim = (role, code) => {
+  try {
+    if (role === 'couple') sessionStorage.removeItem(STAFF_CLAIM_KEY);
+    else sessionStorage.setItem(STAFF_CLAIM_KEY, JSON.stringify({ role, code: code.trim() }));
+  } catch {}
+};
+
+/* staff code must be valid for the chosen role before any account is created (017) */
+async function staffCodeOk(role, code) {
+  if (role === 'couple') return true;
+  const { data, error } = await supabase.rpc('check_staff_code', { p_role: role, p_code: code.trim() });
+  if (error) throw new Error('Could not check the staff code. Try again.');
+  return data === true;
+}
+const roleName = (r) => (r === 'admin' ? 'DoH admin' : 'Counsellor');
+
 export default function Login() {
   // start → uaepass (pick demo) → connecting | email | signup | check-email
   const [step, setStep] = useState('start');
   const [who, setWho] = useState(null);
   const [authMethod, setAuthMethod] = useState('uae_pass');
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'couple', code: '' });
+  const staff = form.role !== 'couple';
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [exists, setExists] = useState(false); // sign-up hit an email that already has an account
@@ -137,8 +174,16 @@ export default function Login() {
 
   const emailSignIn = async (e) => {
     e.preventDefault();
+    if (staff && !form.code.trim()) { setError('Enter your staff access code.'); return; }
     setBusy(true); setError(''); clearAuthError();
     window.__danaVia = null;
+    try {
+      if (!(await staffCodeOk(form.role, form.code))) {
+        setBusy(false); setError(`That staff access code is not valid for ${roleName(form.role)}.`); return;
+      }
+    } catch (e2) { setBusy(false); setError(e2.message); return; }
+    // a new, still-empty account becomes staff at sign-in (016); existing staff are unaffected
+    saveClaim(form.role, form.code);
     const { error: err } = await supabase.auth.signInWithPassword({ email: form.email.trim(), password: form.password });
     if (err) { setBusy(false); setError(friendly(err.message)); } // on success stay busy until the app opens
   };
@@ -146,8 +191,15 @@ export default function Login() {
   const signUp = async (e) => {
     e.preventDefault();
     if (form.password.length < 8) { setError('Use at least 8 characters for your password.'); return; }
+    if (staff && !form.code.trim()) { setError('Enter your staff access code.'); return; }
     setBusy(true); setError(''); setExists(false); clearAuthError();
+    try {
+      if (!(await staffCodeOk(form.role, form.code))) {
+        setBusy(false); setError(`That staff access code is not valid for ${roleName(form.role)}.`); return;
+      }
+    } catch (e2) { setBusy(false); setError(e2.message); return; }
     window.__danaVia = null;
+    saveClaim(form.role, form.code);
     const { data, error: err } = await supabase.auth.signUp({
       email: form.email.trim(), password: form.password,
       options: { data: { full_name: form.name.trim() }, emailRedirectTo: window.location.origin + window.location.pathname },
@@ -159,6 +211,24 @@ export default function Login() {
     else if (err) setError(friendly(err.message));
     else if (!data.session) setStep('check-email'); // email confirmation is on in Supabase
   };
+
+  const rolePicker = (
+    <>
+      <fieldset className="role-pick">
+        <legend>{step === 'signup' ? 'I am signing up as' : 'I am signing in as'}</legend>
+        {ROLES.map(([v, l, d]) => (
+          <button key={v} type="button" className={form.role === v ? 'on' : ''} aria-pressed={form.role === v} onClick={() => setForm({ ...form, role: v })}>
+            <b>{l}</b><small>{d}</small>
+          </button>
+        ))}
+      </fieldset>
+      {staff && (
+        <label>Staff access code<input required autoComplete="off" placeholder="Your staff code" {...field('code')} />
+          <small>Given by the DoH programme team. It unlocks the {form.role === 'admin' ? 'DoH admin' : 'counsellor'} view.</small>
+        </label>
+      )}
+    </>
+  );
 
   const notConnected = <p className="note">Google and email sign-in need the Supabase keys in <code>web/.env.local</code>. Until then, use UAE PASS (demo).</p>;
 
@@ -213,8 +283,9 @@ export default function Login() {
         {step === 'email' && (
           <form onSubmit={emailSignIn} className="form">
             <h1>Sign in with email</h1>
+            {rolePicker}
             <label>Email<input type="email" required autoComplete="email" {...field('email')} /></label>
-            <label>Password<input type="password" required autoComplete="current-password" {...field('password')} /></label>
+            <PasswordField label="Password" required autoComplete="current-password" {...field('password')} />
             {error && <p className="err">{error}</p>}
             <button className="btn wide" disabled={busy}>{busy ? 'Signing you in…' : 'Sign in'}</button>
             <p className="swap">No account? <button type="button" className="link" onClick={() => to('signup')}>Create one</button></p>
@@ -226,9 +297,10 @@ export default function Login() {
           <form onSubmit={signUp} className="form">
             <h1>Create your account</h1>
             <p className="muted">Free and private. Your screening results are linked after you sign in.</p>
+            {rolePicker}
             <label>Full name<input required autoComplete="name" {...field('name')} /></label>
             <label>Email<input type="email" required autoComplete="email" {...field('email')} /></label>
-            <label>Password<input type="password" required minLength={8} autoComplete="new-password" {...field('password')} /><small>At least 8 characters</small></label>
+            <PasswordField label="Password" hint="At least 8 characters" required minLength={8} autoComplete="new-password" {...field('password')} />
             {exists && (
               <div className="exists">
                 <p><b>{form.email}</b> already has a DaNA account.</p>
@@ -241,7 +313,13 @@ export default function Login() {
             )}
             {error && <p className="err">{error}</p>}
             <button className="btn wide" disabled={busy}>{busy ? 'Setting up your account…' : 'Create account'}</button>
-            <button type="button" className="method google-inline" onClick={google}><GoogleIcon />Sign up with Google</button>
+            <button type="button" className="method google-inline" onClick={async () => {
+              if (staff && !form.code.trim()) { setError('Enter your staff access code first.'); return; }
+              try {
+                if (!(await staffCodeOk(form.role, form.code))) { setError(`That staff access code is not valid for ${roleName(form.role)}.`); return; }
+              } catch (e2) { setError(e2.message); return; }
+              saveClaim(form.role, form.code); google();
+            }}><GoogleIcon />Sign up with Google</button>
             <p className="swap">Already have an account? <button type="button" className="link" onClick={() => to('email')}>Sign in</button></p>
           </form>
         )}

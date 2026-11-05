@@ -4,9 +4,12 @@ import { AlertTriangle } from 'lucide-react';
 import { set, useStore, resetDemo, signOut as localSignOut } from './store.js';
 import { go } from './router.js';
 import { Avatar, Dialog } from './ui.jsx';
+import ProfileMenu from './ProfileMenu.jsx';
 import { Brand } from './Logo.jsx';
 import { signOut as supabaseSignOut } from './supabase.js';
 import { loadAll, logAudit } from './db.js';
+import NotificationBell from './NotificationBell.jsx';
+import { syncRequestsFromSupabase } from './connectionsService.js';
 
 export default function Shell({ menu, path, children }) {
   const session = useStore((s) => s.session);
@@ -16,6 +19,16 @@ export default function Shell({ menu, path, children }) {
   const [resetting, setResetting] = useState(false);
   useEffect(() => { document.documentElement.dir = 'ltr'; document.documentElement.lang = 'en'; }, []);
   useEffect(() => setOpen(false), [path]);
+
+  useEffect(() => {
+    if (session?.id) {
+      syncRequestsFromSupabase(session.id, session.email, session.userId);
+      const timer = setInterval(() => {
+        syncRequestsFromSupabase(session.id, session.email, session.userId);
+      }, 10000);
+      return () => clearInterval(timer);
+    }
+  }, [session?.id, session?.email, session?.userId]);
 
   const confirmResetDemo = async (e) => {
     e?.preventDefault();
@@ -73,18 +86,9 @@ export default function Shell({ menu, path, children }) {
       <div className="main">
         <header className="top">
           <button className="burger" onClick={() => setOpen(!open)} aria-label="Menu">☰</button>
-          <a
-            href={session.role === 'couple' ? '#/app/profile' : '#/app'}
-            className="top-who"
-            style={{ textDecoration: 'none', color: 'inherit' }}
-            title={session.role === 'couple' ? 'View Profile & Health Data' : ''}
-          >
-            <Avatar name={session.name} size={34} />
-            <span><b>{session.name}</b>{session.role !== 'couple' && <small>{session.title}</small>}</span>
-          </a>
           <div className="top-r">
-            <a className="ghost" href="#/login" onClick={switchAccount}>Switch account</a>
-            <button className="ghost" onClick={logout}>Sign out</button>
+            <NotificationBell />
+            <ProfileMenu session={session} onSwitch={switchAccount} onSignOut={logout} />
           </div>
         </header>
         {dbError && <div className="db-err">{dbError} <button className="link" onClick={() => { set({ dbError: null }); loadAll(); }}>Try again</button></div>}

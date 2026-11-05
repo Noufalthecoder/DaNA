@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { Page, Card, Badge } from '../shared/ui.jsx';
 import { useCouple } from './useCouple.js';
 import { SYNTHETIC_INTAKES, generateDanaId } from '../shared/data.js';
-import { set, useStore } from '../shared/store.js';
+import { set, useStore, EMPTY_OBJ } from '../shared/store.js';
 import { saveScreeningIntake } from '../shared/db.js';
 import { go } from '../shared/router.js';
 import { EditIcon, CheckIcon } from '../shared/Icons.jsx';
+import AvatarPicker from '../shared/AvatarPicker.jsx';
+import { Avatar } from '../shared/ui.jsx';
 
 const RELATIONS = [
   'Mother', 'Father', 'Brother', 'Sister',
@@ -20,7 +22,7 @@ const RELATIONS = [
 export default function Profile() {
   const { me, partner, couple } = useCouple();
   const session = useStore((s) => s.session);
-  const intakes = useStore((s) => s.screeningIntakes || {});
+  const intakes = useStore((s) => s.screeningIntakes) || EMPTY_OBJ;
   const existingIntake = intakes[me.id];
 
   const isUaePass = session?.authMethod === 'uae_pass' || session?.via === 'uaepass' || session?.email?.endsWith('@dana.demo');
@@ -170,6 +172,7 @@ export default function Profile() {
   };
 
   const isIntakeCompleted = !!existingIntake?.completed;
+  const account = useStore((s) => s.session) || {};
 
   return (
     <Page
@@ -226,6 +229,13 @@ export default function Profile() {
           Health profile and screening intake data saved successfully.
         </div>
       )}
+
+      <Card title="Profile picture">
+        <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <Avatar name={account.name} size={64} icon={account.avatar} />
+          <div style={{ flex: 1, minWidth: 220 }}><AvatarPicker session={account} /></div>
+        </div>
+      </Card>
 
       {/* Profile Overview Card */}
       <Card>

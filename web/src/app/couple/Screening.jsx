@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Badge } from '../shared/ui.jsx';
 import { useCouple } from './useCouple.js';
 import { SYNTHETIC_INTAKES, generateDanaId } from '../shared/data.js';
-import { set, useStore, signOut } from '../shared/store.js';
+import { set, useStore, signOut, EMPTY_OBJ } from '../shared/store.js';
 import { signOut as supabaseSignOut } from '../shared/supabase.js';
 import { saveScreeningIntake } from '../shared/db.js';
 import { buildTreeFromIntake } from '../shared/family.js';
@@ -31,8 +31,8 @@ const RELATIONS = [
 export default function Screening() {
   const { me, partner } = useCouple();
   const session = useStore((s) => s.session);
-  const intakes = useStore((s) => s.screeningIntakes || {});
-  const existingIntake = intakes[me.id];
+  const intakes = useStore((s) => s.screeningIntakes) || EMPTY_OBJ;
+  const existingIntake = (me && me.id) ? intakes[me.id] : null;
 
   // Only UAE PASS auto-fills. Google sign-in, email, signup, and manual all default strictly to manual.
   const isUaePass = session?.authMethod === 'uae_pass' || session?.via === 'uaepass' || session?.email?.endsWith('@dana.demo');
@@ -94,7 +94,7 @@ export default function Screening() {
           anonymizedResearch: false,
         },
       }
-    : (SYNTHETIC_INTAKES[me.id] || (me.sex === 'M' ? SYNTHETIC_INTAKES.khalid : SYNTHETIC_INTAKES.fatima));
+    : ((me && me.id && SYNTHETIC_INTAKES[me.id]) || (me?.sex === 'M' ? SYNTHETIC_INTAKES.khalid : SYNTHETIC_INTAKES.fatima));
 
   const [step, setStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(!!existingIntake?.completed);
@@ -179,7 +179,7 @@ export default function Screening() {
       setCertified(false);
       setErrors({});
     }
-  }, [me.id, isManual, isUaePass, existingIntake?.completed, authName, authEmail, authPhone]);
+  }, [me?.id, isManual, isUaePass, existingIntake?.completed, authName, authEmail, authPhone]);
 
   // Family dynamic table helpers (Image 2 style)
   const addFamilyRow = () => {
@@ -312,7 +312,7 @@ export default function Screening() {
       },
     }));
 
-    go('/app/report');
+    go(session?.couple ? '/app/report' : '/app');
   };
 
   if (isSubmitted) {

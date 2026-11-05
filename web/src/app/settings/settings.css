@@ -1,0 +1,62 @@
+/* ===== Settings: accordion sections ===== */
+.accordion{margin-bottom:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.accordion>summary{display:flex;align-items:center;gap:12px;padding:16px 20px;border-radius:14px;cursor:pointer;list-style:none}
+.accordion>summary::-webkit-details-marker{display:none}
+.accordion>summary:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.accordion-t{flex:1;min-width:0}
+.accordion-t b{display:block;font-size:15px;font-weight:700}
+.accordion-t small{display:block;margin-top:2px;font-size:13px;color:var(--ink2)}
+.accordion-chev{flex:none;color:var(--ink3);transition:transform .2s ease}
+.accordion[open]>summary .accordion-chev{transform:rotate(180deg)}
+.accordion[open]>summary{border-bottom:1px solid var(--line);border-radius:14px 14px 0 0}
+.accordion-b{padding:18px 20px}
+
+/* ===== Benchmarks ===== */
+.bench-scroll{overflow-x:auto}
+.bench-note{display:flex;flex-direction:column;align-items:flex-start;gap:10px;font-size:14px;color:var(--ink2)}
+.bench-muted{font-size:13px;color:var(--ink3)}
+.bench-nowrap{white-space:nowrap}
+.bench-table{min-width:640px}
+.table.bench-table thead th:first-child{width:52%}
+.bench-table td small{margin-top:2px;line-height:1.4}
+.bench-value{font-weight:600}
+.bench-col{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.bench-col>span:first-child{font-size:13px;font-weight:700;color:var(--ink)}
+.bench-col small{display:block;font-size:11.5px;font-weight:500;color:var(--ink3)}
+.bench-icon-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;font-size:12.5px;white-space:nowrap}
+.table.bench-table tbody:not(:last-of-type) tr:last-child td{border-bottom:0}
+.table.bench-table .bench-group th{padding:24px 10px 8px;border-bottom:1px solid var(--line);font-size:11.5px;font-weight:700;color:var(--ink2);letter-spacing:.04em;text-transform:uppercase}
+
+.bench-history-h{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:24px 0 10px}
+.bench-history-h h3{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700}
+.bench-switch{display:inline-flex;padding:3px;border-radius:9px;background:var(--bg)}
+.bench-switch button{padding:5px 12px;border:0;border-radius:7px;background:none;color:var(--ink2);font:600 12.5px var(--body);cursor:pointer}
+.bench-switch button.is-on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(23,32,27,.08)}
+.bench-history{min-width:720px}
+.bench-history td{vertical-align:top}
+.bench-actions{text-align:right}
+.bench-changes{margin:0;padding:0;list-style:none;font-size:13px;line-height:1.5}
+.bench-changes b{font-weight:600}
+
+/* edit form */
+.bench-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;min-width:0;margin:0;padding:0;border:0}
+.bench-fields legend{padding:0 0 8px;font-size:11.5px;font-weight:700;color:var(--ink2);letter-spacing:.04em;text-transform:uppercase}
+.bench-check{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink);cursor:pointer}
+.bench-check input{accent-color:var(--green)}
+@media (max-width:560px){.bench-fields{grid-template-columns:minmax(0,1fr)}}
+
+/* app.css hides the third column of tables on small screens. Here that is the Female values and the audit reason. */
+.table.bench-table th:nth-child(3),.table.bench-table td:nth-child(3),
+.table.bench-history th:nth-child(3),.table.bench-history td:nth-child(3){display:table-cell}
+
+/* phones: all three columns stay on screen, because the values are the point */
+@media (max-width:640px){
+  .accordion>summary{padding:14px 16px}
+  .accordion-b{padding:12px}
+  .bench-table{min-width:0}
+  .table.bench-table thead th:first-child{width:auto}
+  .table.bench-table th,.table.bench-table td{padding-left:6px;padding-right:6px;font-size:13px}
+  .bench-col{flex-direction:column;align-items:flex-start;gap:6px}
+}
+
+.bench-readonly{display:inline-block;margin:0 0 12px;padding:6px 12px;border-radius:999px;background:var(--bg);color:var(--ink2);font-size:13px}
