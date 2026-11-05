@@ -78,6 +78,7 @@ These two are safe to use in the browser. The privacy rules protect the data.
 
 | [`005_booking.sql`](005_booking.sql) | Booking from real counsellor availability: slots get taken and freed, appointments link to the case and counsellor, counsellors mark sessions done, emergency slots reserved for Tier 1 |
 | [`006_account_email.sql`](006_account_email.sql) | Shows each user's email in `accounts` (Table Editor), kept in step with the login automatically |
+| [`015_risk_benchmarks.sql`](015_risk_benchmarks.sql) | Default risk benchmarks (one male row, one female row) with a snapshot of every change, screening blood results, and a permanent record of each couple's cross-check against the exact benchmark version used. Only the admin can edit benchmarks |
 
 All are safe to re-run. `004` ends by printing `cases_computed` (one per couple).
 
