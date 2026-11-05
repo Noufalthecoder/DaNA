@@ -44,6 +44,8 @@ export function BranchesIcon({ size = 18, className = '' }) {
   );
 }
 
+export const FamilyTreeIcon = BranchesIcon;
+
 export function CounsellorIcon({ size = 18, className = '' }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>

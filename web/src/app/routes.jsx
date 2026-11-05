@@ -24,6 +24,7 @@ import {
   RootsIcon,
   BondsIcon,
   BranchesIcon,
+  FamilyTreeIcon,
   CounsellorIcon,
   PrivacyIcon,
   ProfileIcon,
