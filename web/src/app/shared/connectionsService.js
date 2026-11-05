@@ -479,10 +479,29 @@ export async function syncRequestsFromSupabase(userId, userEmail = null, userAut
       clauses.push(`recipient_email.ilike.${userEmail}`, `receiver_id.ilike.${userEmail}`);
     }
 
-    const { data, error } = await supabase
-      .from('connection_requests')
-      .select('id, sender_id, receiver_id, recipient_email, recipient_phone, channel, invitation_sent, invitation_sent_at, accepted, accepted_at, status, created_at')
-      .or(clauses.join(','));
+    // Live: my_connection_requests() (012) returns my rows with both people's names and DaNA IDs.
+    const live = !!get().session?.backend;
+    const { data, error } = live
+      ? await supabase.rpc('my_connection_requests')
+      : await supabase
+        .from('connection_requests')
+        .select('id, sender_id, receiver_id, recipient_email, recipient_phone, channel, invitation_sent, invitation_sent_at, accepted, accepted_at, status, created_at')
+        .or(clauses.join(','));
+    if (live && !error) {
+      (data || []).forEach((row) => {
+        for (const [pid, name, avatar, danaId] of [[row.sender_id, row.sender_name, row.sender_avatar, row.sender_dana_id], [row.receiver_id, row.receiver_name, row.receiver_avatar, row.receiver_dana_id]]) {
+          if (pid && name && !PEOPLE[pid]) PEOPLE[pid] = { name, short: name.split(' ')[0], avatar, danaId };
+          else if (pid && PEOPLE[pid] && danaId && !PEOPLE[pid].danaId) PEOPLE[pid].danaId = danaId;
+        }
+      });
+      // my request was just accepted on the other phone: open our couple journey
+      const before = get().connectionRequests || [];
+      const nowAccepted = (data || []).some((row) => !row.incoming && row.status === 'ACCEPTED'
+        && before.some((b) => b.id === row.id && b.status === 'PENDING'));
+      if (nowAccepted && !get().session?.couple) {
+        refreshSession().then(() => loadAll()).catch(() => {});
+      }
+    }
 
     if (!error && Array.isArray(data) && data.length > 0) {
       const state = get();
@@ -492,7 +511,7 @@ export async function syncRequestsFromSupabase(userId, userEmail = null, userAut
 
       for (const row of data) {
         // Normalise receiverId: if receiver_id in DB matched user's email or auth UUID, align to userId
-        const matchesMe =
+        const matchesMe = row.incoming === true ||
           row.receiver_id === userId ||
           (userAuthId && row.receiver_id === userAuthId) ||
           (userEmail && (row.recipient_email === userEmail || row.receiver_id === userEmail));
