@@ -38,6 +38,17 @@ Tests (no network needed): `python -m pytest`
 | GET | `/me/report` | signed in | My validated lab report and variants |
 | GET | `/cases` | signed in | Cases with triage tier (couple: own; counsellor: all) |
 | POST | `/ingest/validate` | signed in | Check a FHIR Bundle, save nothing |
+| GET | `/benchmarks` | signed in | Current male and female risk benchmarks |
+| POST | `/benchmarks/evaluate` | counsellor | Cross-check both partners; returns tier, findings and benchmark versions |
+| GET | `/benchmarks/{M\|F}/snapshots` | admin, counsellor | Change history: who, when, why, what changed |
+| GET | `/benchmarks/{M\|F}/snapshots/{version}` | admin, counsellor | The whole benchmark at one version |
+| PATCH | `/benchmarks/{M\|F}` | admin | Edit values; needs `reason` and `expected_version` |
+| POST | `/benchmarks/{M\|F}/restore` | admin | Bring back a snapshot as a new version |
+| GET | `/benchmarks/mismatches` | counsellor | Cross-checks where the benchmarks and `compute_tier` disagree |
+| GET | `/people/{id}/labs` | owner, counsellor | Blood results, newest first (never the partner) |
+| POST | `/people/{id}/labs` | counsellor | Enter blood results; a correction is a new entry |
+| POST | `/cases/{couple_id}/benchmark-check` | counsellor | Cross-check a couple from stored results and save it against the exact snapshots used |
+| GET | `/cases/{couple_id}/assessments` | counsellor | Every cross-check for a couple |
 | POST | `/ingest/malaffi` | couple member | Simulated Malaffi sync: consent check → validate → save → re-triage → audit |
 
 ## The Malaffi validation adapter (`app/fhir.py`)

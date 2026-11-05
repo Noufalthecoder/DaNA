@@ -19,8 +19,15 @@ def test_health(client):
 
 
 def test_protected_routes_need_a_login(client):
-    for path in ["/me", "/me/report", "/cases"]:
+    for path in ["/me", "/me/report", "/cases", "/benchmarks", "/benchmarks/M/snapshots", "/benchmarks/F/snapshots/1"]:
         assert client.get(path).status_code == 401
+    assert client.post("/benchmarks/evaluate", json={"male": {}, "female": {}}).status_code == 401
+    assert client.patch("/benchmarks/M", json={}).status_code == 401
+    assert client.post("/benchmarks/M/restore", json={}).status_code == 401
+    for path in ["/people/p1/labs", "/cases/c1/assessments", "/benchmarks/mismatches"]:
+        assert client.get(path).status_code == 401
+    assert client.post("/cases/c1/benchmark-check", json={}).status_code == 401
+    assert client.post("/people/p1/labs", json={}).status_code == 401
     assert client.post("/ingest/malaffi").status_code == 401
 
 

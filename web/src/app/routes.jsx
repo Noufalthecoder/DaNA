@@ -18,6 +18,7 @@ import Schedule from './counsellor/Schedule.jsx';
 import Overview from './admin/Overview.jsx';
 import Content from './admin/Content.jsx';
 import Audit from './admin/Audit.jsx';
+import Settings from './settings/Settings.jsx';
 
 import {
   HomeIcon,
@@ -34,6 +35,7 @@ import {
   ContentIcon,
   AuditIcon,
   ConnectionsIcon,
+  SettingsIcon,
 } from './shared/Icons.jsx';
 
 export const MENUS = {
@@ -55,6 +57,7 @@ export const MENUS = {
     items: [
       { to: '/app', label: 'Case queue', icon: <QueueIcon /> },
       { to: '/app/schedule', label: 'Schedule', icon: <ScheduleIcon /> },
+      { to: '/app/settings', label: 'Settings', icon: <SettingsIcon /> },
     ],
   },
   admin: {
@@ -63,6 +66,7 @@ export const MENUS = {
       { to: '/app', label: 'Overview', icon: <OverviewIcon /> },
       { to: '/app/content', label: 'Content review', icon: <ContentIcon /> },
       { to: '/app/audit', label: 'Audit log', icon: <AuditIcon /> },
+      { to: '/app/settings', label: 'Settings', icon: <SettingsIcon /> },
     ],
   },
 };
@@ -96,10 +100,10 @@ export function page(role, path) {
   }
   if (role === 'counsellor') {
     if (clean.startsWith('/app/case/')) return <CaseView id={clean.split('/').pop()} />;
-    return { '/app': <Queue />, '/app/schedule': <Schedule /> }[clean] || null;
+    return { '/app': <Queue />, '/app/schedule': <Schedule />, '/app/settings': <Settings /> }[clean] || null;
   }
   if (role === 'admin') {
-    return { '/app': <Overview />, '/app/content': <Content />, '/app/audit': <Audit /> }[clean] || null;
+    return { '/app': <Overview />, '/app/content': <Content />, '/app/audit': <Audit />, '/app/settings': <Settings /> }[clean] || null;
   }
   return null;
 }
