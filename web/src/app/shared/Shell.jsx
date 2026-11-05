@@ -7,7 +7,7 @@ import { Avatar, Dialog } from './ui.jsx';
 import ProfileMenu from './ProfileMenu.jsx';
 import { Brand } from './Logo.jsx';
 import { signOut as supabaseSignOut } from './supabase.js';
-import { loadAll, logAudit } from './db.js';
+import { loadAll, logAudit, resetDemoDataBackend } from './db.js';
 import NotificationBell from './NotificationBell.jsx';
 import { isLinked, NEEDS_PARTNER } from './journey.js';
 import { syncRequestsFromSupabase } from './connectionsService.js';
@@ -35,12 +35,17 @@ export default function Shell({ menu, path, children }) {
     e?.preventDefault();
     setResetting(true);
     try {
-      if (session?.backend) await logAudit('Reset demo data & restarted onboarding');
+      if (session?.backend) {
+        await logAudit('Reset demo data & restarted onboarding');
+        await resetDemoDataBackend(session);
+      }
       resetDemo();
       localSignOut();
       try { await supabaseSignOut(); } catch {}
       setShowResetConfirm(false);
       go('/login');
+    } catch (err) {
+      console.warn('confirmResetDemo notice:', err);
     } finally {
       setResetting(false);
     }

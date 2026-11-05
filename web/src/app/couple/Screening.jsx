@@ -108,6 +108,73 @@ export default function Screening() {
   const [certified, setCertified] = useState(false);
   const [errors, setErrors] = useState({});
 
+  // Malaffi HIE dynamic state for Google & email sign-ins
+  const [malaffiFetched, setMalaffiFetched] = useState(mode === 'uae_pass');
+  const [isFetchingMalaffi, setIsFetchingMalaffi] = useState(false);
+  const [malaffiMessage, setMalaffiMessage] = useState('');
+
+  const fillMalaffiDemo = (genderChoice) => {
+    const isM = genderChoice === 'Male';
+    const syn = isM ? SYNTHETIC_INTAKES.khalid : SYNTHETIC_INTAKES.fatima;
+    setPersonal((prev) => ({
+      ...prev,
+      fullName: prev.fullName || syn.personal.fullName,
+      fullNameAr: syn.personal.fullNameAr,
+      emiratesId: syn.personal.emiratesId,
+      dob: syn.personal.dob,
+      gender: syn.personal.gender,
+      phone: prev.phone || syn.personal.phone,
+      partnerName: prev.partnerName || syn.personal.partnerName,
+      maritalStatus: prev.maritalStatus || syn.personal.maritalStatus,
+      pregnancyStatus: isM ? 'no' : (prev.pregnancyStatus || 'no'),
+    }));
+    setMedical(syn.medical);
+    setFamily(syn.family);
+    setCompliance((prev) => ({
+      ...prev,
+      ...syn.compliance,
+      isPregnant: isM ? 'no' : (prev.isPregnant || 'no'),
+      gestationalWeeks: isM ? '' : prev.gestationalWeeks,
+    }));
+    setMalaffiFetched(true);
+    setMalaffiMessage(`✓ Successfully retrieved verified Malaffi EHR record for ${syn.personal.fullName} (${syn.personal.emiratesId}).`);
+    setErrors({});
+  };
+
+  const handleFetchMalaffiRecord = () => {
+    const isMale = personal.gender === 'Male';
+    const syn = (isMale || personal.emiratesId?.includes('1829304'))
+      ? SYNTHETIC_INTAKES.khalid
+      : SYNTHETIC_INTAKES.fatima;
+
+    const assignedEid = personal.emiratesId?.trim() || syn.personal.emiratesId;
+    const assignedDob = personal.dob || syn.personal.dob;
+
+    setIsFetchingMalaffi(true);
+    setMalaffiMessage('');
+    setTimeout(() => {
+      setPersonal((prev) => ({
+        ...prev,
+        emiratesId: assignedEid,
+        dob: assignedDob,
+        fullNameAr: prev.fullNameAr || syn.personal.fullNameAr,
+        partnerName: prev.partnerName || syn.personal.partnerName,
+        maritalStatus: prev.maritalStatus || syn.personal.maritalStatus,
+      }));
+      setMedical(syn.medical);
+      setFamily(syn.family);
+      setCompliance((prev) => ({
+        ...prev,
+        ...syn.compliance,
+        isPregnant: isMale ? 'no' : (prev.isPregnant || syn.compliance.isPregnant),
+      }));
+      setMalaffiFetched(true);
+      setIsFetchingMalaffi(false);
+      setMalaffiMessage(`✓ Verified Malaffi HIE records synchronized for Emirates ID: ${assignedEid}. Health history & pedigree populated.`);
+      setErrors((prev) => ({ ...prev, emiratesId: null, dob: null }));
+    }, 400);
+  };
+
   // Reset wizard flow whenever user, intake state, or manual mode changes
   useEffect(() => {
     if (existingIntake) {
@@ -270,6 +337,23 @@ export default function Screening() {
           gestationalWeeks: personal.pregnancyStatus === 'no' ? '' : c.gestationalWeeks,
         }));
       }
+
+      // If manual mode and Malaffi record has not been fetched yet, automatically retrieve seeded Malaffi EHR record
+      if (isManual && !malaffiFetched) {
+        const isM = personal.gender === 'Male';
+        const syn = isM ? SYNTHETIC_INTAKES.khalid : SYNTHETIC_INTAKES.fatima;
+        setMedical((prev) => ({
+          ...syn.medical,
+          ...prev,
+          conditions: prev.conditions || syn.medical.conditions,
+          medications: prev.medications || syn.medical.medications,
+          surgeries: prev.surgeries || syn.medical.surgeries,
+          allergies: prev.allergies || syn.medical.allergies,
+          bloodGroup: prev.bloodGroup || syn.medical.bloodGroup,
+        }));
+        setFamily((prev) => (prev.length > 2 && prev[0].condition ? prev : syn.family));
+        setMalaffiFetched(true);
+      }
     }
 
     setErrors({});
@@ -293,7 +377,7 @@ export default function Screening() {
     const payload = {
       danaId,
       completed: true,
-      mode,
+      mode: malaffiFetched ? 'uae_pass' : mode,
       submittedAt: new Date().toISOString(),
       personal: { ...personal, danaId },
       medical,
@@ -318,7 +402,8 @@ export default function Screening() {
         if (!error) set((s) => ({ session: s.session ? { ...s.session, intakeDone: true } : s.session }));
       });
     }
-    go('/app');
+    // Navigate directly to Result/Report page, following the sequence: Screening -> Result -> Dashboard
+    go('/app/report');
   };
 
   if (isSubmitted) {
@@ -344,7 +429,8 @@ export default function Screening() {
             <Badge tone="grey">{new Date().toLocaleDateString('en-GB')}</Badge>
           </div>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-            <a href="#/app/report" className="btn">View Individual Medical Report →</a>
+            <a href="#/app/report" className="btn">View Screening Results &amp; Report →</a>
+            <a href="#/app" className="btn-line" style={{ borderRadius: 10, padding: '10px 18px', fontWeight: 600 }}>Go to Dashboard</a>
             <button className="ghost" onClick={() => setIsSubmitted(false)}>Review / Edit Intake</button>
           </div>
         </div>
@@ -403,16 +489,20 @@ export default function Screening() {
       <div className="mode-banner">
         <div className="mode-info">
           <div className="mode-text">
-            <h4>{mode === 'uae_pass' ? 'UAE PASS & Malaffi Synchronized' : 'Manual Intake Entry'}</h4>
-            <p>
+            <h4>
               {mode === 'uae_pass'
+                ? 'UAE PASS & Malaffi Synchronized'
+                : (malaffiFetched ? 'Malaffi Health Information Exchange Synchronized' : 'Account Intake & Malaffi Verification')}
+            </h4>
+            <p>
+              {mode === 'uae_pass' || malaffiFetched
                 ? 'Civil and clinical data retrieved from verified records. Please complete mandatory partner and marital details below.'
-                : 'Enter user information, medical history, and family pedigree manually.'}
+                : 'Enter your Emirates ID and Date of Birth to query Malaffi HIE and retrieve your verified clinical health records.'}
             </p>
           </div>
         </div>
-        <Badge tone={mode === 'uae_pass' ? 'green' : 'grey'}>
-          {mode === 'uae_pass' ? 'Auto-Filled via UAE PASS' : 'Manual Entry'}
+        <Badge tone={mode === 'uae_pass' || malaffiFetched ? 'green' : 'blue'}>
+          {mode === 'uae_pass' ? 'Auto-Filled via UAE PASS' : (malaffiFetched ? 'Auto-Filled via Malaffi' : 'Malaffi Sync Pending')}
         </Badge>
       </div>
 
@@ -425,6 +515,104 @@ export default function Screening() {
           {/* STEP 1: PERSONAL DETAILS */}
           {step === 1 && (
             <div className="form-section">
+              {isManual && (
+                <div style={{
+                  background: malaffiFetched ? '#F0FDF4' : '#F8FAFC',
+                  border: `1.5px solid ${malaffiFetched ? '#00843D' : '#CBD5E1'}`,
+                  borderRadius: 12,
+                  padding: '16px 20px',
+                  marginBottom: 20,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14 }}>
+                    <div style={{ display: 'flex', gap: 12 }}>
+                      <div style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 8,
+                        background: malaffiFetched ? '#00843D' : '#0284C7',
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 700,
+                        fontSize: 16,
+                        flexShrink: 0,
+                      }}>
+                        {malaffiFetched ? '✓' : '🏥'}
+                      </div>
+                      <div>
+                        <h4 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: '#111827' }}>
+                          {malaffiFetched
+                            ? 'Malaffi Health Records Linked & Synchronized'
+                            : 'Malaffi Health Information Exchange · National EHR Retrieval'}
+                        </h4>
+                        <p style={{ margin: 0, fontSize: 13, color: '#4B5563', lineHeight: 1.5 }}>
+                          {malaffiMessage || (malaffiFetched
+                            ? `Verified clinical records retrieved for Emirates ID ${personal.emiratesId}. Health history, medications, allergies, and pedigree are synced.`
+                            : 'Provide your Emirates ID, Date of Birth, and Biological Sex below, then click "Fetch Seeded Record from Malaffi HIE" to auto-populate your official records.')}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge tone={malaffiFetched ? 'green' : 'blue'}>
+                      {malaffiFetched ? 'Malaffi Linked' : 'Seeded Fetch'}
+                    </Badge>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', paddingTop: 2 }}>
+                    <button
+                      type="button"
+                      className="btn"
+                      style={{
+                        background: malaffiFetched ? '#00843D' : '#0284C7',
+                        padding: '8px 16px',
+                        fontSize: 13.5,
+                        fontWeight: 600,
+                      }}
+                      onClick={handleFetchMalaffiRecord}
+                      disabled={isFetchingMalaffi}
+                    >
+                      {isFetchingMalaffi ? 'Connecting to Malaffi HIE...' : (malaffiFetched ? '↻ Re-Fetch Malaffi Record' : 'Fetch Seeded Record from Malaffi HIE')}
+                    </button>
+
+                    <span style={{ fontSize: 12.5, color: '#6B7280' }}>or choose test persona:</span>
+                    <button
+                      type="button"
+                      style={{
+                        background: '#FFFFFF',
+                        border: '1px solid #D1D5DB',
+                        borderRadius: 8,
+                        padding: '6px 12px',
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        color: '#374151',
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => fillMalaffiDemo('Male')}
+                    >
+                      Sample Male (Khalid)
+                    </button>
+                    <button
+                      type="button"
+                      style={{
+                        background: '#FFFFFF',
+                        border: '1px solid #D1D5DB',
+                        borderRadius: 8,
+                        padding: '6px 12px',
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        color: '#374151',
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => fillMalaffiDemo('Female')}
+                    >
+                      Sample Female (Fatima)
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="form-grid-2">
                 <div className="form-group">
                   <label>Full Legal Name (English) <span className="req">*</span></label>
@@ -643,6 +831,45 @@ export default function Screening() {
           {/* STEP 2: HEALTH & MEDICAL RECORDS */}
           {step === 2 && (
             <div className="form-section">
+              {isManual && (
+                <div style={{
+                  background: malaffiFetched ? '#F0FDF4' : '#EFF6FF',
+                  border: `1.5px solid ${malaffiFetched ? '#00843D' : '#93C5FD'}`,
+                  borderRadius: 12,
+                  padding: '12px 18px',
+                  marginBottom: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  flexWrap: 'wrap',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ color: malaffiFetched ? '#00843D' : '#2563EB', fontWeight: 700, fontSize: 18 }}>
+                      {malaffiFetched ? '✓' : 'ℹ'}
+                    </span>
+                    <span style={{ fontSize: 13.5, color: '#1F2937', fontWeight: 500 }}>
+                      {malaffiFetched
+                        ? `Clinical records populated from Malaffi HIE for Emirates ID: ${personal.emiratesId || 'Verified'}.`
+                        : 'Health history not yet fetched from Malaffi HIE. Retrieve official seeded records in one click:'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <button
+                      type="button"
+                      className="btn"
+                      style={{ background: malaffiFetched ? '#00843D' : '#2563EB', padding: '6px 14px', fontSize: 13 }}
+                      onClick={handleFetchMalaffiRecord}
+                      disabled={isFetchingMalaffi}
+                    >
+                      {isFetchingMalaffi ? 'Querying...' : (malaffiFetched ? '↻ Re-Fetch from Malaffi' : 'Fetch from Malaffi HIE')}
+                    </button>
+                    <Badge tone={malaffiFetched ? 'green' : 'blue'}>
+                      {malaffiFetched ? 'Malaffi Synced' : 'Action Available'}
+                    </Badge>
+                  </div>
+                </div>
+              )}
               <div className="form-grid-2">
                 <div className="form-group">
                   <label>Blood Group & Rh Factor</label>

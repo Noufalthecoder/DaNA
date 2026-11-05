@@ -446,3 +446,88 @@ export async function setMySex(sex) {
   const id = get().session?.id;
   if (id && PEOPLE[id]) PEOPLE[id].sex = sex;
 }
+
+/* Reset demo & intake data on backend (Supabase) */
+export async function resetDemoDataBackend(session) {
+  if (!isLive() || !supabase) return;
+  try {
+    // 1. Try secure RPC if configured
+    try {
+      await supabase.rpc('reset_my_intake');
+    } catch {}
+
+    const { data: { user } } = await supabase.auth.getUser();
+    const uid = user?.id || session?.userId;
+    const pid = session?.id || session?.personId;
+
+    // 2. Clear screening rows
+    if (uid) {
+      try {
+        await supabase.from('screening').delete().eq('user_id', uid);
+      } catch {}
+      try {
+        await supabase.from('screening').update({
+          completed: false,
+          submitted_at: null,
+          updated_at: new Date().toISOString(),
+        }).eq('user_id', uid);
+      } catch {}
+    }
+
+    if (pid) {
+      try {
+        await supabase.from('screening').delete().eq('person_id', pid);
+      } catch {}
+    }
+
+    // Clear standard demo personas screening rows
+    try {
+      await supabase.from('screening').delete().in('person_id', ['khalid', 'fatima', 'ahmed', 'noura']);
+    } catch {}
+
+    // 3. Clear people intake_completed_at
+    if (pid) {
+      try {
+        await supabase.from('people').update({
+          intake_completed_at: null,
+          uaepass_linked_at: null,
+          uaepass_via: null,
+        }).eq('id', pid);
+      } catch {}
+    }
+    try {
+      await supabase.from('people').update({
+        intake_completed_at: null,
+        uaepass_linked_at: null,
+        uaepass_via: null,
+      }).in('id', ['khalid', 'fatima', 'ahmed', 'noura']);
+    } catch {}
+
+    // 4. Clear person_details
+    if (pid) {
+      try {
+        await supabase.from('person_details').delete().eq('person_id', pid);
+      } catch {}
+    }
+    try {
+      await supabase.from('person_details').delete().in('person_id', ['khalid', 'fatima', 'ahmed', 'noura']);
+    } catch {}
+
+    // 5. Reset accounts title
+    if (uid) {
+      try {
+        await supabase.from('accounts').update({ title: 'New member' }).eq('user_id', uid);
+      } catch {}
+    }
+
+    // 6. Delete test appointments and plans for the couple
+    if (session?.couple) {
+      try {
+        await supabase.from('plans').delete().eq('couple_id', session.couple);
+      } catch {}
+    }
+  } catch (err) {
+    console.warn('Backend reset demo error (handled gracefully):', err);
+  }
+}
+

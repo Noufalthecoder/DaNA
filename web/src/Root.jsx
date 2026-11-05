@@ -77,7 +77,7 @@ export default function Root() {
   const [ready, setReady] = useState(false);
 
   const isCouple = session?.role === 'couple';
-  const isScreened = session ? !!intakes[session.id]?.completed : false;
+  const isScreened = session ? (!!session.intakeDone || !!intakes[session.id]?.completed || !!intakes[session.personId]?.completed) : false;
 
   useEffect(() => {
     const unsub = watchAuth(() => setReady(true));
@@ -137,6 +137,14 @@ export default function Root() {
           <Login />
         </ErrorBoundary>
       );
+    }
+
+    // Unscreened couple users must complete screening before viewing the dashboard
+    if (isCouple && !isScreened) {
+      if (path !== '/app/screening' && path !== '/app/report' && path !== '/app/my-report' && path !== '/app/result') {
+        go('/app/screening');
+        return null;
+      }
     }
 
     // Full standalone layout for individual medical report
