@@ -48,6 +48,8 @@ export async function loadSession(user) {
   const authMethod = isUae ? 'uae_pass' : 'manual';
   return {
     id: acc.person_id || user.id,
+    userId: user.id,
+    personId: acc.person_id || null,
     role: acc.role,
     name: acc.display_name,
     avatar: acc.avatar || null,

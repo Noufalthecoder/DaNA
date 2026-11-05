@@ -7,6 +7,7 @@ import { Brand } from './Logo.jsx';
 import { signOut as supabaseSignOut } from './supabase.js';
 import { loadAll, logAudit } from './db.js';
 import NotificationBell from './NotificationBell.jsx';
+import { syncRequestsFromSupabase } from './connectionsService.js';
 
 export default function Shell({ menu, path, children }) {
   const session = useStore((s) => s.session);
@@ -14,6 +15,16 @@ export default function Shell({ menu, path, children }) {
   const [open, setOpen] = useState(false);
   useEffect(() => { document.documentElement.dir = 'ltr'; document.documentElement.lang = 'en'; }, []);
   useEffect(() => setOpen(false), [path]);
+
+  useEffect(() => {
+    if (session?.id) {
+      syncRequestsFromSupabase(session.id, session.email, session.userId);
+      const timer = setInterval(() => {
+        syncRequestsFromSupabase(session.id, session.email, session.userId);
+      }, 10000);
+      return () => clearInterval(timer);
+    }
+  }, [session?.id, session?.email, session?.userId]);
 
   const logout = async () => {
     if (session?.backend) await logAudit('Signed out');

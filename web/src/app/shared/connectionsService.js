@@ -24,6 +24,17 @@ function generateId(prefix = 'c') {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
+export function generateUuid() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    try { return crypto.randomUUID(); } catch {}
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 /**
  * Return user's public identifier details (Username & Unique DaNA ID)
  */
@@ -289,12 +300,12 @@ export async function searchUsersAsync(requesterId, query = '') {
   }
 
   // 2. Also query Supabase 'people' table if accounts query returned empty
-  if (supabaseAccounts.length === 0) {
+  if (supabaseAccounts.length === 0 && supabase) {
     try {
       const supabasePeoplePromise = supabase
         .from('people')
         .select('id, name, short_name, sex, date_of_birth, phone_number_hash')
-        .ilike('id', targetUsername)
+        .or(`id.ilike.%${cleanQ}%,name.ilike.%${cleanQ}%,short_name.ilike.%${cleanQ}%`)
         .limit(5);
 
       const timeoutPromise = new Promise((resolve) =>
@@ -318,6 +329,21 @@ export async function searchUsersAsync(requesterId, query = '') {
     } catch (err) {
       console.warn('Supabase people query notice (handled gracefully):', err?.message);
     }
+  }
+
+  // 3. Fallback to SUPABASE_ACCOUNTS cache for instant offline & RLS-restricted discovery
+  if (supabaseAccounts.length === 0) {
+    const catalogMatches = SUPABASE_ACCOUNTS.filter((acc) => {
+      const id = acc.person_id || acc.user_id;
+      if (id === requesterId || blockedIds.has(id)) return false;
+      return (
+        (acc.email && acc.email.toLowerCase().includes(lowerQ)) ||
+        (acc.display_name && acc.display_name.toLowerCase().includes(lowerQ)) ||
+        (acc.person_id && acc.person_id.toLowerCase().includes(lowerQ)) ||
+        (acc.user_id && acc.user_id.toLowerCase().includes(lowerQ))
+      );
+    });
+    supabaseAccounts.push(...catalogMatches);
   }
 
   // 3. Format results retrieved from Supabase
@@ -361,12 +387,18 @@ export async function searchUsersAsync(requesterId, query = '') {
 /**
  * Sync active couples from Supabase database
  */
-export async function syncConnectionsFromSupabase(userId) {
+export async function syncConnectionsFromSupabase(userId, userAuthId = null) {
+  if (!supabase || !userId) return;
   try {
+    const clauses = [`partner_a.eq.${userId}`, `partner_b.eq.${userId}`];
+    if (userAuthId && userAuthId !== userId) {
+      clauses.push(`partner_a.eq.${userAuthId}`, `partner_b.eq.${userAuthId}`);
+    }
+
     const { data, error } = await supabase
       .from('couples')
       .select('id, partner_a, partner_b, stage, pregnant_weeks')
-      .or(`partner_a.eq.${userId},partner_b.eq.${userId}`);
+      .or(clauses.join(','));
 
     if (!error && Array.isArray(data) && data.length > 0) {
       const state = get();
@@ -375,15 +407,19 @@ export async function syncConnectionsFromSupabase(userId) {
       let modified = false;
 
       for (const row of data) {
-        const otherId = row.partner_a === userId ? row.partner_b : row.partner_a;
+        const matchesA = row.partner_a === userId || (userAuthId && row.partner_a === userAuthId);
+        const matchesB = row.partner_b === userId || (userAuthId && row.partner_b === userAuthId);
+        if (!matchesA && !matchesB) continue;
+
+        const otherId = matchesA ? row.partner_b : row.partner_a;
         const exists = updated.some(
           (c) => (c.userA === userId && c.userB === otherId) || (c.userA === otherId && c.userB === userId)
         );
         if (!exists) {
           updated.push({
             id: row.id || `conn_${row.partner_a}_${row.partner_b}`,
-            userA: row.partner_a,
-            userB: row.partner_b,
+            userA: userId,
+            userB: otherId,
             status: 'ACTIVE',
             connectedAt: new Date().toISOString(),
           });
@@ -403,12 +439,21 @@ export async function syncConnectionsFromSupabase(userId) {
 /**
  * Sync connection requests from Supabase connection_requests table
  */
-export async function syncRequestsFromSupabase(userId) {
+export async function syncRequestsFromSupabase(userId, userEmail = null, userAuthId = null) {
+  if (!supabase || !userId) return;
   try {
+    const clauses = [`sender_id.eq.${userId}`, `receiver_id.eq.${userId}`];
+    if (userAuthId && userAuthId !== userId) {
+      clauses.push(`sender_id.eq.${userAuthId}`, `receiver_id.eq.${userAuthId}`);
+    }
+    if (userEmail) {
+      clauses.push(`recipient_email.ilike.${userEmail}`, `receiver_id.ilike.${userEmail}`);
+    }
+
     const { data, error } = await supabase
       .from('connection_requests')
       .select('id, sender_id, receiver_id, recipient_email, recipient_phone, channel, invitation_sent, invitation_sent_at, accepted, accepted_at, status, created_at')
-      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
+      .or(clauses.join(','));
 
     if (!error && Array.isArray(data) && data.length > 0) {
       const state = get();
@@ -417,25 +462,35 @@ export async function syncRequestsFromSupabase(userId) {
       let modified = false;
 
       for (const row of data) {
+        // Normalise receiverId: if receiver_id in DB matched user's email or auth UUID, align to userId
+        const matchesMe =
+          row.receiver_id === userId ||
+          (userAuthId && row.receiver_id === userAuthId) ||
+          (userEmail && (row.recipient_email === userEmail || row.receiver_id === userEmail));
+
+        const receiverId = matchesMe ? userId : row.receiver_id;
+        const senderId = row.sender_id;
+
         const foundIndex = updated.findIndex(
           (r) =>
             r.id === row.id ||
-            (r.senderId === row.sender_id && r.receiverId === row.receiver_id && r.status === row.status)
+            (r.senderId === senderId && r.receiverId === receiverId)
         );
         if (foundIndex >= 0) {
-          if (updated[foundIndex].status !== row.status) {
+          if (updated[foundIndex].status !== row.status || updated[foundIndex].id !== row.id) {
             updated[foundIndex] = {
               ...updated[foundIndex],
+              id: row.id,
               status: row.status,
               respondedAt: row.accepted_at || updated[foundIndex].respondedAt,
             };
             modified = true;
           }
         } else {
-          updated.push({
+          updated.unshift({
             id: row.id,
-            senderId: row.sender_id,
-            receiverId: row.receiver_id,
+            senderId,
+            receiverId,
             channel: row.channel || 'in_app',
             recipientEmail: row.recipient_email,
             recipientPhone: row.recipient_phone,
@@ -447,6 +502,27 @@ export async function syncRequestsFromSupabase(userId) {
             createdAt: row.created_at || new Date().toISOString(),
           });
           modified = true;
+
+          // If incoming pending request, add notification
+          if (matchesMe && row.status === 'PENDING') {
+            const notifs = state.notifications || [];
+            const hasNotif = notifs.some((n) => n.actorId === senderId && n.type === 'CONNECTION_REQUEST');
+            if (!hasNotif) {
+              const senderName = PEOPLE[senderId]?.name || senderId;
+              const notif = {
+                id: generateUuid(),
+                userId,
+                actorId: senderId,
+                type: 'CONNECTION_REQUEST',
+                title: 'New connection request',
+                body: `${senderName} sent you a connection request.`,
+                link: '/app/connections?tab=requests',
+                isRead: false,
+                createdAt: row.created_at || new Date().toISOString(),
+              };
+              set({ notifications: [notif, ...notifs] });
+            }
+          }
         }
       }
 
@@ -468,24 +544,26 @@ export async function recordExternalInvitation({ senderId, channel, recipientCon
     const isPhone = channel === 'whatsapp' || !isEmail;
 
     const payload = {
+      id: generateUuid(),
       sender_id: senderId,
       receiver_id: null,
-      recipient_email: isEmail ? recipientContact.trim() : null,
-      recipient_phone: isPhone ? recipientContact.trim() : null,
-      channel: channel || (isEmail ? 'gmail' : 'whatsapp'),
+      channel,
       invitation_sent: true,
       invitation_sent_at: new Date().toISOString(),
       accepted: false,
       status: 'PENDING',
+      recipient_email: isEmail ? recipientContact.trim() : null,
+      recipient_phone: isPhone ? recipientContact.trim() : null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
-    const { data, error } = await supabase.from('connection_requests').insert(payload).select();
-    if (error) {
-      console.warn('Record external invitation notice (Supabase):', error.message);
+    if (supabase) {
+      await supabase.from('connection_requests').insert(payload);
     }
-    return data?.[0] || null;
+    return payload;
   } catch (err) {
-    console.warn('Record external invitation error:', err?.message);
+    console.warn('recordExternalInvitation notice:', err?.message);
     return null;
   }
 }
@@ -521,7 +599,7 @@ export function generateGmailInviteUrl({ senderName, senderDanaId, recipientEmai
 // 3. CONNECTION REQUEST LIFECYCLE & AUTOMATIC RISK EVALUATION
 // -----------------------------------------------------------------------------
 
-export function sendConnectionRequest(senderId, receiverId, note = '') {
+export function sendConnectionRequest(senderId, receiverId, note = '', meta = {}) {
   initConnectionsStore();
   if (senderId === receiverId) {
     throw new Error('You cannot send a connection request to yourself.');
@@ -558,12 +636,16 @@ export function sendConnectionRequest(senderId, receiverId, note = '') {
     return acceptConnectionRequest(mutualPending.id, senderId);
   }
 
+  const uuid = generateUuid();
+  const targetEmail = meta?.targetEmail || PEOPLE[receiverId]?.email || null;
+
   const newRequest = {
-    id: generateId('req'),
+    id: uuid,
     senderId,
     receiverId,
     status: 'PENDING',
     note: (note || '').trim().slice(0, 250),
+    recipientEmail: targetEmail,
     createdAt: new Date().toISOString(),
   };
 
@@ -571,7 +653,7 @@ export function sendConnectionRequest(senderId, receiverId, note = '') {
 
   // Add notification for receiver
   const newNotification = {
-    id: generateId('notif'),
+    id: generateUuid(),
     userId: receiverId,
     actorId: senderId,
     type: 'CONNECTION_REQUEST',
@@ -590,25 +672,42 @@ export function sendConnectionRequest(senderId, receiverId, note = '') {
     `Sent connection request to ${PEOPLE[receiverId]?.name || receiverId}`
   );
 
-  // Sync to Supabase connection_requests table in the background
-  try {
+  // Sync to Supabase connection_requests table
+  if (supabase) {
+    const payload = {
+      id: uuid,
+      sender_id: senderId,
+      receiver_id: receiverId,
+      recipient_email: targetEmail,
+      channel: 'in_app',
+      invitation_sent: true,
+      invitation_sent_at: new Date().toISOString(),
+      accepted: false,
+      status: 'PENDING',
+      created_at: newRequest.createdAt,
+      updated_at: newRequest.createdAt,
+    };
+    if (newRequest.note) payload.note = newRequest.note;
+
     supabase
       .from('connection_requests')
-      .insert({
-        sender_id: senderId,
-        receiver_id: receiverId,
-        channel: 'in_app',
-        invitation_sent: true,
-        invitation_sent_at: new Date().toISOString(),
-        accepted: false,
-        status: 'PENDING',
+      .upsert(payload, { onConflict: 'id' })
+      .select()
+      .then(({ data, error }) => {
+        if (error) {
+          if (error.message?.includes('note')) {
+            delete payload.note;
+            supabase.from('connection_requests').upsert(payload, { onConflict: 'id' }).then(() => {});
+          } else {
+            console.warn('Supabase connection_requests insert notice:', error.message);
+          }
+        } else {
+          console.log('Supabase connection_requests stored successfully:', data);
+        }
       })
-      .then(() => {})
       .catch((err) => {
-        console.warn('Supabase connection_requests insert notice:', err?.message);
+        console.warn('Supabase connection_requests sync error:', err?.message);
       });
-  } catch (err) {
-    console.warn('Supabase connection_requests sync error:', err?.message);
   }
 
   return newRequest;
@@ -688,7 +787,7 @@ export function acceptConnectionRequest(requestId, actingUserId) {
 
   // Add notification pointing directly to Bonds
   const newNotification = {
-    id: generateId('notif'),
+    id: generateUuid(),
     userId: req.senderId,
     actorId: actingUserId,
     type: 'REQUEST_ACCEPTED',
@@ -715,38 +814,53 @@ export function acceptConnectionRequest(requestId, actingUserId) {
   );
 
   // Sync to Supabase in the background (zero blocking)
-  try {
-    // 1. Update connection_requests record
-    supabase
-      .from('connection_requests')
-      .update({
-        status: 'ACCEPTED',
-        accepted: true,
-        accepted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .or(`and(sender_id.eq.${req.senderId},receiver_id.eq.${actingUserId}),and(sender_id.eq.${actingUserId},receiver_id.eq.${req.senderId})`)
-      .then(() => {})
-      .catch((err) => {
-        console.warn('Supabase connection_requests update notice:', err?.message);
-      });
+  if (supabase) {
+    try {
+      // 1. Update connection_requests record
+      supabase
+        .from('connection_requests')
+        .update({
+          status: 'ACCEPTED',
+          accepted: true,
+          accepted_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .or(`id.eq.${req.id},and(sender_id.eq.${req.senderId},receiver_id.eq.${actingUserId}),and(sender_id.eq.${actingUserId},receiver_id.eq.${req.senderId})`)
+        .then(() => {})
+        .catch((err) => {
+          console.warn('Supabase connection_requests update notice:', err?.message);
+        });
 
-    // 2. Upsert matched couple record
-    supabase
-      .from('couples')
-      .upsert({
-        id: couple.id,
-        partner_a: uA,
-        partner_b: uB,
-        stage: couple.stage || 'Engaged',
-        pregnant_weeks: couple.pregnantWeeks || null,
-      })
-      .then(() => {})
-      .catch((err) => {
-        console.warn('Supabase couples upsert warning (offline/mock mode):', err?.message);
-      });
-  } catch (e) {
-    console.warn('Supabase call failed gracefully:', e?.message);
+      // 2. Ensure both persons exist in people table so foreign keys in couples never fail
+      for (const pid of [uA, uB]) {
+        const p = PEOPLE[pid] || { name: pid, short: pid, sex: 'M' };
+        supabase.from('people').upsert({
+          id: pid,
+          name: p.name || pid,
+          short_name: p.short || p.name?.split(' ')[0] || pid,
+          sex: p.sex || 'M',
+          language: 'ar',
+        }, { onConflict: 'id', ignoreDuplicates: true }).then(() => {}).catch(() => {});
+      }
+
+      // 3. Upsert matched couple record
+      supabase
+        .from('couples')
+        .upsert({
+          id: couple.id,
+          partner_a: uA,
+          partner_b: uB,
+          stage: 'engaged',
+          pregnant_weeks: couple.pregnantWeeks || null,
+          screened_on: new Date().toISOString().slice(0, 10),
+        }, { onConflict: 'id' })
+        .then(() => {})
+        .catch((err) => {
+          console.warn('Supabase couples upsert warning:', err?.message);
+        });
+    } catch (e) {
+      console.warn('Supabase call failed gracefully:', e?.message);
+    }
   }
 
   return { connection: newConn, couple, assessment: assessmentResult };

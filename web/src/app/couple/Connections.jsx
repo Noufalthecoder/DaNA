@@ -39,6 +39,7 @@ import {
   syncRequestsFromSupabase,
   recordExternalInvitation,
 } from '../shared/connectionsService.js';
+import { supabase } from '../shared/supabase.js';
 import './Connections.css';
 
 export default function Connections({ defaultTab = 'discover' }) {
@@ -79,17 +80,55 @@ export default function Connections({ defaultTab = 'discover' }) {
   const [requestTarget, setRequestTarget] = useState(null);
   const [requestNote, setRequestNote] = useState('');
 
-  // React to hashchange events (e.g. from notification clicks)
+  // React to hashchange events (e.g. from notification clicks) & live Supabase sync
   useEffect(() => {
     const handleHash = () => {
       setTab(parseHashParams());
     };
     window.addEventListener('hashchange', handleHash);
-    // Background sync active couples and connection requests from Supabase
-    syncConnectionsFromSupabase(meId);
-    syncRequestsFromSupabase(meId);
-    return () => window.removeEventListener('hashchange', handleHash);
-  }, [meId]);
+
+    // Initial background sync active couples and connection requests from Supabase
+    syncConnectionsFromSupabase(meId, session?.userId);
+    syncRequestsFromSupabase(meId, session?.email, session?.userId);
+
+    // Polling interval (every 4 seconds) to guarantee delivery across accounts
+    const pollTimer = setInterval(() => {
+      syncRequestsFromSupabase(meId, session?.email, session?.userId);
+      syncConnectionsFromSupabase(meId, session?.userId);
+    }, 4000);
+
+    // Realtime Postgres broadcast subscription
+    let channel = null;
+    if (supabase) {
+      try {
+        channel = supabase
+          .channel(`connections_realtime_${meId}`)
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'connection_requests' },
+            () => {
+              syncRequestsFromSupabase(meId, session?.email, session?.userId);
+            }
+          )
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'couples' },
+            () => {
+              syncConnectionsFromSupabase(meId, session?.userId);
+            }
+          )
+          .subscribe();
+      } catch {}
+    }
+
+    return () => {
+      window.removeEventListener('hashchange', handleHash);
+      clearInterval(pollTimer);
+      if (channel && supabase) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [meId, session?.email, session?.userId]);
 
   // Query live data from connection service
   const connections = getUserConnections(meId);
@@ -169,43 +208,51 @@ export default function Connections({ defaultTab = 'discover' }) {
   const handleSendRequest = () => {
     if (!requestTarget) return;
     try {
-      sendConnectionRequest(meId, requestTarget.id, requestNote);
+      sendConnectionRequest(meId, requestTarget.id, requestNote, {
+        targetEmail: requestTarget.email,
+        targetName: requestTarget.name,
+      });
       notify(`Connection request sent to ${requestTarget.name}.`);
       setRequestTarget(null);
       setRequestNote('');
       setSearchQuery('');
+      switchTab('requests');
+      syncRequestsFromSupabase(meId, session?.email, session?.userId);
     } catch (err) {
       notify(err.message, 'error');
     }
   };
 
-  const handleAccept = (reqId, senderName) => {
+  const handleAccept = async (reqId, senderName) => {
     try {
-      const res = acceptConnectionRequest(reqId, meId);
+      const res = await acceptConnectionRequest(reqId, meId);
       notify(
         `Connection established with ${senderName}! Genetic risk assessed (${res.assessment?.label || 'Complete'}).`,
         'success',
         '#/app/bonds'
       );
       switchTab('connections');
+      syncConnectionsFromSupabase(meId, session?.userId);
     } catch (err) {
       notify(err.message, 'error');
     }
   };
 
-  const handleReject = (reqId, senderName) => {
+  const handleReject = async (reqId, senderName) => {
     try {
-      rejectConnectionRequest(reqId, meId);
+      await rejectConnectionRequest(reqId, meId);
       notify(`Connection request from ${senderName} declined.`);
+      syncRequestsFromSupabase(meId, session?.email, session?.userId);
     } catch (err) {
       notify(err.message, 'error');
     }
   };
 
-  const handleCancel = (reqId) => {
+  const handleCancel = async (reqId) => {
     try {
-      cancelConnectionRequest(reqId, meId);
+      await cancelConnectionRequest(reqId, meId);
       notify('Connection request cancelled.');
+      syncRequestsFromSupabase(meId, session?.email, session?.userId);
     } catch (err) {
       notify(err.message, 'error');
     }
