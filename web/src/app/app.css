@@ -1711,3 +1711,16 @@ body.in-app{background:#F6F7F5}
 .pcode-sex{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
 .pcode-sex .seg{margin-bottom:0}
 .pcode-sex span{font-weight:600;font-size:14px}
+
+/* sign-up: role choice and password eye */
+.role-pick{border:0;padding:0;margin:0 0 4px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.role-pick legend{font-size:13px;font-weight:600;margin-bottom:6px;padding:0}
+.role-pick button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font:inherit;cursor:pointer;text-align:left}
+.role-pick button b{font-size:14px}
+.role-pick button small{font-size:11.5px;color:var(--ink2)}
+.role-pick button.on{border:2px solid var(--green);background:var(--green-l,#e8f5ee)}
+@media (max-width:420px){.role-pick{grid-template-columns:1fr}}
+.pw-wrap{position:relative;display:block}
+.pw-wrap input{width:100%;padding-right:44px !important}
+.pw-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--ink2);cursor:pointer;padding:6px;border-radius:8px;display:flex}
+.pw-eye:hover{color:var(--ink);background:var(--bg)}

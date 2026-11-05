@@ -41,6 +41,17 @@ export async function loadSession(user) {
     const again = await supabase.from('accounts').select('*').eq('user_id', user.id).maybeSingle();
     acc = again.data || row;
   }
+  // staff role chosen at sign-up (016): the database checks the access code
+  let claim = null;
+  try { claim = JSON.parse(sessionStorage.getItem('dana.staffClaim') || 'null'); sessionStorage.removeItem('dana.staffClaim'); } catch {}
+  if (claim && acc.role === 'couple' && !acc.person_id) {
+    const { error } = await supabase.rpc('claim_staff_role', { p_role: claim.role, p_code: claim.code });
+    if (error) set({ dbError: `${error.message}. You are signed in as a couple member for now.` });
+    else {
+      const again = await supabase.from('accounts').select('*').eq('user_id', user.id).maybeSingle();
+      if (again.data) acc = again.data;
+    }
+  }
   // a new couple account has no health profile yet: the Welcome page walks them through it (009_onboarding.sql)
   await hydratePeople();
   // prefer a real couple over an old sample one (013 removes the sample couple when a real partner links)
