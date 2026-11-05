@@ -134,8 +134,16 @@ export default function Login() {
 
   const emailSignIn = async (e) => {
     e.preventDefault();
+    if (staff && !form.code.trim()) { setError('Enter your staff access code.'); return; }
     setBusy(true); setError(''); clearAuthError();
     window.__danaVia = null;
+    try {
+      if (!(await staffCodeOk(form.role, form.code))) {
+        setBusy(false); setError(`That staff access code is not valid for ${roleName(form.role)}.`); return;
+      }
+    } catch (e2) { setBusy(false); setError(e2.message); return; }
+    // a new, still-empty account becomes staff at sign-in (016); existing staff are unaffected
+    saveClaim(form.role, form.code);
     const { error: err } = await supabase.auth.signInWithPassword({ email: form.email.trim(), password: form.password });
     if (err) { setBusy(false); setError(friendly(err.message)); } // on success stay busy until the app opens
   };
@@ -163,6 +171,24 @@ export default function Login() {
     else if (err) setError(friendly(err.message));
     else if (!data.session) setStep('check-email'); // email confirmation is on in Supabase
   };
+
+  const rolePicker = (
+    <>
+      <fieldset className="role-pick">
+        <legend>{step === 'signup' ? 'I am signing up as' : 'I am signing in as'}</legend>
+        {ROLES.map(([v, l, d]) => (
+          <button key={v} type="button" className={form.role === v ? 'on' : ''} aria-pressed={form.role === v} onClick={() => setForm({ ...form, role: v })}>
+            <b>{l}</b><small>{d}</small>
+          </button>
+        ))}
+      </fieldset>
+      {staff && (
+        <label>Staff access code<input required autoComplete="off" placeholder="Your staff code" {...field('code')} />
+          <small>Given by the DoH programme team. It unlocks the {form.role === 'admin' ? 'DoH admin' : 'counsellor'} view.</small>
+        </label>
+      )}
+    </>
+  );
 
   const notConnected = <p className="note">Google and email sign-in need the Supabase keys in <code>web/.env.local</code>. Until then, use UAE PASS (demo).</p>;
 
@@ -217,6 +243,7 @@ export default function Login() {
         {step === 'email' && (
           <form onSubmit={emailSignIn} className="form">
             <h1>Sign in with email</h1>
+            {rolePicker}
             <label>Email<input type="email" required autoComplete="email" {...field('email')} /></label>
             <PasswordField label="Password" required autoComplete="current-password" {...field('password')} />
             {error && <p className="err">{error}</p>}
@@ -230,19 +257,7 @@ export default function Login() {
           <form onSubmit={signUp} className="form">
             <h1>Create your account</h1>
             <p className="muted">Free and private. Your screening results are linked after you sign in.</p>
-            <fieldset className="role-pick">
-              <legend>I am signing up as</legend>
-              {ROLES.map(([v, l, d]) => (
-                <button key={v} type="button" className={form.role === v ? 'on' : ''} aria-pressed={form.role === v} onClick={() => setForm({ ...form, role: v })}>
-                  <b>{l}</b><small>{d}</small>
-                </button>
-              ))}
-            </fieldset>
-            {staff && (
-              <label>Staff access code<input required autoComplete="off" placeholder="e.g. STAFF-1A2B3C4D" {...field('code')} />
-                <small>Given by the DoH programme team. It unlocks the {form.role === 'admin' ? 'DoH admin' : 'counsellor'} view.</small>
-              </label>
-            )}
+            {rolePicker}
             <label>Full name<input required autoComplete="name" {...field('name')} /></label>
             <label>Email<input type="email" required autoComplete="email" {...field('email')} /></label>
             <PasswordField label="Password" hint="At least 8 characters" required minLength={8} autoComplete="new-password" {...field('password')} />
