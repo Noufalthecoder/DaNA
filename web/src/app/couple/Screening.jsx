@@ -3,7 +3,7 @@ import { Badge } from '../shared/ui.jsx';
 import { useCouple } from './useCouple.js';
 import { SYNTHETIC_INTAKES } from '../shared/data.js';
 import { set, useStore, signOut, EMPTY_OBJ } from '../shared/store.js';
-import { signOut as supabaseSignOut } from '../shared/supabase.js';
+import { supabase, signOut as supabaseSignOut } from '../shared/supabase.js';
 import { go } from '../shared/router.js';
 
 const STEPS = [
@@ -163,7 +163,13 @@ export default function Screening() {
       screeningIntakes: { ...(s.screeningIntakes || {}), [me.id]: payload },
     }), `User ${me.name} submitted premarital screening intake (${mode === 'uae_pass' ? 'UAE PASS verified' : 'Manual entry'})`);
 
-    go(session?.couple ? '/app/report' : '/app');
+    // live: the intake counts on every device (018)
+    if (session?.backend && supabase) {
+      supabase.rpc('mark_intake_complete').then(({ error }) => {
+        if (!error) set((s) => ({ session: s.session ? { ...s.session, intakeDone: true } : s.session }));
+      });
+    }
+    go('/app');
   };
 
   if (isSubmitted) {

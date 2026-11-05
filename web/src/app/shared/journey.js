@@ -27,10 +27,13 @@ const NEXT = {
 /* is this couple account linked to a partner? (staff and the offline demo always count as linked) */
 export function isLinked(session) {
   if (!session || session.role !== 'couple' || !session.backend) return true;
-  return !!session.couple;
+  return !!session.couple && !session.sampleCouple; // an old automatic sample partner is not a partner
 }
 
 /* pages that only make sense once two people are linked */
+/* a real lab result (old accounts got an automatic SAMPLE- report that does not count) */
+export const isRealReport = (r) => !!r && !String(r.id || '').startsWith('SAMPLE-');
+
 export const NEEDS_PARTNER = ['/app/bonds', '/app/roots', '/app/counsellor'];
 
 export function useJourney() {
@@ -44,17 +47,20 @@ export function useJourney() {
   const linked = isLinked(session);
   const partnerId = session?.partnerId;
   const done = {
-    profile: !live || !session?.needsProfile,
-    intake: !!intakes[session?.id]?.completed,
-    result: !live || !!reports[session?.id],
+    profile: !live || (!session?.needsProfile && session?.sexConfirmed !== false),
+    intake: !!intakes[session?.id]?.completed || !!session?.intakeDone,
+    result: !live || isRealReport(reports[session?.id]),
     partner: linked,
-    together: linked && (!live || (!!reports[session?.id] && !!(partnerId && reports[partnerId]))),
+    together: linked && (!live || (isRealReport(reports[session?.id]) && !!(partnerId && isRealReport(reports[partnerId])))),
     options: !!(session?.couple && plans[session.couple]),
     family: sent.length > 0,
   };
   const steps = STEPS.map((s) => ({ ...s, done: done[s.key] }));
   const at = steps.findIndex((s) => !s.done);
   const current = at === -1 ? steps.length : at;
-  const next = NEXT[at === -1 ? 'done' : steps[at].key];
+  let next = NEXT[at === -1 ? 'done' : steps[at].key];
+  if (steps[at]?.key === 'profile' && live && !session?.needsProfile) {
+    next = { ...next, t: 'Confirm your profile', p: 'Please confirm if you are female or male. Older accounts were saved without asking.' };
+  }
   return { steps, current, next, live, linked, done };
 }

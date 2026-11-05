@@ -179,7 +179,7 @@ export default function Root() {
       );
     }
 
-    if (session.role === 'couple' && !session.couple && path === '/app') {
+    if (session.role === 'couple' && !isLinked(session) && path === '/app') {
       const menu = MENUS[session.role] || MENUS.couple;
       return (
         <ErrorBoundary>

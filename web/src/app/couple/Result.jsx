@@ -6,6 +6,7 @@ import { useStore, EMPTY_OBJ } from '../shared/store.js';
 import { logAudit } from '../shared/db.js';
 import { explain, explainIndividual, EXPLAIN_VERSION, EXPLAIN_STATUS } from '../shared/explain.js';
 import { useCouple } from './useCouple.js';
+import { isLinked, isRealReport } from '../shared/journey.js';
 
 /* one child figure: outline = does not carry, half = healthy carrier, full = has the condition */
 function Child({ kind }) {
@@ -51,9 +52,10 @@ export default function Result() {
   const live = useStore((s) => !!s.session?.backend);
   const reports = useStore((s) => s.reports) || EMPTY_OBJ;
   // individual first: before linking (Connections) only MY result is explained, never someone else's
-  const linked = live ? isConnected : true;
-  const mine = live ? reports[me.id] : true;
-  const theirs = live ? reports[partner.id] : true;
+  const session = useStore((s) => s.session);
+  const linked = live ? (isConnected && isLinked(session)) : true;
+  const mine = live ? isRealReport(reports[me.id]) : true;
+  const theirs = live ? isRealReport(reports[partner.id]) : true;
   const stage = !mine ? 'no-result' : !linked ? 'individual' : !theirs ? 'partner-waiting' : 'couple';
   const waiting = stage !== 'couple';
   const x = explain(result, { meCarrier: !!me.carrier, partnerCarrier: !!partner.carrier, partnerName: partner.short });

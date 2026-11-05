@@ -5,10 +5,9 @@ import { useState } from 'react';
 import { Page, Card, Badge } from '../shared/ui.jsx';
 import { useStore, EMPTY_OBJ } from '../shared/store.js';
 import { refreshSession } from '../shared/supabase.js';
-import { startMyProfile, fetchMalaffi, startSampleJourney, loadAll } from '../shared/db.js';
+import { startMyProfile, fetchMalaffi, setMySex, loadAll } from '../shared/db.js';
 import { CONDITIONS } from '../shared/explain.js';
-import { useJourney } from '../shared/journey.js';
-import { go } from '../shared/router.js';
+import { useJourney, isRealReport } from '../shared/journey.js';
 import Journey from '../shared/Journey.jsx';
 
 export default function Welcome() {
@@ -18,9 +17,10 @@ export default function Welcome() {
   const { steps, current } = useJourney();
   const step = steps[current]?.key;
   const intake = intakes[session.id];
-  const report = reports[session.id];
+  const report = isRealReport(reports[session.id]) ? reports[session.id] : null;
 
-  const [sex, setSex] = useState(intake?.personal?.gender === 'Male' ? 'M' : intake?.personal?.gender === 'Female' ? 'F' : '');
+  const confirming = !session.needsProfile; // old profile made automatically: confirm sex once
+  const [sex, setSex] = useState(confirming ? '' : intake?.personal?.gender === 'Male' ? 'M' : intake?.personal?.gender === 'Female' ? 'F' : '');
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
   const run = async (key, fn) => {
@@ -31,14 +31,11 @@ export default function Welcome() {
 
   const createProfile = () => run('profile', async () => {
     if (!sex) throw new Error('Choose female or male.');
-    await startMyProfile(sex);
+    if (confirming) await setMySex(sex); else await startMyProfile(sex);
     await refreshSession();
     loadAll();
   });
   const getResults = () => run('malaffi', async () => { await fetchMalaffi(); });
-  const sample = () => run('sample', async () => {
-    await startSampleJourney(); await refreshSession(); await loadAll(); go('/app');
-  });
 
   // the next step, done in place where possible
   let action = null;
@@ -50,7 +47,7 @@ export default function Welcome() {
             <button key={v} type="button" role="radio" aria-checked={sex === v} className={sex === v ? 'on' : ''} onClick={() => setSex(v)}>{l}</button>
           ))}
         </div>
-        <button className="btn" onClick={createProfile} disabled={busy === 'profile'}>{busy === 'profile' ? 'Creating…' : 'Create my profile'}</button>
+        <button className="btn" onClick={createProfile} disabled={busy === 'profile'}>{busy === 'profile' ? 'Saving…' : confirming ? 'Confirm' : 'Create my profile'}</button>
       </div>
     );
   } else if (step === 'result') {
@@ -86,9 +83,6 @@ export default function Welcome() {
         </Card>
       </div>
 
-      <p className="fine onb-sample">
-        Just exploring? <button className="link" onClick={sample} disabled={!!busy}>Try DaNA with a sample partner</button> (you can't undo this for this account).
-      </p>
     </Page>
   );
 }

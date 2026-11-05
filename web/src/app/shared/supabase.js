@@ -56,6 +56,12 @@ export async function loadSession(user) {
     }
   }
   // a new couple account has no health profile yet: the Welcome page walks them through it (009_onboarding.sql)
+  // journey state (018): old auto-made profiles confirm their sex; the intake counts on every device
+  let journey = null;
+  if (acc.person_id) {
+    const { data: j } = await supabase.rpc('my_journey');
+    journey = Array.isArray(j) ? j[0] : null;
+  }
   await hydratePeople();
   // prefer a real couple over an old sample one (013 removes the sample couple when a real partner links)
   const mine = acc.person_id ? COUPLES.filter((c) => c.a === acc.person_id || c.b === acc.person_id) : [];
@@ -78,6 +84,8 @@ export async function loadSession(user) {
     via: (typeof window !== 'undefined' && window.__danaVia) || user.app_metadata?.provider || 'email',
     authMethod,
     needsProfile: acc.role === 'couple' && !acc.person_id,
+    sexConfirmed: journey ? !!journey.sex_confirmed : true,
+    intakeDone: !!journey?.intake_completed_at,
     backend: true,
   };
 }

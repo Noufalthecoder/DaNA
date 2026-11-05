@@ -257,7 +257,10 @@ async function doLoad() {
     supabase.from('genetic_reports').select('person_id, report_id, laboratory_name, accreditation_id, panel_coverage, limitations, report_date, validation_status, genetic_variants(gene_symbol, hgvs_c, hgvs_p, zygosity, clinical_significance, significance_source)'),
     supabase.from('clinical_cases').select('id, couple_id, triage_tier, case_assignments(counsellors(name))'),
   ]);
-  patch.reports = Object.fromEntries((reps.data || []).map((r) => [r.person_id, {
+  // a real report wins over an old automatic SAMPLE- one (later entries overwrite earlier ones)
+  const isSample = (r) => (String(r.report_id).startsWith('SAMPLE-') ? 1 : 0);
+  const repRows = [...(reps.data || [])].sort((a, b) => isSample(b) - isSample(a));
+  patch.reports = Object.fromEntries(repRows.map((r) => [r.person_id, {
     id: r.report_id, lab: r.laboratory_name, accreditation: r.accreditation_id, panel: r.panel_coverage, limitations: r.limitations,
     date: r.report_date, verified: r.validation_status === 'verified',
     variants: (r.genetic_variants || []).map((v) => ({ gene: v.gene_symbol, hgvs_c: v.hgvs_c, hgvs_p: v.hgvs_p, zygosity: v.zygosity, significance: v.clinical_significance, source: v.significance_source })),
