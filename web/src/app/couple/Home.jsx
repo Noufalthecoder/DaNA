@@ -1,12 +1,28 @@
 import { Page, Card, Steps, Stat, Badge } from '../shared/ui.jsx';
 import { useStore, EMPTY_OBJ, EMPTY_ARR } from '../shared/store.js';
+import { useState } from 'react';
 import { useCouple } from './useCouple.js';
+import { fetchMalaffi } from '../shared/db.js';
 
 export default function Home() {
   const { me, partner, result, couple } = useCouple();
   const intakes = useStore((s) => s.screeningIntakes) || EMPTY_OBJ;
   const myIntake = intakes[me.id];
   const isScreened = !!myIntake?.completed;
+
+  // live couples: the result is only meaningful once BOTH lab reports are in
+  const live = useStore((s) => !!s.session?.backend);
+  const reports = useStore((s) => s.reports) || EMPTY_OBJ;
+  const mine = reports[me.id];
+  const theirs = reports[partner.id];
+  const waiting = live && (!mine || !theirs);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const fetchMine = async () => {
+    setBusy(true); setErr('');
+    try { await fetchMalaffi(); } catch (e) { setErr(e.message); }
+    setBusy(false);
+  };
 
   const sent = useStore((s) => s.alertsSent) || EMPTY_ARR;
   const plan = useStore((s) => (couple?.id ? s.plans[couple.id] : null) || s.plan);
@@ -15,6 +31,8 @@ export default function Home() {
   // Stepper: 0 = Screened, 1 = Results explained, 2 = Plan together, 3 = Protect family
   const step = !isScreened
     ? 0
+    : waiting
+      ? 1
     : plan
       ? (sent.length ? 3 : 2)
       : 2;
@@ -25,6 +43,10 @@ export default function Home() {
         t: 'Complete your screening intake',
         p: 'Auto-fill with UAE PASS or enter medical, family pedigree & compliance details.',
       }
+    : waiting
+      ? (!mine
+        ? { to: '#/app', t: 'Fetch your results from Malaffi', p: 'Use the button on the right. We check your lab report and save it securely.' }
+        : { to: '#/app/counsellor', t: `Waiting for ${partner.short}'s results`, p: `Your result is in. Your couple result appears when ${partner.short} fetches theirs.` })
     : !plan
       ? {
           to: '#/app/bonds',
@@ -48,7 +70,7 @@ export default function Home() {
       title={`Welcome, ${me.short}`}
       sub={
         isScreened
-          ? `You and ${partner.short} · premarital screening complete`
+          ? `You and ${partner.short} · ${waiting ? 'waiting for lab results' : 'premarital screening complete'}`
           : `You and ${partner.short} · screening intake pending`
       }
     >
@@ -65,7 +87,18 @@ export default function Home() {
         </a>
         <Card title="Your couple result">
           <div className="result-mini">
-            {isScreened ? (
+            {waiting ? (
+              <>
+                <Badge tone="grey">Waiting for results</Badge>
+                <p>
+                  You: <b>{mine ? 'received ✓' : 'not fetched yet'}</b> · {partner.short}: <b>{theirs ? 'received ✓' : 'not fetched yet'}</b>
+                </p>
+                {!mine
+                  ? <button className="btn" onClick={fetchMine} disabled={busy}>{busy ? 'Fetching… (up to a minute)' : 'Fetch my results from Malaffi'}</button>
+                  : <p className="muted">We'll show your couple result as soon as {partner.short}'s report arrives.</p>}
+                {err && <p className="err">{err}</p>}
+              </>
+            ) : isScreened ? (
               <>
                 <Badge tone={result.type === 'clear' ? 'green' : 'amber'}>{result.label}</Badge>
                 <p><b>{result.condition}</b> · {result.risk}</p>
