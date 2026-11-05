@@ -27,10 +27,30 @@ export const slotLabel = (iso) => {
 };
 
 /* write one audit entry to the database (live) */
-export async function logAudit(action) {
+export async function logAudit(action, meta = {}) {
   if (!isLive()) return;
-  const { error } = await supabase.from('audit_log').insert({ actor_name: get().session.name, action });
-  if (error) console.error('audit', error.message);
+  try {
+    const s = get();
+    const session = s?.session || {};
+    const actorName = session.name || 'User';
+    const actorId = session.userId || (await supabase?.auth.getUser())?.data?.user?.id;
+    const row = { actor_name: actorName, action };
+    if (actorId) row.actor = actorId;
+    if (meta?.resourceType) row.resource_type = meta.resourceType;
+    if (meta?.resourceId) row.resource_id = String(meta.resourceId);
+    if (meta?.metadata) row.metadata = meta.metadata;
+    const { error } = await supabase.from('audit_log').insert(row);
+    if (error) {
+      if (error.message?.includes('actor') || error.code === '23502') {
+        delete row.actor;
+        await supabase.from('audit_log').insert(row);
+      } else {
+        console.warn('audit', error.message);
+      }
+    }
+  } catch (e) {
+    console.warn('audit error', e);
+  }
 }
 
 /* run an action: update the screen at once, then save it (live) or log it locally (demo) */

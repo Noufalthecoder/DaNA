@@ -2,7 +2,7 @@
    The user's Supabase login token is sent along, so the API acts as that user. */
 import { supabase } from './supabase.js';
 
-export const API_URL = (import.meta.env.VITE_API_URL || 'https://dana-api-589n.onrender.com').replace(/\/$/, '');
+export const API_URL = ((typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) || (typeof process !== 'undefined' && process.env?.VITE_API_URL) || 'https://dana-api-589n.onrender.com').replace(/\/$/, '');
 
 export async function api(path, { method = 'GET', body } = {}) {
   const { data } = (await supabase?.auth.getSession()) || {};
