@@ -1733,7 +1733,7 @@ body.in-app{background:#F6F7F5}
 .xp-tag{font-size:12.5px;color:var(--ink2);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
 .xp-h{display:inline-flex;align-items:center;gap:10px}
 .xp-n{width:26px;height:26px;border-radius:50%;background:var(--green-l,#e8f5ee);color:var(--green);font-size:13px;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
-.page .card + .card{margin-top:16px}
+.page > .card + .card{margin-top:16px}
 .xp-t{font-size:18px;margin:0 0 8px;line-height:1.35}
 .card p{line-height:1.6}
 .xp-cond{background:var(--bg);border-radius:12px;padding:12px 14px;margin-top:10px}
@@ -1755,3 +1755,25 @@ body.in-app{background:#F6F7F5}
 .xp-choice{margin-top:12px;font-weight:600}
 @media (max-width:640px){.xp-kids{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .card .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+
+/* Journey card (one journey for every couple screen) */
+.jr{margin-bottom:16px}
+.jr-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:14px}
+.jr-head h2{margin:0;font-size:17px}
+.jr-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.jr-steps li{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;position:relative;font-size:12.5px;color:var(--ink2)}
+.jr-steps li::before{content:'';position:absolute;top:14px;left:-50%;width:100%;height:2px;background:var(--line);z-index:0}
+.jr-steps li:first-child::before{display:none}
+.jr-steps li.done::before,.jr-steps li.now::before{background:var(--green)}
+.jr-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;background:var(--surface);border:2px solid var(--line);position:relative;z-index:1}
+.jr-steps li.done .jr-dot{background:var(--green);border-color:var(--green);color:#fff}
+.jr-steps li.now .jr-dot{border-color:var(--green);color:var(--green)}
+.jr-steps li.now{color:var(--ink);font-weight:600}
+.jr-next{margin-top:18px;padding:16px 18px;border-radius:14px;background:var(--green-l,#e8f5ee)}
+.jr-next h3{margin:4px 0 4px;font-size:18px}
+.jr-next p{margin:0 0 12px;color:var(--ink2)}
+@media (max-width:760px){
+  .jr-steps{grid-template-columns:1fr;gap:8px}
+  .jr-steps li{flex-direction:row;text-align:left}
+  .jr-steps li::before{display:none}
+}

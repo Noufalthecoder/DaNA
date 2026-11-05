@@ -153,15 +153,7 @@ export default function Login() {
         booked: isAlreadyCompleted ? s.booked : null,
       }, `Signed in via UAE PASS as ${ROLE[acc.role]}`);
 
-      if (acc.role === 'couple') {
-        if (isAlreadyCompleted) {
-          go('/app');
-        } else {
-          go('/app/screening');
-        }
-      } else {
-        go('/app');
-      }
+      go('/app'); // Home shows the journey and the one next step
     }, 900);
   };
 

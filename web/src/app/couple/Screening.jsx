@@ -3,7 +3,7 @@ import { Badge } from '../shared/ui.jsx';
 import { useCouple } from './useCouple.js';
 import { SYNTHETIC_INTAKES, generateDanaId } from '../shared/data.js';
 import { set, useStore, signOut, EMPTY_OBJ } from '../shared/store.js';
-import { signOut as supabaseSignOut } from '../shared/supabase.js';
+import { supabase, signOut as supabaseSignOut } from '../shared/supabase.js';
 import { saveScreeningIntake } from '../shared/db.js';
 import { buildTreeFromIntake } from '../shared/family.js';
 import { go } from '../shared/router.js';
@@ -312,7 +312,13 @@ export default function Screening() {
       },
     }));
 
-    go(session?.couple ? '/app/report' : '/app');
+    // live: the intake counts on every device (018)
+    if (session?.backend && supabase) {
+      supabase.rpc('mark_intake_complete').then(({ error }) => {
+        if (!error) set((s) => ({ session: s.session ? { ...s.session, intakeDone: true } : s.session }));
+      });
+    }
+    go('/app');
   };
 
   if (isSubmitted) {
@@ -349,25 +355,9 @@ export default function Screening() {
   return (
     <div className="workday-sheet">
       <div className="sheet-top-nav">
-        {existingIntake?.completed ? (
-          <a href="#/app" className="link" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13.5 }}>
-            ← Back to Dashboard
-          </a>
-        ) : (
-          <a
-            href="#/"
-            className="link"
-            onClick={async (e) => {
-              e.preventDefault();
-              signOut();
-              try { await supabaseSignOut(); } catch {}
-              go('/');
-            }}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13.5 }}
-          >
-            ← Back to home
-          </a>
-        )}
+        <a href="#/app" className="link" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13.5 }}>
+          ← Back to Home
+        </a>
         {existingIntake?.completed && (
           <Badge tone="green">Intake on File · Edit & Resubmit to Update</Badge>
         )}
@@ -375,7 +365,7 @@ export default function Screening() {
 
       <div className="sheet-head">
         <h1>Premarital Screening Intake</h1>
-        <p>Step 1 of your journey: Health history, family pedigree and informed consent</p>
+        <p>Journey step 2 of 7: your health history, family history and consent. About 5 minutes.</p>
       </div>
 
       {/* Workday-style Stepper (Reference Image 2) */}

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useStore } from './store.js';
 import { refreshSession } from './supabase.js';
-import { createPartnerInvite, acceptPartnerInvite, loadAll, setMySex } from './db.js';
+import { createPartnerInvite, acceptPartnerInvite, loadAll } from './db.js';
 import { COUPLES, PEOPLE } from './data.js';
 import { go } from './router.js';
 
@@ -24,12 +24,7 @@ export default function PartnerCode() {
   // linked = a REAL couple (an old 'Sample partner' p_... does not count)
   const myCouple = COUPLES.find((c) => c.id === session?.couple);
   const linked = !!myCouple && ![myCouple.a, myCouple.b].some((x) => String(x).startsWith('p_'));
-  const [sex, setSex] = useState(PEOPLE[session?.id]?.sex || '');
-  const changeSex = async (v) => {
-    if (v === sex) return;
-    setErr('');
-    try { await setMySex(v); setSex(v); } catch (e) { setErr(e.message); }
-  };
+  const sex = PEOPLE[session?.id]?.sex || '';
 
   useEffect(() => {
     if (hasProfile && !linked && !code) createPartnerInvite().then(setCode).catch((e) => setErr(e.message));
@@ -75,15 +70,9 @@ export default function PartnerCode() {
 
   return (
     <div className="pcode">
-      <div className="pcode-sex">
-        <span>I am</span>
-        <div className="seg" role="radiogroup" aria-label="I am">
-          {[['F', 'Female'], ['M', 'Male']].map(([v, l]) => (
-            <button key={v} type="button" role="radio" aria-checked={sex === v} className={sex === v ? 'on' : ''} onClick={() => changeSex(v)}>{l}</button>
-          ))}
-        </div>
-        <small className="muted">{sex === 'F' ? 'You can link with a man.' : sex === 'M' ? 'You can link with a woman.' : 'Choose so we can find your partner.'}</small>
-      </div>
+      <p className="pcode-sex muted">
+        You are registered as <b>{sex === 'F' ? 'female' : sex === 'M' ? 'male' : 'not set'}</b>, so you can link with a {sex === 'F' ? 'man' : 'woman'}. Wrong? <a href="#/app/profile">Change it on your Profile</a>.
+      </p>
       <div className="code-box">
         <small>Your invite code</small>
         <b>{code || '······'}</b>

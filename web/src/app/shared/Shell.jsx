@@ -9,6 +9,7 @@ import { Brand } from './Logo.jsx';
 import { signOut as supabaseSignOut } from './supabase.js';
 import { loadAll, logAudit } from './db.js';
 import NotificationBell from './NotificationBell.jsx';
+import { isLinked, NEEDS_PARTNER } from './journey.js';
 import { syncRequestsFromSupabase } from './connectionsService.js';
 
 export default function Shell({ menu, path, children }) {
@@ -60,7 +61,7 @@ export default function Shell({ menu, path, children }) {
         <Brand size={32} href="#/" style={{ padding: '4px 10px 18px' }} />
         <div className="side-role">{menu.label}</div>
         <nav>
-          {menu.items.map((m) => (
+          {menu.items.filter((m) => isLinked(session) || !NEEDS_PARTNER.includes(m.to)).map((m) => (
             <a key={m.to} href={`#${m.to}`} className={active(m.to) ? 'on' : ''}>
               <span className="ic" aria-hidden="true">{m.icon}</span>{m.label}
             </a>

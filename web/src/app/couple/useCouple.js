@@ -41,7 +41,9 @@ export function useCouple() {
     }
   }
 
-  if (!couple) {
+  // offline demo only: show the demo couple. A real account without a partner gets no couple,
+  // so no screen can ever show someone else's result.
+  if (!couple && !session?.backend) {
     couple = COUPLES[0];
     partnerId = couple.a === myId ? couple.b : couple.a;
   }
@@ -54,7 +56,7 @@ export function useCouple() {
   const partner = { id: partnerId, ...partnerPerson };
 
   const isConnected = Boolean(activeConn || session?.couple);
-  const result = couple ? assess(couple) : assess(COUPLES[0]);
+  const result = assess(couple || null);
   const gene = me.carrier ? { symbol: me.carrier, ...(GENES[me.carrier] || {}) } : null;
 
   return { session, couple, me, partner, result, gene, isConnected };

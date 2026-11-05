@@ -72,6 +72,12 @@ export async function loadSession(user) {
     else if (error) console.warn('Sample journey not available:', error.message);
   }
   // a new couple account has no health profile yet: the Welcome page walks them through it (009_onboarding.sql)
+  // journey state (018): old auto-made profiles confirm their sex; the intake counts on every device
+  let journey = null;
+  if (acc.person_id) {
+    const { data: j } = await supabase.rpc('my_journey');
+    journey = Array.isArray(j) ? j[0] : null;
+  }
   await hydratePeople();
   // prefer a real couple over an old sample one (013 removes the sample couple when a real partner links)
   const mine = acc.person_id ? COUPLES.filter((c) => c.a === acc.person_id || c.b === acc.person_id) : [];
@@ -98,6 +104,7 @@ export async function loadSession(user) {
     avatar: acc.avatar || null,
     title: acc.title || '',
     couple: couple ? couple.id : null,
+    partnerId: couple ? (couple.a === acc.person_id ? couple.b : couple.a) : null,
     // paired with a 'Sample partner' (p_...) before real onboarding: may still link a real partner (013)
     sampleCouple: !!couple && [couple.a, couple.b].some((x) => String(x).startsWith('p_')),
     email: metaEmail,
@@ -106,6 +113,8 @@ export async function loadSession(user) {
     via,
     authMethod,
     needsProfile: acc.role === 'couple' && !acc.person_id,
+    sexConfirmed: journey ? !!journey.sex_confirmed : true,
+    intakeDone: !!journey?.intake_completed_at,
     backend: true,
   };
 }
@@ -147,8 +156,7 @@ export function watchAuth(onReady) {
         if (fresh && !viaDemo) await logAudit(`Signed in with ${session.via === 'google' ? 'Google' : 'email'}`);
         if (fresh && typeof window !== 'undefined' && !window.location.hash.startsWith('#/app')) {
           if (window.location.search) window.history.replaceState(null, '', window.location.pathname);
-          const isScreened = !!get().screeningIntakes?.[session.id]?.completed;
-          window.location.hash = (session.role === 'couple' && !isScreened) ? '/app/screening' : '/app';
+          window.location.hash = '/app'; // Home shows the journey and the one next step
         }
         loadAll();
       } catch (e) {

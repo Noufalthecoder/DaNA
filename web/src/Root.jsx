@@ -13,6 +13,7 @@ import { Brand } from './app/shared/Logo.jsx';
 import { watchAuth, signOut as supabaseSignOut } from './app/shared/supabase.js';
 import { loadAll } from './app/shared/db.js';
 import Welcome from './app/couple/Welcome.jsx';
+import { isLinked, NEEDS_PARTNER } from './app/shared/journey.js';
 import { PENDING_CODE_KEY } from './app/shared/PartnerCode.jsx';
 import './app/app.css';
 
@@ -147,7 +148,7 @@ export default function Root() {
     }
 
     // Dedicated focused Workday layout for screening intake
-    if (isCouple && (path === '/app/screening' || !isScreened)) {
+    if (isCouple && path === '/app/screening') {
       return (
         <ErrorBoundary>
           <div className="focused-intake-shell">
@@ -157,7 +158,7 @@ export default function Root() {
               </div>
               <div className="top-r" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                 <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{session.name}</span>
-                {isScreened && <a className="ghost" href="#/app">Exit to Dashboard</a>}
+                <a className="ghost" href="#/app">Back to Home</a>
                 <button
                   className="ghost"
                   onClick={async () => {
@@ -178,7 +179,7 @@ export default function Root() {
       );
     }
 
-    if (session.role === 'couple' && !session.couple && path === '/app') {
+    if (session.role === 'couple' && !isLinked(session) && path === '/app') {
       const menu = MENUS[session.role] || MENUS.couple;
       return (
         <ErrorBoundary>
@@ -189,7 +190,15 @@ export default function Root() {
       );
     }
 
-    const content = page(session.role, path) || (
+    // partner-only pages wait until two people are linked (never show a demo couple instead)
+    const locked = session.role === 'couple' && !isLinked(session) && NEEDS_PARTNER.some((p) => path.startsWith(p));
+    const content = locked ? (
+      <div className="page">
+        <h1>Link your partner first</h1>
+        <p className="muted">This part of DaNA is about your couple result, so it opens once you and your partner are linked.</p>
+        <p><a className="btn" href="#/app/connections">Link your partner</a> <a className="btn secondary" href="#/app">Back to Home</a></p>
+      </div>
+    ) : page(session.role, path) || (
       <div className="page">
         <h1>Not found</h1>
         <p><a href="#/app">Back to home</a></p>
