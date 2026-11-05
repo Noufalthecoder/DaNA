@@ -200,40 +200,64 @@ export function startFresh(session) {
 /* Reset demo journey data so onboarding, feeding / manual entry and results can be replayed */
 export function resetDemo() {
   const session = state.session;
-  const isUae = session?.authMethod === 'uae_pass' || session?.via === 'uaepass' || session?.email?.endsWith('@dana.demo');
-  const syn = session?.id ? getSyntheticIntake(session.id) : null;
-  const isMale = syn?.personal?.gender === 'Male';
+  const freshIntakes = {};
 
-  const freshIntake = (isUae && session?.role === 'couple' && syn)
-    ? {
-        [session.id]: {
-          ...syn,
-          completed: false,
-          mode: 'uae_pass',
-          personal: {
-            ...syn.personal,
-            partnerName: syn.personal?.partnerName || '',
-            maritalStatus: syn.personal?.maritalStatus || '',
-            pregnancyStatus: isMale ? 'no' : '',
-          },
-          compliance: {
-            ...syn.compliance,
-            isPregnant: isMale ? 'no' : '',
-            gestationalWeeks: '',
-          },
+  ['khalid', 'fatima', 'ahmed', 'noura'].forEach((id) => {
+    const syn = getSyntheticIntake(id);
+    if (syn) {
+      const isMale = syn?.personal?.gender === 'Male';
+      freshIntakes[id] = {
+        ...syn,
+        completed: false,
+        mode: 'uae_pass',
+        personal: {
+          ...syn.personal,
+          partnerName: syn.personal?.partnerName || '',
+          maritalStatus: syn.personal?.maritalStatus || '',
+          pregnancyStatus: isMale ? 'no' : '',
         },
-      }
-    : (session?.id ? { [session.id]: { completed: false, mode: 'manual' } } : {});
+        compliance: {
+          ...syn.compliance,
+          isPregnant: isMale ? 'no' : '',
+          gestationalWeeks: '',
+        },
+      };
+    }
+  });
+
+  // Also reset any existing user intakes in store to completed: false
+  if (state.screeningIntakes) {
+    Object.keys(state.screeningIntakes).forEach((key) => {
+      freshIntakes[key] = {
+        ...state.screeningIntakes[key],
+        completed: false,
+        submittedAt: null,
+      };
+    });
+  }
+
+  if (session?.id && !freshIntakes[session.id]) {
+    freshIntakes[session.id] = {
+      completed: false,
+      mode: 'manual',
+      personal: { fullName: session.name || '', email: session.email || '' },
+      medical: {},
+      family: [],
+      compliance: {},
+      consent: {},
+    };
+  }
 
   state = {
     ...initial,
     session: null,
-    screeningIntakes: freshIntake,
+    screeningIntakes: freshIntakes,
     alertsSent: [],
     plan: null,
     plans: {},
     booked: null,
     appointments: {},
+    reports: {},
   };
   save();
   subs.forEach((f) => f());
