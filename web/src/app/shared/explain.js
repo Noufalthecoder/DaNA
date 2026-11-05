@@ -156,3 +156,43 @@ export function explain(result, { meCarrier, partnerCarrier, partnerName = 'your
 
   return { you, couple, condition: c, limits, notDiagnosis, options, outcomes: outcomes(result.type) };
 }
+
+/* before linking with a partner: only MY result can be explained (individual stage) */
+export function explainIndividual({ gene }) {
+  const c = gene ? CONDITIONS[gene] : null;
+  const cond = c?.name || 'this condition';
+  const you = gene
+    ? {
+        title: `You are a healthy carrier of ${cond}`,
+        body: [
+          'A carrier has one changed copy of a gene and one working copy. The working copy does the job, so carriers are healthy and usually never know.',
+          'Being a carrier is very common. Most people carry at least one change like this. It says nothing about your own health or your worth.',
+        ],
+      }
+    : {
+        title: 'No change was found in the genes we checked for you',
+        body: ['This lowers your chance of being a carrier for these conditions a lot, but no test can rule it out completely.'],
+      };
+  const partner = gene
+    ? {
+        title: "Why your partner's result matters",
+        body: [
+          `A child can only have ${cond} if both parents pass on a changed copy of the same gene. Your result alone does not tell you the chance for your future children.`,
+          "When you link with your partner and both results are in, DaNA explains what your combination means. Many carrier couples' partners are not carriers of the same gene.",
+        ],
+      }
+    : {
+        title: "Your partner's result still matters",
+        body: ['Screening is done as a couple because the chance for a child depends on both of you. Link with your partner to see your couple result.'],
+      };
+  const limits = [
+    'The test checks a large panel of genes, not every gene, and not every possible change in them.',
+    'A "no change found" result lowers the chance a lot but cannot make it zero.',
+    'Labs can occasionally make mistakes, so important results are confirmed before any medical decision.',
+  ];
+  const notDiagnosis = {
+    title: 'A carrier result is not a diagnosis',
+    body: ['It does not mean you are ill or will become ill. It is information about what you could pass on.'],
+  };
+  return { you, partner, condition: c, limits, notDiagnosis };
+}

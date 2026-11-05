@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { Page, Card, Badge } from '../shared/ui.jsx';
 import { useStore, EMPTY_OBJ } from '../shared/store.js';
 import { logAudit } from '../shared/db.js';
-import { explain, EXPLAIN_VERSION, EXPLAIN_STATUS } from '../shared/explain.js';
+import { explain, explainIndividual, EXPLAIN_VERSION, EXPLAIN_STATUS } from '../shared/explain.js';
 import { useCouple } from './useCouple.js';
 
 /* one child figure: outline = does not carry, half = healthy carrier, full = has the condition */
@@ -47,10 +47,15 @@ const Section = ({ n, title, children }) => (
 );
 
 export default function Result() {
-  const { me, partner, result } = useCouple();
+  const { me, partner, result, isConnected } = useCouple();
   const live = useStore((s) => !!s.session?.backend);
   const reports = useStore((s) => s.reports) || EMPTY_OBJ;
-  const waiting = live && (!reports[me.id] || !reports[partner.id]);
+  // individual first: before linking (Connections) only MY result is explained, never someone else's
+  const linked = live ? isConnected : true;
+  const mine = live ? reports[me.id] : true;
+  const theirs = live ? reports[partner.id] : true;
+  const stage = !mine ? 'no-result' : !linked ? 'individual' : !theirs ? 'partner-waiting' : 'couple';
+  const waiting = stage !== 'couple';
   const x = explain(result, { meCarrier: !!me.carrier, partnerCarrier: !!partner.carrier, partnerName: partner.short });
 
   // audit: the person viewed their explanation (once per visit) - also feeds comprehension metrics later
@@ -61,13 +66,54 @@ export default function Result() {
     logAudit(`Viewed result explanation (${EXPLAIN_VERSION}, ${result.type})`).catch(() => {});
   }, [waiting, result.type]);
 
-  if (waiting) {
+  const loggedMine = useRef(false);
+  useEffect(() => {
+    if (loggedMine.current || (stage !== 'individual' && stage !== 'partner-waiting')) return;
+    loggedMine.current = true;
+    logAudit(`Viewed individual result explanation (${EXPLAIN_VERSION}, ${me.carrier ? 'carrier' : 'no change found'})`).catch(() => {});
+  }, [stage, me.carrier]);
+
+  if (stage === 'no-result') {
     return (
       <Page title="Your result, explained" sub="Plain-language explanation of your screening result">
         <Card>
-          <p><Badge tone="grey">Waiting for results</Badge></p>
-          <p>Your couple explanation appears once both of your lab reports are in. You can fetch yours from <a href="#/app">Home</a>.</p>
+          <p><Badge tone="grey">No result yet</Badge></p>
+          <p>Fetch your premarital lab result from Malaffi first. Then this page explains what it means for you.</p>
+          <div className="btn-row"><a className="btn" href="#/app">Go to Home</a></div>
         </Card>
+      </Page>
+    );
+  }
+
+  if (stage === 'individual' || stage === 'partner-waiting') {
+    const xi = explainIndividual({ gene: me.carrier });
+    let k = 0;
+    return (
+      <Page title="Your result, explained" sub={`For ${me.short} · your own screening result`}>
+        <div className="xp-top">
+          <Badge tone={me.carrier ? 'amber' : 'green'}>{me.carrier ? 'Healthy carrier' : 'No change found'}</Badge>
+          <span className="xp-tag">Education · not medical advice</span>
+        </div>
+        <Section n={++k} title="About you">
+          <h3 className="xp-t">{xi.you.title}</h3>
+          {xi.you.body.map((t) => <p key={t}>{t}</p>)}
+          {xi.condition && (
+            <div className="xp-cond"><b>{xi.condition.name}</b><p>{xi.condition.what}</p><p>{xi.condition.care}</p></div>
+          )}
+        </Section>
+        <Section n={++k} title={xi.partner.title}>
+          {xi.partner.body.map((t) => <p key={t}>{t}</p>)}
+          {stage === 'individual'
+            ? <div className="btn-row"><a className="btn" href="#/app/connections">Link your partner</a></div>
+            : <p><Badge tone="grey">Linked with {partner.short}</Badge> <span className="muted">Waiting for {partner.short}'s result. Your couple explanation appears here when it arrives.</span></p>}
+        </Section>
+        <Section n={++k} title={xi.notDiagnosis.title}>
+          {xi.notDiagnosis.body.map((t) => <p key={t}>{t}</p>)}
+        </Section>
+        <Section n={++k} title="What this test can and cannot tell you">
+          <ul className="xp-list">{xi.limits.map((t) => <li key={t}>{t}</li>)}</ul>
+        </Section>
+        <p className="fine">Wording {EXPLAIN_VERSION} · {EXPLAIN_STATUS}</p>
       </Page>
     );
   }
