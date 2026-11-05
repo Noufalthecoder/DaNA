@@ -411,7 +411,7 @@ export default function Connections({ defaultTab = 'discover' }) {
               <input
                 type="text"
                 className="conn-search-input"
-                placeholder="Partner's full name or email (e.g. Fatima Al Hammadi)"
+                placeholder="Partner's full name, email or DaNA ID (e.g. Fatima Al Hammadi or DANA-3F9A2C)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 autoFocus

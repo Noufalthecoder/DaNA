@@ -39,6 +39,9 @@ export function generateUuid() {
 /**
  * Return user's public identifier details (Username & Unique DaNA ID)
  */
+/* DaNA ID: demo people have their own; real members get DANA- + 6 characters of their profile id (same rule as find_partner in 011) */
+export const danaIdFor = (id) => (/^[up]_[0-9a-f]{6}/.test(id || '') ? `DANA-${id.slice(2, 8).toUpperCase()}` : `DANA-${(id || '').toUpperCase()}`);
+
 export function getUserIdentifier(userId) {
   const p = PEOPLE[userId];
   if (!p) {
@@ -47,7 +50,7 @@ export function getUserIdentifier(userId) {
       name: userId,
       short: userId,
       username: userId,
-      danaId: `DANA-${userId.toUpperCase()}`,
+      danaId: danaIdFor(userId),
       sex: 'M',
     };
   }
@@ -56,7 +59,7 @@ export function getUserIdentifier(userId) {
     name: p.name,
     short: p.short,
     username: p.username || userId,
-    danaId: p.danaId || `DANA-${userId.toUpperCase()}`,
+    danaId: p.danaId || danaIdFor(userId),
     sex: p.sex,
   };
 }
@@ -281,10 +284,10 @@ export async function searchUsersAsync(requesterId, query = '') {
         name: r.display_name,
         short: r.display_name.split(' ')[0],
         username: r.email_hint || r.display_name,
-        danaId: `DANA-${r.person_id.slice(2, 8).toUpperCase()}`,
+        danaId: r.dana_id,
         sex: r.sex,
         avatar: r.avatar,
-        role: r.email_hint ? `Email ${r.email_hint}` : 'DaNA member',
+        role: `${r.dana_id}${r.email_hint ? ` · ${r.email_hint}` : ''}`,
         email: r.email_hint,
         isConnected: isUserConnected(requesterId, r.person_id),
         hasPendingOutgoing: hasPendingRequest(requesterId, r.person_id),
