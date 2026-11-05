@@ -12,7 +12,8 @@ import { useStore, signOut, EMPTY_OBJ } from './app/shared/store.js';
 import { Brand } from './app/shared/Logo.jsx';
 import { watchAuth, signOut as supabaseSignOut } from './app/shared/supabase.js';
 import { loadAll } from './app/shared/db.js';
-import Welcome, { PENDING_CODE_KEY } from './app/couple/Welcome.jsx';
+import Welcome from './app/couple/Welcome.jsx';
+import { PENDING_CODE_KEY } from './app/shared/PartnerCode.jsx';
 import './app/app.css';
 
 /* Catch-all error boundary to eliminate white screens */
@@ -106,7 +107,7 @@ export default function Root() {
   useEffect(() => {
     if (!path.startsWith('/join/')) return;
     try { sessionStorage.setItem(PENDING_CODE_KEY, path.split('/')[2].toUpperCase()); } catch {}
-    go(session ? '/app' : '/login');
+    go(session ? '/app/connections' : '/login');
   }, [path, session]);
 
   // Route matching

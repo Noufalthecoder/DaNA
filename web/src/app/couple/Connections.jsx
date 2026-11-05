@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import PartnerCode from '../shared/PartnerCode.jsx';
 import { Page, Card, Badge, Avatar } from '../shared/ui.jsx';
 import { useStore } from '../shared/store.js';
 import {
@@ -326,6 +327,11 @@ export default function Connections({ defaultTab = 'discover' }) {
             </button>
           </div>
         )}
+
+        {/* Link by invite code: creates the real couple in the database */}
+        <Card title="Link with your partner">
+          <PartnerCode />
+        </Card>
 
         {/* Your DaNA Identity Card */}
         <div className="conn-identity-card">

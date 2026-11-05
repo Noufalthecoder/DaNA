@@ -13,7 +13,8 @@
 import { PEOPLE, ACCOUNTS, COUPLES, SUPABASE_ACCOUNTS } from './data.js';
 import { get, set } from './store.js';
 import { assess } from './genetics.js';
-import { supabase } from './supabase.js';
+import { supabase, refreshSession } from './supabase.js';
+import { loadAll } from './db.js';
 
 // Canonical ordering helper for bidirectional connections
 function canonicalPair(id1, id2) {
@@ -813,54 +814,14 @@ export function acceptConnectionRequest(requestId, actingUserId) {
     `Connected ${senderName} and ${receiverName}. Risk assessed: ${assessmentResult.label} (${assessmentResult.risk})`
   );
 
-  // Sync to Supabase in the background (zero blocking)
-  if (supabase) {
-    try {
-      // 1. Update connection_requests record
-      supabase
-        .from('connection_requests')
-        .update({
-          status: 'ACCEPTED',
-          accepted: true,
-          accepted_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .or(`id.eq.${req.id},and(sender_id.eq.${req.senderId},receiver_id.eq.${actingUserId}),and(sender_id.eq.${actingUserId},receiver_id.eq.${req.senderId})`)
-        .then(() => {})
-        .catch((err) => {
-          console.warn('Supabase connection_requests update notice:', err?.message);
-        });
-
-      // 2. Ensure both persons exist in people table so foreign keys in couples never fail
-      for (const pid of [uA, uB]) {
-        const p = PEOPLE[pid] || { name: pid, short: pid, sex: 'M' };
-        supabase.from('people').upsert({
-          id: pid,
-          name: p.name || pid,
-          short_name: p.short || p.name?.split(' ')[0] || pid,
-          sex: p.sex || 'M',
-          language: 'ar',
-        }, { onConflict: 'id', ignoreDuplicates: true }).then(() => {}).catch(() => {});
-      }
-
-      // 3. Upsert matched couple record
-      supabase
-        .from('couples')
-        .upsert({
-          id: couple.id,
-          partner_a: uA,
-          partner_b: uB,
-          stage: 'engaged',
-          pregnant_weeks: couple.pregnantWeeks || null,
-          screened_on: new Date().toISOString().slice(0, 10),
-        }, { onConflict: 'id' })
-        .then(() => {})
-        .catch((err) => {
-          console.warn('Supabase couples upsert warning:', err?.message);
-        });
-    } catch (e) {
-      console.warn('Supabase call failed gracefully:', e?.message);
-    }
+  // Live: the database creates the real couple and case (010: accept_connection_request).
+  // The request is the sender's consent; accepting is mine. Then reload my session.
+  if (supabase && state.session?.backend) {
+    supabase.rpc('accept_connection_request', { p_id: req.id }).then(async ({ error }) => {
+      if (error) { set({ dbError: `Could not link: ${error.message}` }); return; }
+      await refreshSession().catch(() => null);
+      loadAll();
+    });
   }
 
   return { connection: newConn, couple, assessment: assessmentResult };
