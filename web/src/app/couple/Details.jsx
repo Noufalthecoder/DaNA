@@ -65,7 +65,7 @@ export default function Details() {
   };
 
   return (
-    <Page title="Your details" sub="Journey step 3 of 8 · only what Malaffi does not hold · about 2 minutes">
+    <Page title="Your details" sub="Journey step 3 of 7 · only what Malaffi does not hold · about 2 minutes">
       <Card title="Already known (not asked again)">
         <div className="dt-known">
           <div><small>Name</small><b>{session.name}</b><em>UAE PASS</em></div>

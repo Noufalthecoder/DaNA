@@ -55,7 +55,7 @@ export default function Welcome() {
   }
 
   const carrierGene = report?.variants?.find((v) => ['pathogenic', 'likely_pathogenic'].includes(v.significance))?.gene;
-  const partnerIsNext = steps[current]?.key === 'partner';
+  const partnerIsNext = steps[current]?.key === 'together';
 
   return (
     <Page title={`Welcome, ${(session.name || '').split(' ')[0]}`} sub="Your premarital screening, one step at a time.">

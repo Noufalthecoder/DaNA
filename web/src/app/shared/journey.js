@@ -8,7 +8,6 @@ export const STEPS = [
   { key: 'malaffi',  label: 'Get results' },
   { key: 'details',  label: 'Your details' },
   { key: 'result',   label: 'Result & report' },
-  { key: 'partner',  label: 'Link partner' },
   { key: 'together', label: 'Couple result' },
   { key: 'options',  label: 'Choose together' },
   { key: 'family',   label: 'Protect family' },
@@ -61,7 +60,6 @@ export function useJourney() {
     malaffi: !live || isRealReport(reports[session?.id]),
     details: !live || !!session?.details || !!intakes[session?.id]?.completed || !!session?.intakeDone,
     result: !live || !!seen[session?.id],
-    partner: linked,
     together: linked && (!live || (isRealReport(reports[session?.id]) && !!(partnerId && isRealReport(reports[partnerId])))),
     options: !!(session?.couple && plans[session.couple]),
     family: sent.length > 0,
@@ -70,6 +68,10 @@ export function useJourney() {
   const at = steps.findIndex((s) => !s.done);
   const current = at === -1 ? steps.length : at;
   let next = NEXT[at === -1 ? 'done' : steps[at].key];
+  // the couple result needs a partner: until linked, the step sends you to Connections
+  if (steps[at]?.key === 'together' && !linked) {
+    next = { t: 'Link your partner to see your couple result', p: 'On Connections: send an invitation, or find your partner by full name or DaNA ID.', to: '#/app/connections' };
+  }
   if (steps[at]?.key === 'profile' && live && !session?.needsProfile) {
     next = { ...next, t: 'Confirm your profile', p: 'Please confirm if you are female or male. Older accounts were saved without asking.' };
   }
