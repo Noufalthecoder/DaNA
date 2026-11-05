@@ -498,7 +498,7 @@ export async function syncRequestsFromSupabase(userId, userEmail = null, userAut
       const before = get().connectionRequests || [];
       const nowAccepted = (data || []).some((row) => !row.incoming && row.status === 'ACCEPTED'
         && before.some((b) => b.id === row.id && b.status === 'PENDING'));
-      if (nowAccepted && !get().session?.couple) {
+      if (nowAccepted && (!get().session?.couple || get().session?.sampleCouple)) {
         refreshSession().then(() => loadAll()).catch(() => {});
       }
     }

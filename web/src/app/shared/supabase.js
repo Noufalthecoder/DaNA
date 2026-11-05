@@ -43,7 +43,9 @@ export async function loadSession(user) {
   }
   // a new couple account has no health profile yet: the Welcome page walks them through it (009_onboarding.sql)
   await hydratePeople();
-  const couple = acc.person_id ? COUPLES.find((c) => c.a === acc.person_id || c.b === acc.person_id) : null;
+  // prefer a real couple over an old sample one (013 removes the sample couple when a real partner links)
+  const mine = acc.person_id ? COUPLES.filter((c) => c.a === acc.person_id || c.b === acc.person_id) : [];
+  const couple = mine.find((c) => ![c.a, c.b].some((x) => String(x).startsWith('p_'))) || mine[0] || null;
   const isUae = typeof window !== 'undefined' && window.__danaVia === 'uaepass';
   const authMethod = isUae ? 'uae_pass' : 'manual';
   return {
@@ -55,6 +57,8 @@ export async function loadSession(user) {
     avatar: acc.avatar || null,
     title: acc.title || '',
     couple: couple ? couple.id : null,
+    // paired with a 'Sample partner' (p_...) before real onboarding: may still link a real partner (013)
+    sampleCouple: !!couple && [couple.a, couple.b].some((x) => String(x).startsWith('p_')),
     email: user.email,
     via: (typeof window !== 'undefined' && window.__danaVia) || user.app_metadata?.provider || 'email',
     authMethod,

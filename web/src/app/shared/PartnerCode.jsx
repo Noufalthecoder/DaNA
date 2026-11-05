@@ -20,7 +20,7 @@ export default function PartnerCode() {
 
   const live = !!session?.backend;
   const hasProfile = live && !session.needsProfile;
-  const linked = !!session?.couple;
+  const linked = !!session?.couple && !session.sampleCouple;
 
   useEffect(() => {
     if (hasProfile && !linked && !code) createPartnerInvite().then(setCode).catch((e) => setErr(e.message));
@@ -31,7 +31,7 @@ export default function PartnerCode() {
     if (!hasProfile || linked) return;
     const t = setInterval(async () => {
       const s = await refreshSession().catch(() => null);
-      if (s?.couple) { clearInterval(t); await loadAll(); go('/app'); }
+      if (s?.couple && !s.sampleCouple) { clearInterval(t); await loadAll(); go('/app'); }
     }, 15000);
     return () => clearInterval(t);
   }, [hasProfile, linked]);

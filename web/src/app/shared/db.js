@@ -200,6 +200,11 @@ export async function hydratePeople() {
     if (!PEOPLE[x.id]) PEOPLE[x.id] = { name: x.name, short: x.short_name, sex: x.sex, carrier: gene[x.id] ?? null };
     else if (x.id in gene) PEOPLE[x.id].carrier = gene[x.id]; // a fresh Malaffi result replaces the old one
   });
+  // couples created in the database (k_...) that no longer exist there were removed, e.g. a released sample couple
+  if (c.data) {
+    const alive = new Set(c.data.map((x) => x.id));
+    for (let i = COUPLES.length - 1; i >= 0; i--) if (COUPLES[i].id.startsWith('k_') && !alive.has(COUPLES[i].id)) COUPLES.splice(i, 1);
+  }
   (c.data || []).forEach((x) => {
     if (!COUPLES.find((k) => k.id === x.id)) {
       COUPLES.push({ id: x.id, a: x.partner_a, b: x.partner_b, stage: x.stage === 'married' ? 'Married' : 'Engaged', pregnantWeeks: x.pregnant_weeks, screened: x.screened_on });
