@@ -71,7 +71,6 @@ export default function Shell({ menu, path, children }) {
           {session?.backend ? (
             <>
               <button onClick={() => loadAll()}>Refresh data</button>
-              <button onClick={() => setShowResetConfirm(true)}>Reset demo data</button>
               <span className="live"><i />Live · shared database</span>
             </>
           ) : (

@@ -65,12 +65,7 @@ export async function loadSession(user) {
     }
   }
 
-  if (acc.role === 'couple' && !acc.person_id) {
-    // temporary onboarding: give this account its own sample couple (see supabase/003_sample_journey.sql)
-    const { data: pid, error } = await supabase.rpc('start_sample_journey');
-    if (!error && pid) acc = { ...acc, person_id: pid, title: 'Partner · engaged (sample journey)' };
-    else if (error) console.warn('Sample journey not available:', error.message);
-  }
+  // NOTE: never create a sample partner here. New accounts start at journey step 1 (create profile).
   // a new couple account has no health profile yet: the Welcome page walks them through it (009_onboarding.sql)
   // journey state (018): old auto-made profiles confirm their sex; the intake counts on every device
   let journey = null;
