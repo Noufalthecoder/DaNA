@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Page, Card, Badge } from '../shared/ui.jsx';
 import { useCouple } from './useCouple.js';
-import { SYNTHETIC_INTAKES } from '../shared/data.js';
+import { SYNTHETIC_INTAKES, generateDanaId } from '../shared/data.js';
 import { set, useStore, EMPTY_OBJ } from '../shared/store.js';
+import { saveScreeningIntake } from '../shared/db.js';
 import { go } from '../shared/router.js';
 import { EditIcon, CheckIcon } from '../shared/Icons.jsx';
 import AvatarPicker from '../shared/AvatarPicker.jsx';
@@ -26,18 +27,22 @@ export default function Profile() {
   const intakes = useStore((s) => s.screeningIntakes) || EMPTY_OBJ;
   const existingIntake = intakes[me.id];
 
-  const isUaePass = session?.authMethod === 'uae_pass' || session?.via === 'uaepass';
-  const fallback = SYNTHETIC_INTAKES[me.id] || SYNTHETIC_INTAKES.fatima;
+  const isUaePass = session?.authMethod === 'uae_pass' || session?.via === 'uaepass' || session?.email?.endsWith('@dana.demo');
+  const fallback = SYNTHETIC_INTAKES[me.id] || (me.sex === 'M' ? SYNTHETIC_INTAKES.khalid : SYNTHETIC_INTAKES.fatima);
+
+  const authName = session?.name || session?.userMetadata?.full_name || session?.userMetadata?.name || me.name || '';
+  const authEmail = session?.email || session?.userMetadata?.email || '';
+  const authPhone = session?.phone || session?.userMetadata?.phone || '';
 
   // Active intake profile data (falls back to synthetic if verified, or empty defaults)
   const basePersonal = existingIntake?.personal || (isUaePass ? fallback.personal : {
-    fullName: session?.name || me.name || '',
+    fullName: authName,
     fullNameAr: '',
     emiratesId: '',
     dob: '',
     gender: 'Female',
-    phone: '',
-    email: session?.email || '',
+    phone: authPhone,
+    email: authEmail,
     nationality: 'United Arab Emirates',
     city: 'Abu Dhabi',
   });
@@ -81,12 +86,27 @@ export default function Profile() {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    setPersonal(basePersonal);
-    setMedical(baseMedical);
-    setFamily(baseFamily);
-    setCompliance(baseCompliance);
-    setConsent(baseConsent);
-  }, [existingIntake, me.id]);
+    if (existingIntake) {
+      setPersonal(existingIntake.personal || basePersonal);
+      setMedical(existingIntake.medical || baseMedical);
+      setFamily(existingIntake.family || baseFamily);
+      setCompliance(existingIntake.compliance || baseCompliance);
+      setConsent(existingIntake.consent || baseConsent);
+    } else if (!isUaePass) {
+      setPersonal((prev) => ({
+        ...prev,
+        fullName: prev.fullName || authName,
+        email: prev.email || authEmail,
+        phone: prev.phone || authPhone,
+      }));
+    } else {
+      setPersonal(basePersonal);
+      setMedical(baseMedical);
+      setFamily(baseFamily);
+      setCompliance(baseCompliance);
+      setConsent(baseConsent);
+    }
+  }, [existingIntake, me.id, isUaePass, authName, authEmail, authPhone]);
 
   const handleSave = (e) => {
     e.preventDefault();
@@ -102,25 +122,25 @@ export default function Profile() {
     }
 
     setErrors({});
+    const assignedDanaId = existingIntake?.danaId || personal.danaId || generateDanaId(session?.id || me.id);
     const updatedPayload = {
       ...(existingIntake || {}),
+      danaId: assignedDanaId,
       completed: true,
       mode: existingIntake?.mode || (isUaePass ? 'uae_pass' : 'manual'),
       submittedAt: existingIntake?.submittedAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      personal,
+      personal: {
+        ...personal,
+        danaId: assignedDanaId,
+      },
       medical,
       family,
       compliance,
       consent,
     };
 
-    set((s) => ({
-      screeningIntakes: {
-        ...(s.screeningIntakes || {}),
-        [me.id]: updatedPayload,
-      },
-    }), `User ${me.name} updated health profile & screening data`);
+    saveScreeningIntake(me.id, updatedPayload);
 
     setIsEditing(false);
     setSaveSuccess(true);
@@ -267,7 +287,7 @@ export default function Profile() {
               )}
             </div>
             <p className="muted" style={{ margin: 0, fontSize: 13.5 }}>
-              Emirates ID: <b>{personal.emiratesId || 'Not specified'}</b> · Partnered with <b>{partner.name}</b>
+              DaNA ID: <b style={{ color: 'var(--green)', fontFamily: 'monospace' }}>{existingIntake?.danaId || personal.danaId || generateDanaId(session?.id || me.id)}</b> · Emirates ID: <b>{personal.emiratesId || 'Not specified'}</b> · Partner: <b>{partner.name}</b>
             </p>
           </div>
 

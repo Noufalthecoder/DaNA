@@ -4,7 +4,7 @@
   runs in demo mode: only the simulated UAE PASS login works.
 */
 import { createClient } from '@supabase/supabase-js';
-import { COUPLES } from './data.js';
+import { COUPLES, generateDanaId } from './data.js';
 import { get, set, startFresh } from './store.js';
 import { loadAll, logAudit, hydratePeople } from './db.js';
 
@@ -32,14 +32,23 @@ export const hasBackend = !!supabase;
 /* turn a Supabase user into the app's session (role, name, couple) */
 export async function loadSession(user) {
   let { data: acc } = await supabase.from('accounts').select('*').eq('user_id', user.id).maybeSingle();
+  const metaName = user.user_metadata?.full_name || user.user_metadata?.name || null;
+  const metaEmail = user.email || user.user_metadata?.email || '';
+  const metaPhone = user.phone || user.user_metadata?.phone || '';
+
   if (!acc) {
     // first sign-in (new user or Google): create a couple account with nothing linked yet
-    const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User';
+    const name = metaName || user.user_metadata?.full_name || user.user_metadata?.name || (metaEmail ? metaEmail.split('@')[0] : '') || 'User';
     const row = { user_id: user.id, role: 'couple', person_id: null, display_name: name, title: 'New member' };
     const { error } = await supabase.from('accounts').upsert(row, { onConflict: 'user_id', ignoreDuplicates: true });
     if (error && error.code !== '23505') throw error;
     const again = await supabase.from('accounts').select('*').eq('user_id', user.id).maybeSingle();
     acc = again.data || row;
+  } else if (metaName && (!acc.display_name || acc.display_name === 'New member')) {
+    acc.display_name = metaName;
+    if (supabase) {
+      supabase.from('accounts').update({ display_name: metaName }).eq('user_id', user.id).then();
+    }
   }
   // staff role chosen at sign-up (016): the database checks the access code
   let claim = null;
@@ -55,6 +64,13 @@ export async function loadSession(user) {
       if (again.data) acc = again.data;
     }
   }
+
+  if (acc.role === 'couple' && !acc.person_id) {
+    // temporary onboarding: give this account its own sample couple (see supabase/003_sample_journey.sql)
+    const { data: pid, error } = await supabase.rpc('start_sample_journey');
+    if (!error && pid) acc = { ...acc, person_id: pid, title: 'Partner · engaged (sample journey)' };
+    else if (error) console.warn('Sample journey not available:', error.message);
+  }
   // a new couple account has no health profile yet: the Welcome page walks them through it (009_onboarding.sql)
   // journey state (018): old auto-made profiles confirm their sex; the intake counts on every device
   let journey = null;
@@ -66,22 +82,35 @@ export async function loadSession(user) {
   // prefer a real couple over an old sample one (013 removes the sample couple when a real partner links)
   const mine = acc.person_id ? COUPLES.filter((c) => c.a === acc.person_id || c.b === acc.person_id) : [];
   const couple = mine.find((c) => ![c.a, c.b].some((x) => String(x).startsWith('p_'))) || mine[0] || null;
-  const isUae = typeof window !== 'undefined' && window.__danaVia === 'uaepass';
+  const isUae = (typeof window !== 'undefined' && window.__danaVia === 'uaepass') || user.email?.endsWith('@dana.demo');
   const authMethod = isUae ? 'uae_pass' : 'manual';
+  const via = isUae ? 'uaepass' : (user.app_metadata?.provider || 'email');
+  const resolvedName = (acc.display_name && acc.display_name !== 'New member')
+    ? acc.display_name
+    : (metaName || (metaEmail ? metaEmail.split('@')[0] : 'Member'));
+
+  const assignedDanaId = acc.dana_id || generateDanaId(user.id);
+  if (!acc.dana_id && supabase) {
+    supabase.from('accounts').update({ dana_id: assignedDanaId }).eq('user_id', user.id).then();
+  }
+
   return {
     id: acc.person_id || user.id,
     userId: user.id,
     personId: acc.person_id || null,
+    danaId: assignedDanaId,
     role: acc.role,
-    name: acc.display_name,
+    name: resolvedName,
     avatar: acc.avatar || null,
     title: acc.title || '',
     couple: couple ? couple.id : null,
     partnerId: couple ? (couple.a === acc.person_id ? couple.b : couple.a) : null,
     // paired with a 'Sample partner' (p_...) before real onboarding: may still link a real partner (013)
     sampleCouple: !!couple && [couple.a, couple.b].some((x) => String(x).startsWith('p_')),
-    email: user.email,
-    via: (typeof window !== 'undefined' && window.__danaVia) || user.app_metadata?.provider || 'email',
+    email: metaEmail,
+    phone: metaPhone,
+    userMetadata: user.user_metadata || {},
+    via,
     authMethod,
     needsProfile: acc.role === 'couple' && !acc.person_id,
     sexConfirmed: journey ? !!journey.sex_confirmed : true,

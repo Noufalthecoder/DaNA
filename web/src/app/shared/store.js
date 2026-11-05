@@ -4,6 +4,7 @@
   Owner: Platform. Swap for a real API later without changing the pages.
 */
 import { useSyncExternalStore, useRef, useCallback } from 'react';
+import { getSyntheticIntake } from './data.js';
 
 export const EMPTY_OBJ = Object.freeze({});
 export const EMPTY_ARR = Object.freeze([]);
@@ -136,34 +137,104 @@ export function get() {
 
 export function signOut() {
   state = {
-    ...initial,
+    ...state,
     session: null,
-    screeningIntakes: {},
-    alertsSent: [],
-    plan: null,
-    booked: null,
-    plans: {},
-    appointments: {},
-    notes: {},
-    approved: [],
-    faith: {},
-    consents: { sharePartner: true, shareCounsellor: true, faithCards: true },
-    audit: state.audit || [],
   };
   save();
   subs.forEach((f) => f());
 }
 
-/* wipe saved demo data but keep (or replace) the session: used when a real login starts */
+/* keep or initialize session on login */
 export function startFresh(session) {
-  state = { ...initial, session, screeningIntakes: {} };
+  const isUae = session?.authMethod === 'uae_pass' || session?.via === 'uaepass' || session?.email?.endsWith('@dana.demo');
+  const existing = state.screeningIntakes?.[session?.id];
+  let intakes = state.screeningIntakes || {};
+
+  // If this user has not completed screening yet, pre-feed UAE PASS data with completed: false
+  if (!existing?.completed) {
+    if (isUae && session?.role === 'couple') {
+      const syn = getSyntheticIntake(session.id);
+      const isMale = syn?.personal?.gender === 'Male';
+      const needsMedRefresh = existing?.medical?.conditions === 'None reported' || !existing?.medical?.conditions;
+
+      intakes = {
+        ...intakes,
+        [session.id]: (existing && !needsMedRefresh) ? {
+          ...existing,
+          personal: {
+            ...existing.personal,
+            pregnancyStatus: isMale ? 'no' : (existing.personal?.pregnancyStatus || ''),
+          },
+          compliance: {
+            ...existing.compliance,
+            isPregnant: isMale ? 'no' : (existing.compliance?.isPregnant || ''),
+            gestationalWeeks: isMale ? '' : (existing.compliance?.gestationalWeeks || ''),
+          },
+        } : {
+          ...(existing || {}),
+          ...syn,
+          completed: false,
+          mode: 'uae_pass',
+          personal: {
+            ...syn.personal,
+            partnerName: existing?.personal?.partnerName || syn.personal?.partnerName || '',
+            maritalStatus: existing?.personal?.maritalStatus || syn.personal?.maritalStatus || '',
+            pregnancyStatus: isMale ? 'no' : (existing?.personal?.pregnancyStatus || ''),
+          },
+          medical: syn.medical,
+          compliance: {
+            ...syn.compliance,
+            isPregnant: isMale ? 'no' : (existing?.compliance?.isPregnant || ''),
+            gestationalWeeks: isMale ? '' : (existing?.compliance?.gestationalWeeks || ''),
+          },
+        },
+      };
+    }
+  }
+
+  state = { ...state, session, screeningIntakes: intakes };
   save();
   subs.forEach((f) => f());
 }
 
+/* Reset demo journey data so onboarding, feeding / manual entry and results can be replayed */
 export function resetDemo() {
   const session = state.session;
-  state = { ...initial, session, screeningIntakes: {} };
+  const isUae = session?.authMethod === 'uae_pass' || session?.via === 'uaepass' || session?.email?.endsWith('@dana.demo');
+  const syn = session?.id ? getSyntheticIntake(session.id) : null;
+  const isMale = syn?.personal?.gender === 'Male';
+
+  const freshIntake = (isUae && session?.role === 'couple' && syn)
+    ? {
+        [session.id]: {
+          ...syn,
+          completed: false,
+          mode: 'uae_pass',
+          personal: {
+            ...syn.personal,
+            partnerName: syn.personal?.partnerName || '',
+            maritalStatus: syn.personal?.maritalStatus || '',
+            pregnancyStatus: isMale ? 'no' : '',
+          },
+          compliance: {
+            ...syn.compliance,
+            isPregnant: isMale ? 'no' : '',
+            gestationalWeeks: '',
+          },
+        },
+      }
+    : (session?.id ? { [session.id]: { completed: false, mode: 'manual' } } : {});
+
+  state = {
+    ...initial,
+    session: null,
+    screeningIntakes: freshIntake,
+    alertsSent: [],
+    plan: null,
+    plans: {},
+    booked: null,
+    appointments: {},
+  };
   save();
   subs.forEach((f) => f());
 }

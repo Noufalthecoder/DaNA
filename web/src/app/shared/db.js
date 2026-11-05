@@ -6,7 +6,7 @@
 */
 import { supabase } from './supabase.js';
 import { get, set } from './store.js';
-import { SLOTS, PEOPLE, COUPLES, relativesFor } from './data.js';
+import { SLOTS, PEOPLE, COUPLES, relativesFor, generateDanaId } from './data.js';
 import { fromDb, toDb } from './family.js';
 import { api } from './api.js';
 
@@ -27,7 +27,7 @@ export const slotLabel = (iso) => {
 };
 
 /* write one audit entry to the database (live) */
-export async function logAudit(action, meta = {}) {
+export async function logAudit(action, metaOrDanaId = {}) {
   if (!isLive()) return;
   try {
     const s = get();
@@ -36,9 +36,16 @@ export async function logAudit(action, meta = {}) {
     const actorId = session.userId || (await supabase?.auth.getUser())?.data?.user?.id;
     const row = { actor_name: actorName, action };
     if (actorId) row.actor = actorId;
-    if (meta?.resourceType) row.resource_type = meta.resourceType;
-    if (meta?.resourceId) row.resource_id = String(meta.resourceId);
-    if (meta?.metadata) row.metadata = meta.metadata;
+
+    const danaId = typeof metaOrDanaId === 'string' ? metaOrDanaId : (metaOrDanaId?.danaId || session?.danaId || session?.personal?.danaId);
+    if (danaId) row.dana_id = danaId;
+
+    if (typeof metaOrDanaId === 'object' && metaOrDanaId !== null) {
+      if (metaOrDanaId.resourceType) row.resource_type = metaOrDanaId.resourceType;
+      if (metaOrDanaId.resourceId) row.resource_id = String(metaOrDanaId.resourceId);
+      if (metaOrDanaId.metadata) row.metadata = metaOrDanaId.metadata;
+    }
+
     const { error } = await supabase.from('audit_log').insert(row);
     if (error) {
       if (error.message?.includes('actor') || error.code === '23502') {
@@ -113,6 +120,49 @@ export function addReferral(coupleId, destination, priority, reason) {
   return act({ referrals: { ...s.referrals, [coupleId]: [item, ...(s.referrals[coupleId] || [])] } },
     `Counsellor referred ${coupleId.toUpperCase()} to ${destination}`,
     () => supabase.from('referrals').insert({ case_id: s.cases[coupleId]?.id, destination, priority, reason }));
+}
+
+/* Save screening intake (live to screening table, offline to store) */
+export async function saveScreeningIntake(personId, intakeData) {
+  const danaId = intakeData.danaId || generateDanaId(personId);
+  const dataToSave = {
+    ...intakeData,
+    danaId,
+    personal: { ...(intakeData.personal || {}), danaId },
+  };
+
+  set((s) => ({
+    screeningIntakes: { ...(s.screeningIntakes || {}), [personId]: dataToSave },
+  }), `User ${personId} saved screening intake data (${dataToSave.mode === 'uae_pass' ? 'UAE PASS verified' : 'Manual entry'})`);
+
+  if (isLive()) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('screening').upsert({
+          user_id: user.id,
+          dana_id: danaId,
+          person_id: personId,
+          mode: dataToSave.mode || 'manual',
+          completed: !!dataToSave.completed,
+          personal: dataToSave.personal || {},
+          medical: dataToSave.medical || {},
+          family: dataToSave.family || [],
+          compliance: dataToSave.compliance || {},
+          consent: dataToSave.consent || {},
+          submitted_at: dataToSave.submittedAt || new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+
+        // Also sync dana_id to accounts
+        try {
+          await supabase.from('accounts').update({ dana_id: danaId }).eq('user_id', user.id);
+        } catch {}
+      }
+    } catch (e) {
+      console.warn('screening live save error (table may not be created yet):', e.message);
+    }
+  }
 }
 
 /* Family tree. Audit lines never include a relative's name: DoH can read them. */
@@ -297,6 +347,30 @@ async function doLoad() {
       .filter((x) => (!mine?.counsellor || x.counsellors?.name === mine.counsellor) && (!x.is_emergency_buffer || mine?.tier === 1))
       .slice(0, 6)
       .map((x) => ({ id: x.id, label: gulfLabel(x.slot_start), counsellor: x.counsellors?.name }));
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: row } = await supabase.from('screening').select('*').eq('user_id', user.id).maybeSingle();
+        if (row) {
+          const pId = row.person_id || s.id;
+          patch.screeningIntakes = {
+            ...(get().screeningIntakes || {}),
+            [pId]: {
+              danaId: row.dana_id,
+              completed: row.completed,
+              mode: row.mode,
+              personal: { ...(row.personal || {}), danaId: row.dana_id },
+              medical: row.medical,
+              family: row.family,
+              compliance: row.compliance,
+              consent: row.consent,
+              submittedAt: row.submitted_at,
+            },
+          };
+        }
+      }
+    } catch {}
   }
   if (s.role === 'counsellor') {
     const [{ data }, refs] = await Promise.all([

@@ -50,7 +50,9 @@ export function useCouple() {
 
   const mePerson = PEOPLE[session?.id] || PEOPLE[myId] || { name: session?.name || 'You', short: session?.name?.split(' ')[0] || 'You', sex: 'M' };
   const partnerPerson = PEOPLE[partnerId] || { name: 'Partner', short: 'Partner', sex: 'F' };
-  const me = { id: session?.id || myId, ...mePerson };
+  const displayName = session?.name || mePerson.name || 'Partner';
+  const shortName = displayName.split(' ')[0] || mePerson.short || 'Partner';
+  const me = { id: session?.id || myId, ...mePerson, name: displayName, short: shortName };
   const partner = { id: partnerId, ...partnerPerson };
 
   const isConnected = Boolean(activeConn || session?.couple);

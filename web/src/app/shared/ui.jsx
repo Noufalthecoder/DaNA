@@ -73,9 +73,22 @@ export function Avatar({ name = '', size = 36, icon = null }) {
 /* A modal built on the native dialog, so focus and the Escape key just work. */
 export function Dialog({ title, icon, footer, onSubmit, onClose, wide = false, children }) {
   const box = useRef(null);
-  useEffect(() => { box.current?.showModal(); }, []);
+  useEffect(() => {
+    const el = box.current;
+    if (el && !el.open) {
+      try {
+        el.showModal();
+      } catch {}
+    }
+  }, []);
   return (
-    <dialog className={`dialog${wide ? ' is-wide' : ''}`} ref={box} onClose={onClose} aria-label={title}>
+    <dialog
+      className={`dialog${wide ? ' is-wide' : ''}`}
+      ref={box}
+      onClose={onClose}
+      onClick={(e) => { if (e.target === box.current) onClose?.(); }}
+      aria-label={title}
+    >
       <form onSubmit={onSubmit}>
         <div className="dialog-h">
           {icon}

@@ -181,7 +181,7 @@ export default function Root() {
               </div>
             </header>
             <main className="focused-content">
-              <Screening key={`${session?.id || 'anon'}-${session?.authMethod || 'def'}`} />
+              <Screening key={`${session?.id || 'anon'}-${session?.authMethod || 'def'}-${session?.email || ''}`} />
             </main>
           </div>
         </ErrorBoundary>

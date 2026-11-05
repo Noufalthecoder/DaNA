@@ -63,6 +63,9 @@ export const hasParents = (r, byId) => !!(byId[r.father_id] || byId[r.mother_id]
 
 /* "Paternal uncle" rather than two labels. Father and Mother already say their side. */
 export function relationLabel(r) {
+  if (r.isPartner || r.name?.includes('Partner')) {
+    return 'Partner · Kinship';
+  }
   const rule = ruleFor(r.relation);
   if (!r.side || rule?.side !== 'ask' && r.relation !== 'Cousin') return r.relation;
   return `${r.side === 'paternal' ? 'Paternal' : 'Maternal'} ${r.relation.toLowerCase()}`;
@@ -190,5 +193,262 @@ export function fromDb(records, ownerId) {
       sila_ref: person_id ? null : silaFor(rows, ownerId, relation),
     });
   });
+  return rows;
+}
+
+/*
+  Synthesize visual pedigree rows from intake family records.
+  If the partner is related (isConsanguineous === 'yes'), include them in the
+  correct generation and branch; if not related, do not include them.
+*/
+export function buildTreeFromIntake(me, partner, intake) {
+  if (!intake) return [];
+  const familyList = intake.family || [];
+  const isRelated = intake.compliance?.isConsanguineous === 'yes';
+  const partnerName = intake.personal?.partnerName || partner?.name || 'Partner';
+  const relationToPartner = intake.compliance?.relationToPartner || '';
+
+  const rows = [];
+  let sort = 1;
+
+  let pgfId = null, mgfId = null, pgmId = null, mgmId = null;
+  let fatherId = null, motherId = null, auntId = null, uncleId = null;
+
+  // 1. Grandparents (Generation -2)
+  familyList.forEach((item) => {
+    const rel = (item.relation || '').toLowerCase();
+    if (rel.includes('paternal grandfather') || (rel.includes('grandfather') && (item.side === 'paternal' || !rel.includes('maternal')))) {
+      pgfId = `pgf_${sort}`;
+      rows.push({
+        id: pgfId,
+        person_id: null,
+        name: item.name || 'Paternal Grandfather',
+        relation: 'Grandfather',
+        sex: 'M',
+        side: 'paternal',
+        generation: -2,
+        father_id: null,
+        mother_id: null,
+        condition: item.condition,
+        sort_order: sort++,
+      });
+    } else if (rel.includes('maternal grandfather')) {
+      mgfId = `mgf_${sort}`;
+      rows.push({
+        id: mgfId,
+        person_id: null,
+        name: item.name || 'Maternal Grandfather',
+        relation: 'Grandfather',
+        sex: 'M',
+        side: 'maternal',
+        generation: -2,
+        father_id: null,
+        mother_id: null,
+        condition: item.condition,
+        sort_order: sort++,
+      });
+    } else if (rel.includes('paternal grandmother')) {
+      pgmId = `pgm_${sort}`;
+      rows.push({
+        id: pgmId,
+        person_id: null,
+        name: item.name || 'Paternal Grandmother',
+        relation: 'Grandmother',
+        sex: 'F',
+        side: 'paternal',
+        generation: -2,
+        father_id: null,
+        mother_id: null,
+        condition: item.condition,
+        sort_order: sort++,
+      });
+    } else if (rel.includes('maternal grandmother') || (rel.includes('grandmother') && (item.side === 'maternal' || !rel.includes('paternal')))) {
+      mgmId = `mgm_${sort}`;
+      rows.push({
+        id: mgmId,
+        person_id: null,
+        name: item.name || 'Maternal Grandmother',
+        relation: 'Grandmother',
+        sex: 'F',
+        side: 'maternal',
+        generation: -2,
+        father_id: null,
+        mother_id: null,
+        condition: item.condition,
+        sort_order: sort++,
+      });
+    }
+  });
+
+  // 2. Parents, Uncles, Aunts (Generation -1)
+  familyList.forEach((item) => {
+    const rel = (item.relation || '').toLowerCase();
+    if (rel === 'father' || rel.startsWith('father')) {
+      fatherId = `fa_${sort}`;
+      rows.push({
+        id: fatherId,
+        person_id: null,
+        name: item.name || 'Father',
+        relation: 'Father',
+        sex: 'M',
+        side: 'paternal',
+        generation: -1,
+        father_id: pgfId,
+        mother_id: pgmId,
+        condition: item.condition,
+        sort_order: sort++,
+      });
+    } else if (rel === 'mother' || rel.startsWith('mother')) {
+      motherId = `mo_${sort}`;
+      rows.push({
+        id: motherId,
+        person_id: null,
+        name: item.name || 'Mother',
+        relation: 'Mother',
+        sex: 'F',
+        side: 'maternal',
+        generation: -1,
+        father_id: mgfId,
+        mother_id: mgmId,
+        condition: item.condition,
+        sort_order: sort++,
+      });
+    } else if (rel.includes('paternal uncle') || (rel.includes('uncle') && !rel.includes('maternal'))) {
+      const uId = `pu_${sort}`;
+      if (!uncleId) uncleId = uId;
+      rows.push({
+        id: uId,
+        person_id: null,
+        name: item.name || 'Paternal Uncle',
+        relation: 'Uncle',
+        sex: 'M',
+        side: 'paternal',
+        generation: -1,
+        father_id: pgfId,
+        mother_id: pgmId,
+        condition: item.condition,
+        sort_order: sort++,
+      });
+    } else if (rel.includes('maternal uncle')) {
+      const uId = `mu_${sort}`;
+      if (!uncleId) uncleId = uId;
+      rows.push({
+        id: uId,
+        person_id: null,
+        name: item.name || 'Maternal Uncle',
+        relation: 'Uncle',
+        sex: 'M',
+        side: 'maternal',
+        generation: -1,
+        father_id: mgfId,
+        mother_id: mgmId,
+        condition: item.condition,
+        sort_order: sort++,
+      });
+    } else if (rel.includes('paternal aunt') || (rel.includes('aunt') && !rel.includes('maternal'))) {
+      const aId = `pa_${sort}`;
+      if (!auntId) auntId = aId;
+      rows.push({
+        id: aId,
+        person_id: null,
+        name: item.name || 'Paternal Aunt',
+        relation: 'Aunt',
+        sex: 'F',
+        side: 'paternal',
+        generation: -1,
+        father_id: pgfId,
+        mother_id: pgmId,
+        condition: item.condition,
+        sort_order: sort++,
+      });
+    } else if (rel.includes('maternal aunt')) {
+      const aId = `ma_${sort}`;
+      if (!auntId) auntId = aId;
+      rows.push({
+        id: aId,
+        person_id: null,
+        name: item.name || 'Maternal Aunt',
+        relation: 'Aunt',
+        sex: 'F',
+        side: 'maternal',
+        generation: -1,
+        father_id: mgfId,
+        mother_id: mgmId,
+        condition: item.condition,
+        sort_order: sort++,
+      });
+    }
+  });
+
+  // 3. Siblings, Cousins, and Partner (Generation 0)
+  familyList.forEach((item) => {
+    const rel = (item.relation || '').toLowerCase();
+    const isPartnerRow = item.isPartner || rel.includes('partner');
+
+    if (isPartnerRow) {
+      if (isRelated) {
+        const isMaternalSide = relationToPartner.toLowerCase().includes('maternal') || rel.includes('maternal');
+        const cousinType = (rel.includes('first') || relationToPartner.toLowerCase().includes('first')) ? 'First cousin' : 'Second cousin';
+        rows.push({
+          id: 'partner_pedigree',
+          person_id: null,
+          name: `${item.name || partnerName} (Partner · ${cousinType})`,
+          relation: 'Cousin',
+          sex: partner?.sex || (me?.sex === 'M' ? 'F' : 'M'),
+          side: isMaternalSide ? 'maternal' : 'paternal',
+          generation: 0,
+          father_id: isMaternalSide ? uncleId : null,
+          mother_id: isMaternalSide ? (auntId || motherId) : null,
+          isPartner: true,
+          condition: item.condition || 'Carrier · Partner',
+          sort_order: sort++,
+        });
+      }
+    } else if (rel.includes('brother')) {
+      rows.push({
+        id: `br_${sort}`,
+        person_id: null,
+        name: item.name || 'Brother',
+        relation: 'Brother',
+        sex: 'M',
+        side: null,
+        generation: 0,
+        father_id: fatherId,
+        mother_id: motherId,
+        condition: item.condition,
+        sort_order: sort++,
+      });
+    } else if (rel.includes('sister')) {
+      rows.push({
+        id: `si_${sort}`,
+        person_id: null,
+        name: item.name || 'Sister',
+        relation: 'Sister',
+        sex: 'F',
+        side: null,
+        generation: 0,
+        father_id: fatherId,
+        mother_id: motherId,
+        condition: item.condition,
+        sort_order: sort++,
+      });
+    } else if (rel.includes('cousin')) {
+      const isMaternal = rel.includes('maternal');
+      rows.push({
+        id: `cou_${sort}`,
+        person_id: null,
+        name: item.name || 'Cousin',
+        relation: 'Cousin',
+        sex: null,
+        side: isMaternal ? 'maternal' : 'paternal',
+        generation: 0,
+        father_id: isMaternal ? uncleId : null,
+        mother_id: isMaternal ? auntId : null,
+        condition: item.condition,
+        sort_order: sort++,
+      });
+    }
+  });
+
   return rows;
 }

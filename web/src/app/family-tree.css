@@ -46,6 +46,7 @@
 .ftree-tag.is-paternal{background:var(--green-l);color:var(--ftree-accent)}
 .ftree-tag.is-maternal{background:#FFF3E0;color:#8F5500}
 .ftree-tag.is-you{background:var(--ftree-accent);color:#fff}
+.ftree-tag.is-partner{background:#E8F5E9;color:var(--green);border:1px solid #A5D6A7}
 
 /* edit and remove, shown on hover like HMS. Touch screens show them on the selected card. */
 .ftree-card__actions{position:absolute;top:50%;right:10px;display:flex;gap:4px;padding-left:6px;border-radius:8px;background:inherit;opacity:0;pointer-events:none;transform:translateY(-50%);transition:opacity .2s}

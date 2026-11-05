@@ -45,8 +45,9 @@ export const MENUS = {
     label: 'Couple',
     items: [
       { to: '/app', label: 'Home', icon: <HomeIcon /> },
+      { to: '/app', label: 'Home', icon: <HomeIcon /> },
       { to: '/app/result', label: 'My result', icon: <ContentIcon /> },
-      { to: '/app/familytree', label: 'Family Tree', icon: <BranchesIcon /> },
+      { to: '/app/familytree', label: 'Branches', icon: <BranchesIcon /> },
       { to: '/app/bonds', label: 'Bonds', icon: <BondsIcon /> },
       { to: '/app/roots', label: 'Roots', icon: <RootsIcon /> },
       { to: '/app/connections', label: 'Connections', icon: <ConnectionsIcon /> },

@@ -5,8 +5,8 @@
 */
 import { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { ACCOUNTS } from './data.js';
-import { set, useStore, signOut } from './store.js';
+import { ACCOUNTS, getSyntheticIntake } from './data.js';
+import { set, get, useStore, signOut } from './store.js';
 import { go } from './router.js';
 import { Avatar } from './ui.jsx';
 import { Brand } from './Logo.jsx';
@@ -108,14 +108,50 @@ export default function Login() {
       console.warn('Live demo sign-in failed, using the offline demo:', err.message);
     }
     setTimeout(() => {
-      // Flow restarts from the beginning: reset screening intakes and journey state
+      const s = get();
+      const existingIntake = s.screeningIntakes?.[acc.id];
+      const isAlreadyCompleted = !!existingIntake?.completed;
+
+      // If already completed, preserve it; otherwise prepare pre-fed intake with completed: false so user must complete & eSign
+      const feedIntake = isAlreadyCompleted
+        ? (s.screeningIntakes || {})
+        : (acc.role === 'couple'
+            ? {
+                ...(s.screeningIntakes || {}),
+                [acc.id]: existingIntake || {
+                  ...getSyntheticIntake(acc.id),
+                  completed: false,
+                  mode: 'uae_pass',
+                  personal: {
+                    ...getSyntheticIntake(acc.id).personal,
+                    partnerName: '',
+                    maritalStatus: '',
+                    pregnancyStatus: '',
+                  },
+                  compliance: {
+                    ...getSyntheticIntake(acc.id).compliance,
+                    isPregnant: '',
+                    gestationalWeeks: '',
+                  },
+                },
+              }
+            : {});
+
       set({
-        session: { id: acc.id, role: acc.role, name: acc.name, title: acc.title, couple: acc.couple || null, authMethod, via: 'uaepass' },
-        screeningIntakes: {},
-        alertsSent: [],
-        plan: null,
-        booked: null,
-      }, `Signed in via ${authMethod === 'uae_pass' ? 'UAE PASS' : 'Manual entry'} as ${ROLE[acc.role]}`);
+        session: {
+          id: acc.id,
+          role: acc.role,
+          name: acc.name,
+          title: acc.title,
+          couple: acc.couple || (acc.id === 'khalid' || acc.id === 'fatima' ? 'c1' : null),
+          authMethod: 'uae_pass',
+          via: 'uaepass',
+        },
+        screeningIntakes: feedIntake,
+        alertsSent: isAlreadyCompleted ? (s.alertsSent || []) : [],
+        plan: isAlreadyCompleted ? s.plan : null,
+        booked: isAlreadyCompleted ? s.booked : null,
+      }, `Signed in via UAE PASS as ${ROLE[acc.role]}`);
 
       go('/app'); // Home shows the journey and the one next step
     }, 900);
