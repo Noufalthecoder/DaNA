@@ -431,11 +431,14 @@ export async function syncConnectionsFromSupabase(userId, userAuthId = null) {
 
     if (!error && Array.isArray(data) && data.length > 0) {
       const state = get();
-      const existing = state.connections || [];
+      const all = state.connections || [];
+      // forget any connection to an old 'Sample partner' saved in this browser
+      const existing = all.filter((c) => ![c.userA, c.userB].some((x) => String(x).startsWith('p_')));
       const updated = [...existing];
-      let modified = false;
+      let modified = existing.length !== all.length;
 
       for (const row of data) {
+        if ([row.partner_a, row.partner_b].some((x) => String(x).startsWith('p_'))) continue; // sample partner, not a real link
         const matchesA = row.partner_a === userId || (userAuthId && row.partner_a === userAuthId);
         const matchesB = row.partner_b === userId || (userAuthId && row.partner_b === userAuthId);
         if (!matchesA && !matchesB) continue;
