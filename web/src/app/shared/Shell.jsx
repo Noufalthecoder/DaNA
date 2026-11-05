@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { set, useStore, resetDemo, signOut as localSignOut } from './store.js';
 import { go } from './router.js';
-import { Avatar } from './ui.jsx';
+import ProfileMenu from './ProfileMenu.jsx';
 import { Brand } from './Logo.jsx';
 import { signOut as supabaseSignOut } from './supabase.js';
 import { loadAll, logAudit } from './db.js';
@@ -47,19 +47,9 @@ export default function Shell({ menu, path, children }) {
       <div className="main">
         <header className="top">
           <button className="burger" onClick={() => setOpen(!open)} aria-label="Menu">☰</button>
-          <a
-            href={session.role === 'couple' ? '#/app/profile' : '#/app'}
-            className="top-who"
-            style={{ textDecoration: 'none', color: 'inherit' }}
-            title={session.role === 'couple' ? 'View Profile & Health Data' : ''}
-          >
-            <Avatar name={session.name} size={34} />
-            <span><b>{session.name}</b>{session.role !== 'couple' && <small>{session.title}</small>}</span>
-          </a>
           <div className="top-r">
             <NotificationBell />
-            <a className="ghost" href="#/login" onClick={switchAccount}>Switch account</a>
-            <button className="ghost" onClick={logout}>Sign out</button>
+            <ProfileMenu session={session} onSwitch={switchAccount} onSignOut={logout} />
           </div>
         </header>
         {dbError && <div className="db-err">{dbError} <button className="link" onClick={() => { set({ dbError: null }); loadAll(); }}>Try again</button></div>}

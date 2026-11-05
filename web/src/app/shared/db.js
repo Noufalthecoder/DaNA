@@ -283,3 +283,24 @@ async function doLoad() {
   }
   set(patch);
 }
+
+/* Profile menu: change my display name (live: saved to my account). */
+export async function setDisplayName(name) {
+  const clean = (name || '').trim().slice(0, 80);
+  if (clean.length < 2) throw new Error('Use at least 2 characters.');
+  if (isLive()) {
+    const { error } = await supabase.rpc('set_display_name', { new_name: clean });
+    if (error) throw new Error(error.message);
+  }
+  set({ session: { ...get().session, name: clean } }, 'Changed display name');
+  return clean;
+}
+
+/* Profile picture: an icon from AVATARS (null = initials). */
+export async function setAvatar(icon) {
+  if (isLive()) {
+    const { error } = await supabase.rpc('set_avatar', { new_avatar: icon });
+    if (error) throw new Error(error.message);
+  }
+  set({ session: { ...get().session, avatar: icon } }, 'Changed profile picture');
+}

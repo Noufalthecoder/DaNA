@@ -55,6 +55,7 @@ export async function loadSession(user) {
     id: acc.person_id || user.id,
     role: acc.role,
     name: acc.display_name,
+    avatar: acc.avatar || null,
     title: acc.title || '',
     couple: couple ? couple.id : null,
     email: user.email,
