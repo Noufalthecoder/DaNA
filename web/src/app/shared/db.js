@@ -8,6 +8,7 @@ import { supabase } from './supabase.js';
 import { get, set } from './store.js';
 import { SLOTS, PEOPLE, COUPLES, relativesFor } from './data.js';
 import { fromDb, toDb } from './family.js';
+import { api } from './api.js';
 
 export const isLive = () => !!(supabase && get().session?.backend);
 
@@ -197,6 +198,7 @@ export async function hydratePeople() {
   const gene = Object.fromEntries((r.data || []).map((x) => [x.person_id, x.gene]));
   (p.data || []).forEach((x) => {
     if (!PEOPLE[x.id]) PEOPLE[x.id] = { name: x.name, short: x.short_name, sex: x.sex, carrier: gene[x.id] ?? null };
+    else if (x.id in gene) PEOPLE[x.id].carrier = gene[x.id]; // a fresh Malaffi result replaces the old one
   });
   (c.data || []).forEach((x) => {
     if (!COUPLES.find((k) => k.id === x.id)) {
@@ -304,3 +306,31 @@ export async function setAvatar(icon) {
   }
   set({ session: { ...get().session, avatar: icon } }, 'Changed profile picture');
 }
+
+/* ---------- onboarding (009_onboarding.sql + the API) ---------- */
+const rpc = async (fn, args) => {
+  const { data, error } = await supabase.rpc(fn, args);
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/* step 1: my own health profile (sex is needed to interpret X-linked results) */
+export async function startMyProfile(sex) {
+  const old = get().session?.id;
+  const pid = await rpc('start_my_profile', { p_sex: sex });
+  // the screening intake was saved under the login id before the profile existed: move it across
+  const intakes = get().screeningIntakes || {};
+  if (old && old !== pid && intakes[old]) set({ screeningIntakes: { ...intakes, [pid]: intakes[old] } });
+  return pid;
+}
+
+/* step 3: fetch my lab report from Malaffi (validated and saved by the API) */
+export async function fetchMalaffi() {
+  const r = await api('/ingest/malaffi', { method: 'POST' });
+  await loadAll();
+  return r;
+}
+
+export const createPartnerInvite = () => rpc('create_partner_invite');
+export const acceptPartnerInvite = (code) => rpc('accept_partner_invite', { p_code: code });
+export const startSampleJourney = () => rpc('start_sample_journey');

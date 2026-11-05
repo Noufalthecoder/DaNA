@@ -163,7 +163,7 @@ export default function Screening() {
       screeningIntakes: { ...(s.screeningIntakes || {}), [me.id]: payload },
     }), `User ${me.name} submitted premarital screening intake (${mode === 'uae_pass' ? 'UAE PASS verified' : 'Manual entry'})`);
 
-    go('/app/report');
+    go(session?.couple ? '/app/report' : '/app');
   };
 
   if (isSubmitted) {

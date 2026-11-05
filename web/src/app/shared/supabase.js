@@ -5,7 +5,7 @@
 */
 import { createClient } from '@supabase/supabase-js';
 import { COUPLES } from './data.js';
-import { set, startFresh } from './store.js';
+import { get, set, startFresh } from './store.js';
 import { loadAll, logAudit, hydratePeople } from './db.js';
 
 const getEnv = (key) => {
@@ -41,12 +41,7 @@ export async function loadSession(user) {
     const again = await supabase.from('accounts').select('*').eq('user_id', user.id).maybeSingle();
     acc = again.data || row;
   }
-  if (acc.role === 'couple' && !acc.person_id) {
-    // temporary onboarding: give this account its own sample couple (see supabase/003_sample_journey.sql)
-    const { data: pid, error } = await supabase.rpc('start_sample_journey');
-    if (!error && pid) acc = { ...acc, person_id: pid, title: 'Partner · engaged (sample journey)' };
-    else if (error) console.warn('Sample journey not available:', error.message);
-  }
+  // a new couple account has no health profile yet: the Welcome page walks them through it (009_onboarding.sql)
   await hydratePeople();
   const couple = acc.person_id ? COUPLES.find((c) => c.a === acc.person_id || c.b === acc.person_id) : null;
   const isUae = typeof window !== 'undefined' && window.__danaVia === 'uaepass';
@@ -61,8 +56,19 @@ export async function loadSession(user) {
     email: user.email,
     via: (typeof window !== 'undefined' && window.__danaVia) || user.app_metadata?.provider || 'email',
     authMethod,
+    needsProfile: acc.role === 'couple' && !acc.person_id,
     backend: true,
   };
+}
+
+/* re-read my account after onboarding steps (profile created, partner linked) */
+export async function refreshSession() {
+  const { data } = await supabase.auth.getUser();
+  if (!data?.user) return null;
+  const prev = get().session || {};
+  const next = await loadSession(data.user);
+  set({ session: { ...next, avatar: next.avatar ?? prev.avatar } });
+  return next;
 }
 
 /* keep the app's session in step with Supabase (also handles the Google redirect) */
