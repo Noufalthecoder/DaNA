@@ -269,6 +269,31 @@ export async function searchUsersAsync(requesterId, query = '') {
       .map((b) => (b.user === requesterId ? b.blocked : b.user))
   );
 
+  // Live: search by full name or exact email through the protected find_partner() (011).
+  // Privacy rules hide other members' rows, so the table queries below only work offline.
+  if (supabase && state.session?.backend) {
+    const { data, error } = await supabase.rpc('find_partner', { q: cleanQ });
+    if (error) throw new Error(error.message);
+    return (data || []).filter((r) => !blockedIds.has(r.person_id)).map((r) => {
+      PEOPLE[r.person_id] ||= { name: r.display_name, short: r.display_name.split(' ')[0], sex: r.sex };
+      return {
+        id: r.person_id,
+        name: r.display_name,
+        short: r.display_name.split(' ')[0],
+        username: r.email_hint || r.display_name,
+        danaId: `DANA-${r.person_id.slice(2, 8).toUpperCase()}`,
+        sex: r.sex,
+        avatar: r.avatar,
+        role: r.email_hint ? `Email ${r.email_hint}` : 'DaNA member',
+        email: r.email_hint,
+        isConnected: isUserConnected(requesterId, r.person_id),
+        hasPendingOutgoing: hasPendingRequest(requesterId, r.person_id),
+        hasPendingIncoming: hasPendingRequest(r.person_id, requesterId),
+        source: 'find_partner',
+      };
+    });
+  }
+
   let supabaseAccounts = [];
 
   // 1. Query Supabase 'accounts' table directly
