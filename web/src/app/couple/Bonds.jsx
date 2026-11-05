@@ -52,17 +52,13 @@ export default function Bonds() {
 
   return (
     <Page
-      title="Bonds · الروابط"
+      title="Bonds: your options"
       sub={
         isConnected
           ? `Premarital partner assessment for ${me?.short || 'You'} & ${partner?.short || 'Partner'}. Compatible, with a plan.`
           : 'Connect with your premarital partner to evaluate combined reproductive genetic risks.'
       }
     >
-      {/* Shared Couple Journey Timeline */}
-      <Card title="Shared Journey Timeline">
-        <Steps items={TIMELINE} current={currentStep} />
-      </Card>
 
       {isConnected && result ? (
         <>
@@ -74,7 +70,7 @@ export default function Bonds() {
             <p className="lead-in">
               {result.type === 'plan' ? (
                 <>
-                  Both you and {partner?.short || 'Partner'} carry one copy of the <b>{result.gene}</b> gene variant linked to <b>{result.condition}</b> (Autosomal Recessive).
+                  Both you and {partner?.short || 'Partner'} carry one copy of the <b>{result.gene}</b> gene variant linked to <b>{result.condition}</b>. A child can only have it if they inherit the changed copy from both of you.
                 </>
               ) : result.type === 'xlinked' ? (
                 <>
@@ -106,7 +102,7 @@ export default function Bonds() {
             </div>
 
             <div className="assessment-explanation-box">
-              <h4>Mendelian Inheritance Breakdown:</h4>
+              <h4>For each pregnancy:</h4>
               <ul className="facts">
                 <li><b>75% chance in each pregnancy</b> of having a healthy child (unaffected or healthy carrier).</li>
                 <li><b>25% chance in each pregnancy</b> of the child inheriting both copies and having {result.condition || 'the condition'}.</li>
@@ -149,7 +145,7 @@ export default function Bonds() {
                   <b>Discuss this assessment with Dr. Mariam Al Hosani:</b> Ask questions about PGT-M, prenatal testing, or UAE healthcare coverage for your selected plan.
                 </p>
                 <small className="muted">
-                  {booked ? `Your session is booked for ${booked}.` : 'Clinical appointments are free for UAE couples.'}
+                  {booked ? `Your session is booked for ${booked}.` : 'Ask your counsellor about appointments and coverage.'}
                 </small>
               </div>
               <a className="btn" href="#/app/counsellor">

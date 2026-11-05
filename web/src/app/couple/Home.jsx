@@ -67,20 +67,15 @@ export default function Home() {
         </Card>
         <Card title="Your counsellor">
           <p className="muted">A genetics counsellor can explain your result, answer questions and help you think through options. Free and confidential.</p>
-          <p>{booked ? <><Badge tone="green">Booked</Badge> {booked}</> : <Badge tone="grey">Not booked yet</Badge>}</p>
+          <p style={{ margin: '12px 0' }}>{booked ? <><Badge tone="green">Booked</Badge> {booked}</> : <Badge tone="grey">Not booked yet</Badge>}</p>
           <a className="btn secondary" href="#/app/counsellor">{booked ? 'View booking' : 'Book a conversation'}</a>
         </Card>
       </div>
 
-      <div className="stats four">
-        <Stat
-          label="Health Profile"
-          value={isScreened ? 'Verified' : 'Pending'}
-          note={isScreened ? (myIntake?.mode === 'uae_pass' ? 'UAE PASS verified · Profile' : 'Manual entry · Profile') : 'Action required'}
-        />
-        <Stat label="Your plan" value={plan ? plan.split(':')[0] : 'Not chosen'} />
-        <Stat label="Relatives invited" value={sent.length} note="anonymously" />
-        <Stat label="Counsellor" value={booked ? 'Booked' : 'Available'} note={booked || 'Dr. Mariam'} />
+      <div className="tiles">
+        <a className="tile" href="#/app/bonds"><small>Your plan</small><b>{plan ? plan.split(':')[0] : 'Not chosen yet'}</b><span>{plan ? 'Change any time' : 'Take your time →'}</span></a>
+        <a className="tile" href="#/app/roots"><small>Relatives invited</small><b>{sent.length}</b><span>Anonymous alerts →</span></a>
+        <a className="tile" href="#/app/my-report"><small>Your report</small><b>Ready</b><span>English · العربية · اردو →</span></a>
       </div>
     </Page>
   );

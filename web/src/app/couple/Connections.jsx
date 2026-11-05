@@ -306,8 +306,8 @@ export default function Connections({ defaultTab = 'discover' }) {
 
   return (
     <Page
-      title="Connections · الروابط والشريك"
-      sub="Connect with your premarital partner to evaluate combined reproductive genetic risks."
+      title="Connections"
+      sub="Link with your partner to see your result as a couple. Nothing is shared until you both agree."
     >
       <div className="conn-wrapper">
         {/* Toast Feedback */}
@@ -329,9 +329,7 @@ export default function Connections({ defaultTab = 'discover' }) {
         )}
 
         {/* Link by invite code: creates the real couple in the database */}
-        <Card title="Link with your partner">
-          <PartnerCode />
-        </Card>
+        <PartnerCode />
 
         {/* Your DaNA Identity Card */}
         <div className="conn-identity-card">
@@ -401,7 +399,7 @@ export default function Connections({ defaultTab = 'discover' }) {
         {tab === 'discover' && (
           <Card title="Search & Connect with Your Partner">
             <p className="lead-in">
-              Enter your partner’s exact <b>Username</b> or <b>Unique DaNA ID</b> to connect.
+              Type your partner’s <b>full name</b>, <b>email</b> or <b>DaNA ID</b>. They will get a request to accept.
             </p>
 
             <div className="conn-search-box">
@@ -445,9 +443,9 @@ export default function Connections({ defaultTab = 'discover' }) {
                 <div className="conn-privacy-shield">
                   <IconShield size={22} />
                 </div>
-                <h3>Strict Healthcare Privacy Enforced</h3>
+                <h3>Private by design</h3>
                 <p>
-                  In compliance with UAE Federal Decree-Law No. 49 of 2023, DaNA does not display public user directories. To protect citizen privacy, you can only find your partner by entering their exact username or unique DaNA ID above.
+                  DaNA never shows a list of members. Only an exact full name, email or DaNA ID finds someone, and they see nothing about you until they accept.
                 </p>
               </div>
             )}
