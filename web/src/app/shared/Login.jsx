@@ -66,6 +66,15 @@ const saveClaim = (role, code) => {
   } catch {}
 };
 
+/* staff code must be valid for the chosen role before any account is created (017) */
+async function staffCodeOk(role, code) {
+  if (role === 'couple') return true;
+  const { data, error } = await supabase.rpc('check_staff_code', { p_role: role, p_code: code.trim() });
+  if (error) throw new Error('Could not check the staff code. Try again.');
+  return data === true;
+}
+const roleName = (r) => (r === 'admin' ? 'DoH admin' : 'Counsellor');
+
 export default function Login() {
   // start → uaepass (pick demo) → connecting | email | signup | check-email
   const [step, setStep] = useState('start');
@@ -134,8 +143,13 @@ export default function Login() {
   const signUp = async (e) => {
     e.preventDefault();
     if (form.password.length < 8) { setError('Use at least 8 characters for your password.'); return; }
-    if (staff && form.code.trim().length < 6) { setError('Enter your staff access code.'); return; }
+    if (staff && !form.code.trim()) { setError('Enter your staff access code.'); return; }
     setBusy(true); setError(''); setExists(false); clearAuthError();
+    try {
+      if (!(await staffCodeOk(form.role, form.code))) {
+        setBusy(false); setError(`That staff access code is not valid for ${roleName(form.role)}.`); return;
+      }
+    } catch (e2) { setBusy(false); setError(e2.message); return; }
     window.__danaVia = null;
     saveClaim(form.role, form.code);
     const { data, error: err } = await supabase.auth.signUp({
@@ -244,8 +258,11 @@ export default function Login() {
             )}
             {error && <p className="err">{error}</p>}
             <button className="btn wide" disabled={busy}>{busy ? 'Setting up your account…' : 'Create account'}</button>
-            <button type="button" className="method google-inline" onClick={() => {
-              if (staff && form.code.trim().length < 6) { setError('Enter your staff access code first.'); return; }
+            <button type="button" className="method google-inline" onClick={async () => {
+              if (staff && !form.code.trim()) { setError('Enter your staff access code first.'); return; }
+              try {
+                if (!(await staffCodeOk(form.role, form.code))) { setError(`That staff access code is not valid for ${roleName(form.role)}.`); return; }
+              } catch (e2) { setError(e2.message); return; }
               saveClaim(form.role, form.code); google();
             }}><GoogleIcon />Sign up with Google</button>
             <p className="swap">Already have an account? <button type="button" className="link" onClick={() => to('email')}>Sign in</button></p>

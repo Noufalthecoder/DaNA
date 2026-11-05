@@ -46,8 +46,11 @@ export async function loadSession(user) {
   try { claim = JSON.parse(sessionStorage.getItem('dana.staffClaim') || 'null'); sessionStorage.removeItem('dana.staffClaim'); } catch {}
   if (claim && acc.role === 'couple' && !acc.person_id) {
     const { error } = await supabase.rpc('claim_staff_role', { p_role: claim.role, p_code: claim.code });
-    if (error) set({ dbError: `${error.message}. You are signed in as a couple member for now.` });
-    else {
+    if (error) {
+      // never let a failed staff sign-up continue into the app
+      await supabase.auth.signOut().catch(() => {});
+      throw new Error(`${error.message}. Sign-up as ${claim.role === 'admin' ? 'DoH admin' : 'counsellor'} was not completed.`);
+    } else {
       const again = await supabase.from('accounts').select('*').eq('user_id', user.id).maybeSingle();
       if (again.data) acc = again.data;
     }
