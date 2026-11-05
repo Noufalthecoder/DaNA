@@ -1,5 +1,5 @@
 -- =====================================================================
--- Run AFTER 010_connection_requests_fix.sql (SQL Editor -> New query -> Run). Safe to re-run.
+-- Run AFTER 014_opposite_sex.sql (SQL Editor -> New query -> Run). Safe to re-run.
 -- Default benchmarks used to cross-check each partner's screening results.
 --   risk_benchmarks           exactly 2 rows: M and F. One column per parameter.
 --   risk_benchmark_snapshots  append-only history. A trigger writes one row on

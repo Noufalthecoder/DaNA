@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useStore } from './store.js';
 import { refreshSession } from './supabase.js';
-import { createPartnerInvite, acceptPartnerInvite, loadAll } from './db.js';
+import { createPartnerInvite, acceptPartnerInvite, loadAll, setMySex } from './db.js';
+import { COUPLES, PEOPLE } from './data.js';
 import { go } from './router.js';
 
 export const PENDING_CODE_KEY = 'dana.partnerCode';
@@ -20,7 +21,15 @@ export default function PartnerCode() {
 
   const live = !!session?.backend;
   const hasProfile = live && !session.needsProfile;
-  const linked = !!session?.couple;
+  // linked = a REAL couple (an old 'Sample partner' p_... does not count)
+  const myCouple = COUPLES.find((c) => c.id === session?.couple);
+  const linked = !!myCouple && ![myCouple.a, myCouple.b].some((x) => String(x).startsWith('p_'));
+  const [sex, setSex] = useState(PEOPLE[session?.id]?.sex || '');
+  const changeSex = async (v) => {
+    if (v === sex) return;
+    setErr('');
+    try { await setMySex(v); setSex(v); } catch (e) { setErr(e.message); }
+  };
 
   useEffect(() => {
     if (hasProfile && !linked && !code) createPartnerInvite().then(setCode).catch((e) => setErr(e.message));
@@ -31,7 +40,8 @@ export default function PartnerCode() {
     if (!hasProfile || linked) return;
     const t = setInterval(async () => {
       const s = await refreshSession().catch(() => null);
-      if (s?.couple) { clearInterval(t); await loadAll(); go('/app'); }
+      const c = COUPLES.find((k) => k.id === s?.couple);
+      if (c && ![c.a, c.b].some((x) => String(x).startsWith('p_'))) { clearInterval(t); await loadAll(); go('/app'); }
     }, 15000);
     return () => clearInterval(t);
   }, [hasProfile, linked]);
@@ -65,6 +75,15 @@ export default function PartnerCode() {
 
   return (
     <div className="pcode">
+      <div className="pcode-sex">
+        <span>I am</span>
+        <div className="seg" role="radiogroup" aria-label="I am">
+          {[['F', 'Female'], ['M', 'Male']].map(([v, l]) => (
+            <button key={v} type="button" role="radio" aria-checked={sex === v} className={sex === v ? 'on' : ''} onClick={() => changeSex(v)}>{l}</button>
+          ))}
+        </div>
+        <small className="muted">{sex === 'F' ? 'You can link with a man.' : sex === 'M' ? 'You can link with a woman.' : 'Choose so we can find your partner.'}</small>
+      </div>
       <div className="code-box">
         <small>Your invite code</small>
         <b>{code || '······'}</b>

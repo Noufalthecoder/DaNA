@@ -168,7 +168,7 @@ def _benchmarks(user: User) -> dict:
     rows = as_user(user.token).select("risk_benchmarks", select="*")
     bench = {r["sex"]: r for r in rows}
     if set(bench) != {"M", "F"}:
-        raise HTTPException(503, "Risk benchmarks are not set up. Run supabase/011_risk_benchmarks.sql")
+        raise HTTPException(503, "Risk benchmarks are not set up. Run supabase/015_risk_benchmarks.sql")
     return bench
 
 

@@ -39,6 +39,9 @@ export function generateUuid() {
 /**
  * Return user's public identifier details (Username & Unique DaNA ID)
  */
+/* DaNA ID: demo people have their own; real members get DANA- + 6 characters of their profile id (same rule as find_partner in 011) */
+export const danaIdFor = (id) => (/^[up]_[0-9a-f]{6}/.test(id || '') ? `DANA-${id.slice(2, 8).toUpperCase()}` : `DANA-${(id || '').toUpperCase()}`);
+
 export function getUserIdentifier(userId) {
   const p = PEOPLE[userId];
   if (!p) {
@@ -47,7 +50,7 @@ export function getUserIdentifier(userId) {
       name: userId,
       short: userId,
       username: userId,
-      danaId: `DANA-${userId.toUpperCase()}`,
+      danaId: danaIdFor(userId),
       sex: 'M',
     };
   }
@@ -56,7 +59,7 @@ export function getUserIdentifier(userId) {
     name: p.name,
     short: p.short,
     username: p.username || userId,
-    danaId: p.danaId || `DANA-${userId.toUpperCase()}`,
+    danaId: p.danaId || danaIdFor(userId),
     sex: p.sex,
   };
 }
@@ -269,6 +272,31 @@ export async function searchUsersAsync(requesterId, query = '') {
       .map((b) => (b.user === requesterId ? b.blocked : b.user))
   );
 
+  // Live: search by full name or exact email through the protected find_partner() (011).
+  // Privacy rules hide other members' rows, so the table queries below only work offline.
+  if (supabase && state.session?.backend) {
+    const { data, error } = await supabase.rpc('find_partner', { q: cleanQ });
+    if (error) throw new Error(error.message);
+    return (data || []).filter((r) => !blockedIds.has(r.person_id)).map((r) => {
+      PEOPLE[r.person_id] ||= { name: r.display_name, short: r.display_name.split(' ')[0], sex: r.sex };
+      return {
+        id: r.person_id,
+        name: r.display_name,
+        short: r.display_name.split(' ')[0],
+        username: r.email_hint || r.display_name,
+        danaId: r.dana_id,
+        sex: r.sex,
+        avatar: r.avatar,
+        role: `${r.dana_id}${r.email_hint ? ` · ${r.email_hint}` : ''}`,
+        email: r.email_hint,
+        isConnected: isUserConnected(requesterId, r.person_id),
+        hasPendingOutgoing: hasPendingRequest(requesterId, r.person_id),
+        hasPendingIncoming: hasPendingRequest(r.person_id, requesterId),
+        source: 'find_partner',
+      };
+    });
+  }
+
   let supabaseAccounts = [];
 
   // 1. Query Supabase 'accounts' table directly
@@ -403,11 +431,14 @@ export async function syncConnectionsFromSupabase(userId, userAuthId = null) {
 
     if (!error && Array.isArray(data) && data.length > 0) {
       const state = get();
-      const existing = state.connections || [];
+      const all = state.connections || [];
+      // forget any connection to an old 'Sample partner' saved in this browser
+      const existing = all.filter((c) => ![c.userA, c.userB].some((x) => String(x).startsWith('p_')));
       const updated = [...existing];
-      let modified = false;
+      let modified = existing.length !== all.length;
 
       for (const row of data) {
+        if ([row.partner_a, row.partner_b].some((x) => String(x).startsWith('p_'))) continue; // sample partner, not a real link
         const matchesA = row.partner_a === userId || (userAuthId && row.partner_a === userAuthId);
         const matchesB = row.partner_b === userId || (userAuthId && row.partner_b === userAuthId);
         if (!matchesA && !matchesB) continue;
@@ -451,10 +482,29 @@ export async function syncRequestsFromSupabase(userId, userEmail = null, userAut
       clauses.push(`recipient_email.ilike.${userEmail}`, `receiver_id.ilike.${userEmail}`);
     }
 
-    const { data, error } = await supabase
-      .from('connection_requests')
-      .select('id, sender_id, receiver_id, recipient_email, recipient_phone, channel, invitation_sent, invitation_sent_at, accepted, accepted_at, status, created_at')
-      .or(clauses.join(','));
+    // Live: my_connection_requests() (012) returns my rows with both people's names and DaNA IDs.
+    const live = !!get().session?.backend;
+    const { data, error } = live
+      ? await supabase.rpc('my_connection_requests')
+      : await supabase
+        .from('connection_requests')
+        .select('id, sender_id, receiver_id, recipient_email, recipient_phone, channel, invitation_sent, invitation_sent_at, accepted, accepted_at, status, created_at')
+        .or(clauses.join(','));
+    if (live && !error) {
+      (data || []).forEach((row) => {
+        for (const [pid, name, avatar, danaId] of [[row.sender_id, row.sender_name, row.sender_avatar, row.sender_dana_id], [row.receiver_id, row.receiver_name, row.receiver_avatar, row.receiver_dana_id]]) {
+          if (pid && name && !PEOPLE[pid]) PEOPLE[pid] = { name, short: name.split(' ')[0], avatar, danaId };
+          else if (pid && PEOPLE[pid] && danaId && !PEOPLE[pid].danaId) PEOPLE[pid].danaId = danaId;
+        }
+      });
+      // my request was just accepted on the other phone: open our couple journey
+      const before = get().connectionRequests || [];
+      const nowAccepted = (data || []).some((row) => !row.incoming && row.status === 'ACCEPTED'
+        && before.some((b) => b.id === row.id && b.status === 'PENDING'));
+      if (nowAccepted && (!get().session?.couple || get().session?.sampleCouple)) {
+        refreshSession().then(() => loadAll()).catch(() => {});
+      }
+    }
 
     if (!error && Array.isArray(data) && data.length > 0) {
       const state = get();
@@ -464,7 +514,7 @@ export async function syncRequestsFromSupabase(userId, userEmail = null, userAut
 
       for (const row of data) {
         // Normalise receiverId: if receiver_id in DB matched user's email or auth UUID, align to userId
-        const matchesMe =
+        const matchesMe = row.incoming === true ||
           row.receiver_id === userId ||
           (userAuthId && row.receiver_id === userAuthId) ||
           (userEmail && (row.recipient_email === userEmail || row.receiver_id === userEmail));

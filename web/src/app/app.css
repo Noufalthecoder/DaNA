@@ -1707,3 +1707,7 @@ body.in-app{background:#F6F7F5}
 .onb-sample .link{padding:0;font-size:inherit}
 .code-box .btn-row{display:flex;gap:8px;flex-wrap:wrap}
 .code-in input::placeholder{text-transform:none;letter-spacing:normal}
+
+.pcode-sex{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.pcode-sex .seg{margin-bottom:0}
+.pcode-sex span{font-weight:600;font-size:14px}
