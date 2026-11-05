@@ -1727,3 +1727,31 @@ body.in-app{background:#F6F7F5}
 .pw-wrap input{width:100%;padding-right:44px !important}
 .pw-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--ink2);cursor:pointer;padding:6px;border-radius:8px;display:flex}
 .pw-eye:hover{color:var(--ink);background:var(--bg)}
+
+/* Result explained (requirement 1) */
+.xp-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.xp-tag{font-size:12.5px;color:var(--ink2);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
+.xp-h{display:inline-flex;align-items:center;gap:10px}
+.xp-n{width:26px;height:26px;border-radius:50%;background:var(--green-l,#e8f5ee);color:var(--green);font-size:13px;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+.page .card + .card{margin-top:16px}
+.xp-t{font-size:18px;margin:0 0 8px;line-height:1.35}
+.card p{line-height:1.6}
+.xp-cond{background:var(--bg);border-radius:12px;padding:12px 14px;margin-top:10px}
+.xp-cond p{margin:4px 0 0}
+.xp-lead{font-weight:600;margin:0 0 12px}
+.xp-kids{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.xp-kid{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:12px 6px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.xp-kid b{font-size:15px}
+.xp-kid span{font-size:12.5px;color:var(--ink2);line-height:1.3}
+.kid{color:var(--ink)}
+.kid-carrier{color:var(--green)}
+.kid-affected{color:var(--amber,#B45309)}
+.xp-sum{list-style:none;padding:0;margin:14px 0 8px;display:flex;gap:18px;flex-wrap:wrap}
+.xp-sum b{font-size:18px;margin-right:4px}
+.xp-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:12.5px;color:var(--ink2)}
+.xp-legend span{display:inline-flex;align-items:center;gap:4px}
+.xp-legend svg{width:16px;height:22px}
+.xp-list{margin:0;padding-left:20px;line-height:1.65}
+.xp-choice{margin-top:12px;font-weight:600}
+@media (max-width:640px){.xp-kids{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.card .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}

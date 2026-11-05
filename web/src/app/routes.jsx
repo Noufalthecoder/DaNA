@@ -3,6 +3,7 @@
   then add one line to your role's `items` and one case to `page()`.
 */
 import Home from './couple/Home.jsx';
+import Result from './couple/Result.jsx';
 import FamilyTree from './couple/FamilyTree.jsx';
 import Screening from './couple/Screening.jsx';
 import Profile from './couple/Profile.jsx';
@@ -43,6 +44,7 @@ export const MENUS = {
     label: 'Couple',
     items: [
       { to: '/app', label: 'Home', icon: <HomeIcon /> },
+      { to: '/app/result', label: 'My result', icon: <ContentIcon /> },
       { to: '/app/familytree', label: 'Family Tree', icon: <BranchesIcon /> },
       { to: '/app/bonds', label: 'Bonds', icon: <BondsIcon /> },
       { to: '/app/roots', label: 'Roots', icon: <RootsIcon /> },
@@ -78,6 +80,7 @@ export function page(role, path) {
   if (role === 'couple') {
     const coupleRoutes = {
       '/app': <Home />,
+      '/app/result': <Result />,
       '/app/profile': <Profile />,
       '/app/report': <MedicalReport />,
       '/app/screening': <Screening />,
