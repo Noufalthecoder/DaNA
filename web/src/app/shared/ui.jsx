@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 export { Logo, Brand } from './Logo.jsx';
+import { Chibi, isChibi } from './Chibi.jsx';
 
 export function Page({ title, sub, actions, children }) {
   return (
@@ -58,7 +59,9 @@ export function Steps({ items, current }) {
   );
 }
 
-export function Avatar({ name = '', size = 36 }) {
+export function Avatar({ name = '', size = 36, icon = null }) {
+  if (isChibi(icon)) return <span className={`avatar avatar-${size} avatar-icon`} style={{ width: size, height: size }} title={name}><Chibi id={icon.slice(2)} size={size} title={name} /></span>;
+  if (icon) return <span className={`avatar avatar-${size} avatar-icon`} style={{ width: size, height: size, fontSize: size * 0.6 }} role="img" aria-label={name}>{icon}</span>;
   const safeName = (name || '').trim() || '?';
   const initials =
     safeName.replace(/^Dr\.\s*/, '').split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() ||

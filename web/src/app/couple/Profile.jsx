@@ -5,6 +5,8 @@ import { SYNTHETIC_INTAKES } from '../shared/data.js';
 import { set, useStore, EMPTY_OBJ } from '../shared/store.js';
 import { go } from '../shared/router.js';
 import { EditIcon, CheckIcon } from '../shared/Icons.jsx';
+import AvatarPicker from '../shared/AvatarPicker.jsx';
+import { Avatar } from '../shared/ui.jsx';
 
 const RELATIONS = [
   'Mother', 'Father', 'Brother', 'Sister',
@@ -150,6 +152,7 @@ export default function Profile() {
   };
 
   const isIntakeCompleted = !!existingIntake?.completed;
+  const account = useStore((s) => s.session) || {};
 
   return (
     <Page
@@ -206,6 +209,13 @@ export default function Profile() {
           Health profile and screening intake data saved successfully.
         </div>
       )}
+
+      <Card title="Profile picture">
+        <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <Avatar name={account.name} size={64} icon={account.avatar} />
+          <div style={{ flex: 1, minWidth: 220 }}><AvatarPicker session={account} /></div>
+        </div>
+      </Card>
 
       {/* Profile Overview Card */}
       <Card>

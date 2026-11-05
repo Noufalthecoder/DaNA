@@ -105,7 +105,11 @@ def ingest_malaffi(bundle: dict | None = Body(None), user: User = Depends(curren
                                    "external_reference": f"DiagnosticReport/{p.report['report_id']}", "terminology_system": "LOINC",
                                    "clinical_code": "51969-4", "display_name": "Genetic analysis report",
                                    "recorded_date": p.report["report_date"], "raw_payload": bundle})
-    svc.rpc("sync_cases")
+    # summary row the app reads (null gene = nothing found), then re-score this couple's case if linked
+    found = next((v["gene_symbol"] for v in p.variants if v.get("clinical_significance") in ("pathogenic", "likely_pathogenic")), None)
+    svc.insert("results", {"person_id": person, "gene": found, "lab": p.report.get("laboratory_name") or "Malaffi",
+                           "reported_on": p.report["report_date"], "malaffi_ref": p.report["report_id"]}, upsert_on="person_id")
+    svc.rpc("rescore_my_case", {"p_person": person})
     svc.insert("audit_log", {"actor": user.id, "actor_name": acc["display_name"], "action": "Synced and validated a Malaffi lab report",
                              "resource_type": "genetic_reports", "resource_id": saved["id"]})
     return {"saved": True, "report_id": p.report["report_id"], "variants": len(p.variants), "warnings": p.warnings}

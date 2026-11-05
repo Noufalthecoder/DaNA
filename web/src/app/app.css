@@ -94,7 +94,36 @@ body.in-app{background:#F6F7F5}
 .top-who span{display:flex;flex-direction:column;line-height:1.25}
 .top-who b{font-size:14px}
 .top-who small{font-size:12px;color:var(--ink2)}
-.top-r{margin-left:auto;display:flex;gap:8px}
+.top-r{margin-left:auto;display:flex;gap:10px;align-items:center}
+.pm{position:relative}
+.pm-btn{border:0;background:none;padding:0;border-radius:50%;cursor:pointer;display:flex}
+.pm-btn:focus-visible,.pm-btn[aria-expanded=true]{outline:2px solid var(--green,#0a7a3e);outline-offset:2px}
+.pm-pop{position:absolute;right:0;top:calc(100% + 10px);width:290px;max-width:calc(100vw - 32px);background:var(--surface,#fff);border:1px solid var(--line,#e5e5e0);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.12);padding:8px;z-index:50;display:flex;flex-direction:column}
+.pm-head{display:flex;gap:12px;align-items:flex-start;padding:10px 10px 14px;border-bottom:1px solid var(--line,#e5e5e0);margin-bottom:6px}
+.pm-who{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pm-who b{font-size:14px;overflow-wrap:anywhere}
+.pm-who small{font-size:12px;color:var(--ink2)}
+.pm-who .link,.pm-edit .link{align-self:flex-start;font-size:12px;padding:0;margin-top:4px}
+.pm-edit{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
+.pm-edit input{width:100%;padding:7px 9px;border:1px solid var(--line,#ddd);border-radius:8px;font:inherit;font-size:14px}
+.pm-edit div{display:flex;gap:10px;align-items:center}
+.pm-save{padding:5px 12px;border-radius:8px;border:0;background:var(--green,#0a7a3e);color:#fff;font:inherit;font-size:13px;cursor:pointer}
+.pm-pop>a,.pm-pop>button{display:block;text-align:left;padding:9px 10px;border-radius:8px;font:inherit;font-size:14px;color:inherit;text-decoration:none;background:none;border:0;cursor:pointer}
+.pm-pop>a:hover,.pm-pop>button:hover{background:var(--bg,#f3f3ef)}
+.pm-face{border:0;background:none;padding:0;cursor:pointer;border-radius:50%;flex:none}
+.pm-links{display:flex;gap:12px}
+.pm-pick{padding:4px 10px 12px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.avatar-icon{background:var(--bg) !important;line-height:1;padding:0;overflow:hidden}
+.ap{display:flex;flex-direction:column;gap:10px}
+.ap small{font-size:12px;color:var(--ink2)}
+.ap-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.ap-grid{gap:8px}
+.ap-grid button{width:50px;height:50px;padding:0;border-radius:50%;border:2px solid transparent;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .12s}
+.ap-grid button:hover{transform:scale(1.08)}
+.ap-grid button:hover{border-color:var(--green)}
+.ap-grid button.on{border:2px solid var(--green);background:var(--green-l,#e8f5ee)}
+.ap .link{align-self:flex-start;font-size:12px;padding:0}
+.pm-out{color:var(--red,#b42318) !important}
 .avatar-34{width:34px;height:34px;font-size:13px}
 .avatar-36{width:36px;height:36px;font-size:13.5px}
 .avatar-56{width:56px;height:56px;font-size:21px}
@@ -258,7 +287,7 @@ body.in-app{background:#F6F7F5}
   .scrim{display:block;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:15}
   .burger{display:block}
   .shell header.top{padding:0 16px}
-  .top-who small,.top-r .ghost:first-child{display:none}
+  .top-who small{display:none}
   .content{padding:20px 16px}
   .grid2,.options,.shell .stats,.shell .stats.four{grid-template-columns:1fr}
   .steps{grid-template-columns:1fr 1fr}
@@ -1659,3 +1688,19 @@ body.in-app{background:#F6F7F5}
 .exists .muted{font-size:13px}
 .exists-a{display:grid;grid-template-columns:auto 1fr;gap:8px;margin-top:6px}
 .exists-a .method{padding:10px}
+
+/* onboarding (Welcome) */
+.onb{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:16px}
+.onb .card p{margin:0 0 12px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.seg button{border:0;background:var(--surface);padding:8px 18px;font:inherit;font-size:14px;cursor:pointer;color:var(--ink)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--green);color:#fff}
+.code-box{display:flex;flex-direction:column;gap:6px;align-items:flex-start;background:var(--bg);border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.code-box b{font-size:26px;letter-spacing:.18em;font-family:ui-monospace,Menlo,Consolas,monospace}
+.code-box small{font-size:12px;color:var(--ink2)}
+.code-in label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.code-in div{display:flex;gap:8px}
+.code-in input{flex:1;min-width:0;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:16px;letter-spacing:.12em;text-transform:uppercase}
+.onb-sample{margin-top:18px}
+.onb-sample .link{padding:0;font-size:inherit}

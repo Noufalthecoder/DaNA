@@ -12,7 +12,7 @@ import { useStore, signOut, EMPTY_OBJ } from './app/shared/store.js';
 import { Brand } from './app/shared/Logo.jsx';
 import { watchAuth, signOut as supabaseSignOut } from './app/shared/supabase.js';
 import { loadAll } from './app/shared/db.js';
-import Welcome from './app/couple/Welcome.jsx';
+import Welcome, { PENDING_CODE_KEY } from './app/couple/Welcome.jsx';
 import './app/app.css';
 
 /* Catch-all error boundary to eliminate white screens */
@@ -102,6 +102,13 @@ export default function Root() {
     return () => window.removeEventListener('focus', onFocus);
   }, [session?.backend]);
 
+  // partner invite link: #/join/CODE → keep the code, then sign in / open onboarding
+  useEffect(() => {
+    if (!path.startsWith('/join/')) return;
+    try { sessionStorage.setItem(PENDING_CODE_KEY, path.split('/')[2].toUpperCase()); } catch {}
+    go(session ? '/app' : '/login');
+  }, [path, session]);
+
   // Route matching
   if (path === '/login') {
     return (
@@ -170,7 +177,7 @@ export default function Root() {
       );
     }
 
-    if (session.role === 'couple' && !session.couple && path === '/app' && !isScreened) {
+    if (session.role === 'couple' && !session.couple && path === '/app') {
       const menu = MENUS[session.role] || MENUS.couple;
       return (
         <ErrorBoundary>
