@@ -365,6 +365,8 @@ export async function fetchMalaffi() {
 export const createPartnerInvite = () => rpc('create_partner_invite');
 export const acceptPartnerInvite = (code) => rpc('accept_partner_invite', { p_code: code });
 export const startSampleJourney = () => rpc('start_sample_journey');
+export const grantMalaffiConsent = (viaUaePass) => rpc('grant_malaffi_consent', { p_signed_in_with_uaepass: !!viaUaePass });
+export const saveMyDetails = (details) => rpc('save_my_details', { p: details });
 export async function setMySex(sex) {
   await rpc('set_my_sex', { p_sex: sex });
   const id = get().session?.id;

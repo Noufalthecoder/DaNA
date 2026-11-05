@@ -5,9 +5,10 @@ import { useStore, EMPTY_OBJ, EMPTY_ARR } from './store.js';
 
 export const STEPS = [
   { key: 'profile',  label: 'Your profile' },
-  { key: 'intake',   label: 'Screening intake' },
-  { key: 'result',   label: 'Your result' },
-  { key: 'partner',  label: 'Link your partner' },
+  { key: 'malaffi',  label: 'Get results' },
+  { key: 'details',  label: 'Your details' },
+  { key: 'result',   label: 'Result & report' },
+  { key: 'partner',  label: 'Link partner' },
   { key: 'together', label: 'Couple result' },
   { key: 'options',  label: 'Choose together' },
   { key: 'family',   label: 'Protect family' },
@@ -15,9 +16,10 @@ export const STEPS = [
 
 const NEXT = {
   profile:  { t: 'Create your profile', p: 'Tell us if you are female or male, so your result can be read correctly.', to: '#/app' },
-  intake:   { t: 'Complete your screening intake', p: 'Your health and family history, and your consent. About 5 minutes.', to: '#/app/screening' },
-  result:   { t: 'Get your result from Malaffi', p: 'We fetch your premarital lab report, check it, and explain it in plain words.', to: '#/app' },
-  partner:  { t: 'Link your partner', p: 'Share your code, or find your partner by name, email or DaNA ID.', to: '#/app/connections' },
+  malaffi:  { t: 'Connect UAE PASS and get your results', p: 'Malaffi is reached through UAE PASS. Give your consent once, and we fetch and check your premarital lab report.', to: '#/app' },
+  details:  { t: 'Add your details', p: 'A few things Malaffi does not hold: marital status, pregnancy, family history. About 2 minutes.', to: '#/app/details' },
+  result:   { t: 'See your result and download your report', p: 'Your result in plain words, and a standard report in English, Arabic or Urdu.', to: '#/app/result' },
+  partner:  { t: 'Link your partner', p: 'Send an invitation, or find your partner by full name or DaNA ID.', to: '#/app/connections' },
   together: { t: "Waiting for your partner's result", p: 'Your couple result appears as soon as both lab reports are in.', to: '#/app/result' },
   options:  { t: 'Look at your options together', p: 'See every option side by side and decide in your own time. Nothing is decided for you.', to: '#/app/bonds' },
   family:   { t: 'Protect your family, if you wish', p: 'Send anonymous alerts so relatives can choose to screen early.', to: '#/app/roots' },
@@ -36,20 +38,29 @@ export const isRealReport = (r) => !!r && !String(r.id || '').startsWith('SAMPLE
 
 export const NEEDS_PARTNER = ['/app/bonds', '/app/roots', '/app/counsellor'];
 
+/* what a person is, from their own result: a man with an X-linked change is affected, not a carrier */
+export function personalStatus(sex, gene, inheritance) {
+  if (!gene) return 'clear';
+  if (inheritance === 'XL') return sex === 'M' ? 'xl_male' : 'xl_female';
+  return 'carrier';
+}
+
 export function useJourney() {
   const session = useStore((s) => s.session);
   const intakes = useStore((s) => s.screeningIntakes) || EMPTY_OBJ;
   const reports = useStore((s) => s.reports) || EMPTY_OBJ;
   const plans = useStore((s) => s.plans) || EMPTY_OBJ;
   const sent = useStore((s) => s.alertsSent) || EMPTY_ARR;
+  const seen = useStore((s) => s.resultSeen) || EMPTY_OBJ; // person id -> true once they opened My result
 
   const live = !!session?.backend;
   const linked = isLinked(session);
   const partnerId = session?.partnerId;
   const done = {
     profile: !live || (!session?.needsProfile && session?.sexConfirmed !== false),
-    intake: !!intakes[session?.id]?.completed || !!session?.intakeDone,
-    result: !live || isRealReport(reports[session?.id]),
+    malaffi: !live || isRealReport(reports[session?.id]),
+    details: !live || !!session?.details || !!intakes[session?.id]?.completed || !!session?.intakeDone,
+    result: !live || !!seen[session?.id],
     partner: linked,
     together: linked && (!live || (isRealReport(reports[session?.id]) && !!(partnerId && isRealReport(reports[partnerId])))),
     options: !!(session?.couple && plans[session.couple]),

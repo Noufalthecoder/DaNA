@@ -91,6 +91,10 @@ def ingest_malaffi(bundle: dict | None = Body(None), user: User = Depends(curren
     if acc["role"] != "couple" or not person:
         raise HTTPException(409, "Only a couple member with a linked profile can sync results")
 
+    # Malaffi is read only with the person's explicit consent (given on the UAE PASS consent screen, 019)
+    access = as_user(user.token).select("consents", person_id=f"eq.{person}", kind="eq.malaffi_access", select="granted")
+    if not access or not access[0]["granted"]:
+        raise HTTPException(403, "Give your consent to fetch results from Malaffi first")
     consent = as_user(user.token).select("consents", person_id=f"eq.{person}", kind="eq.share_counsellor", select="granted")
     if consent and not consent[0]["granted"]:
         raise HTTPException(403, "Consent to process results is withdrawn")
@@ -325,3 +329,39 @@ def case_assessments(couple_id: str, user: User = Depends(current_user)):
         select="id,benchmark_tier,engine_tier,tier_mismatch,complete,male_benchmark_version,female_benchmark_version,"
                "rules_version,findings,actions,missing,created_by_name,created_at")
 
+
+
+# ---------- partner invitation by email ----------
+class InviteEmail(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    email: str = Field(..., max_length=254)
+    code: str = Field(..., max_length=8, description="The sender's partner invite code")
+
+
+@app.post("/invite/email", tags=["connections"])
+def invite_email(req: InviteEmail, user: User = Depends(current_user)):
+    """Email a partner invitation. 501 when no email service is configured (the app then opens the user's email app)."""
+    from . import invite
+    to, code = req.email.strip(), req.code.strip().upper()
+    if not invite.EMAIL.match(to):
+        raise HTTPException(422, "That email address does not look right")
+    if not invite.CODE.match(code):
+        raise HTTPException(422, "Invalid invite code")
+    acc = _account(user)
+    if acc["role"] != "couple" or not acc.get("person_id"):
+        raise HTTPException(409, "Create your profile first")
+    mine = as_user(user.token).select("partner_invites", code=f"eq.{code}", select="from_person,accepted_by,expires_at")
+    if not mine or mine[0]["from_person"] != acc["person_id"]:
+        raise HTTPException(403, "You can only send your own invite code")
+    if not config.RESEND_API_KEY:
+        raise HTTPException(501, "Email sending is not set up yet")
+    if not invite.allowed(user.id):
+        raise HTTPException(429, "Too many invitations. Try again in an hour.")
+    try:
+        invite.send(to, acc["display_name"], code, f"{config.APP_URL}/#/join/{code}")
+    except RuntimeError as e:
+        raise HTTPException(502, str(e))
+    as_service().insert("audit_log", {"actor": user.id, "actor_name": acc["display_name"],
+                                      "action": "Sent a partner invitation by email", "resource_type": "partner_invites",
+                                      "resource_id": code})
+    return {"sent": True}

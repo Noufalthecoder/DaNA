@@ -5,7 +5,8 @@ import { useState } from 'react';
 import { Page, Card, Badge } from '../shared/ui.jsx';
 import { useStore, EMPTY_OBJ } from '../shared/store.js';
 import { refreshSession } from '../shared/supabase.js';
-import { startMyProfile, fetchMalaffi, setMySex, loadAll } from '../shared/db.js';
+import { startMyProfile, setMySex, loadAll } from '../shared/db.js';
+import MalaffiConsent from '../shared/MalaffiConsent.jsx';
 import { CONDITIONS } from '../shared/explain.js';
 import { useJourney, isRealReport } from '../shared/journey.js';
 import Journey from '../shared/Journey.jsx';
@@ -35,7 +36,6 @@ export default function Welcome() {
     await refreshSession();
     loadAll();
   });
-  const getResults = () => run('malaffi', async () => { await fetchMalaffi(); });
 
   // the next step, done in place where possible
   let action = null;
@@ -50,13 +50,8 @@ export default function Welcome() {
         <button className="btn" onClick={createProfile} disabled={busy === 'profile'}>{busy === 'profile' ? 'Saving…' : confirming ? 'Confirm' : 'Create my profile'}</button>
       </div>
     );
-  } else if (step === 'result') {
-    action = (
-      <div className="jr-act">
-        <button className="btn" onClick={getResults} disabled={busy === 'malaffi'}>{busy === 'malaffi' ? 'Fetching… (up to a minute)' : 'Fetch my results from Malaffi'}</button>
-        <small className="muted">Demo: Malaffi is simulated with a synthetic report.</small>
-      </div>
-    );
+  } else if (step === 'malaffi') {
+    action = <MalaffiConsent onDone={() => loadAll()} />;
   }
 
   const carrierGene = report?.variants?.find((v) => ['pathogenic', 'likely_pathogenic'].includes(v.significance))?.gene;
@@ -75,7 +70,7 @@ export default function Welcome() {
               ? <>You carry a change linked to <b>{CONDITIONS[carrierGene]?.name || carrierGene}</b>. Carriers are healthy. What matters is your partner's result.</>
               : 'No change was found in the genes we checked.'}</p>
             <a href="#/app/result">What does this mean? →</a>
-          </>) : <p className="muted">Not fetched yet. It appears here once your profile is ready and you fetch it from Malaffi.</p>}
+          </>) : <p className="muted">Not fetched yet. It appears here after you give consent and we fetch it from Malaffi.</p>}
         </Card>
         <Card title="Your partner">
           <p className="muted">Screening is done as a couple, because the chance for a child depends on both of you. Link with your partner to see your couple result.</p>

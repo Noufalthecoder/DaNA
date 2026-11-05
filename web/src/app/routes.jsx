@@ -4,6 +4,7 @@
 */
 import Home from './couple/Home.jsx';
 import Result from './couple/Result.jsx';
+import Details from './couple/Details.jsx';
 import FamilyTree from './couple/FamilyTree.jsx';
 import Screening from './couple/Screening.jsx';
 import Profile from './couple/Profile.jsx';
@@ -81,6 +82,7 @@ export function page(role, path) {
     const coupleRoutes = {
       '/app': <Home />,
       '/app/result': <Result />,
+      '/app/details': <Details />,
       '/app/profile': <Profile />,
       '/app/report': <MedicalReport />,
       '/app/screening': <Screening />,

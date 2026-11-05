@@ -196,3 +196,15 @@ export function explainIndividual({ gene }) {
   };
   return { you, partner, condition: c, limits, notDiagnosis };
 }
+
+/* the one-line personal status shown at the top of My result and in the report, by sex */
+export function personalHeadline(status, gene) {
+  const c = gene ? CONDITIONS[gene] : null;
+  const cond = c?.name || 'this condition';
+  return {
+    clear: { tone: 'green', title: 'No risk found in the genes we checked', text: 'You are not a carrier of any condition on the 570-gene premarital panel.' },
+    carrier: { tone: 'amber', title: `You are healthy: a carrier of ${cond}`, text: 'Carriers are healthy. It only matters for children if your partner carries a change in the same gene.' },
+    xl_female: { tone: 'amber', title: `You are healthy: a carrier of ${cond}`, text: 'This change is on the X chromosome. Women who carry it are usually healthy; it can matter for sons.' },
+    xl_male: { tone: 'amber', title: `You may have ${cond}`, text: `Men with this change usually have ${cond} themselves. ${c?.care || ''} Your counsellor will confirm it and explain what it means.` },
+  }[status];
+}

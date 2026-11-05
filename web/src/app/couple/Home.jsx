@@ -48,7 +48,7 @@ export default function Home() {
                   You: <b>{mine ? 'received ✓' : 'not fetched yet'}</b> · {partner.short}: <b>{theirs ? 'received ✓' : 'not fetched yet'}</b>
                 </p>
                 {!mine
-                  ? <button className="btn" onClick={fetchMine} disabled={busy}>{busy ? 'Fetching… (up to a minute)' : 'Fetch my results from Malaffi'}</button>
+                  ? <p className="muted">Give your consent in the journey box above to fetch your results.</p>
                   : <p className="muted">We'll show your couple result as soon as {partner.short}'s report arrives.</p>}
                 {err && <p className="err">{err}</p>}
               </>

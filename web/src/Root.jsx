@@ -13,6 +13,7 @@ import { Brand } from './app/shared/Logo.jsx';
 import { watchAuth, signOut as supabaseSignOut } from './app/shared/supabase.js';
 import { loadAll } from './app/shared/db.js';
 import Welcome from './app/couple/Welcome.jsx';
+import MyReport from './app/couple/MyReport.jsx';
 import { isLinked, NEEDS_PARTNER } from './app/shared/journey.js';
 import { PENDING_CODE_KEY } from './app/shared/PartnerCode.jsx';
 import './app/app.css';
@@ -139,6 +140,14 @@ export default function Root() {
     }
 
     // Full standalone layout for individual medical report
+    if (isCouple && path === '/app/my-report') {
+      return (
+        <ErrorBoundary>
+          <MyReport />
+        </ErrorBoundary>
+      );
+    }
+
     if (isCouple && path === '/app/report') {
       return (
         <ErrorBoundary>

@@ -4,9 +4,11 @@ import { useEffect, useRef } from 'react';
 import { Page, Card, Badge } from '../shared/ui.jsx';
 import { useStore, EMPTY_OBJ } from '../shared/store.js';
 import { logAudit } from '../shared/db.js';
-import { explain, explainIndividual, EXPLAIN_VERSION, EXPLAIN_STATUS } from '../shared/explain.js';
+import { explain, explainIndividual, personalHeadline, EXPLAIN_VERSION, EXPLAIN_STATUS } from '../shared/explain.js';
+import { GENES } from '../shared/data.js';
+import { set } from '../shared/store.js';
 import { useCouple } from './useCouple.js';
-import { isLinked, isRealReport } from '../shared/journey.js';
+import { isLinked, isRealReport, personalStatus } from '../shared/journey.js';
 
 /* one child figure: outline = does not carry, half = healthy carrier, full = has the condition */
 function Child({ kind }) {
@@ -58,6 +60,22 @@ export default function Result() {
   const theirs = live ? isRealReport(reports[partner.id]) : true;
   const stage = !mine ? 'no-result' : !linked ? 'individual' : !theirs ? 'partner-waiting' : 'couple';
   const waiting = stage !== 'couple';
+  const status = personalStatus(me.sex, me.carrier, GENES[me.carrier]?.inheritance);
+  const head = personalHeadline(status, me.carrier);
+  useEffect(() => {
+    if (stage === 'no-result') return;
+    set((s) => (s.resultSeen?.[me.id] ? {} : { resultSeen: { ...(s.resultSeen || {}), [me.id]: true } }));
+  }, [stage, me.id]);
+  const Headline = () => (
+    <div className={`xp-head xp-head-${head.tone}`}>
+      <div>
+        <span className="eyebrow">Your result</span>
+        <h2>{head.title}</h2>
+        <p>{head.text}</p>
+      </div>
+      <a className="btn" href="#/app/my-report">Download my report</a>
+    </div>
+  );
   const x = explain(result, { meCarrier: !!me.carrier, partnerCarrier: !!partner.carrier, partnerName: partner.short });
 
   // audit: the person viewed their explanation (once per visit) - also feeds comprehension metrics later
@@ -92,10 +110,8 @@ export default function Result() {
     let k = 0;
     return (
       <Page title="Your result, explained" sub={`For ${me.short} · your own screening result`}>
-        <div className="xp-top">
-          <Badge tone={me.carrier ? 'amber' : 'green'}>{me.carrier ? 'Healthy carrier' : 'No change found'}</Badge>
-          <span className="xp-tag">Education · not medical advice</span>
-        </div>
+        <Headline />
+        <div className="xp-top"><span className="xp-tag">Education · not medical advice</span></div>
         <Section n={++k} title="About you">
           <h3 className="xp-t">{xi.you.title}</h3>
           {xi.you.body.map((t) => <p key={t}>{t}</p>)}
@@ -123,7 +139,9 @@ export default function Result() {
   let n = 0;
   return (
     <Page title="Your result, explained" sub={`For ${me.short} and ${partner.short} · ${result.condition || 'premarital screening'}`}>
+      <Headline />
       <div className="xp-top">
+        <span className="xp-tag">Couple result:</span>
         <Badge tone={result.type === 'clear' ? 'green' : result.type === 'uncertain' ? 'grey' : 'amber'}>{result.label}</Badge>
         <span className="xp-tag">Education · not medical advice</span>
       </div>

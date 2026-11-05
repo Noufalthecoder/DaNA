@@ -6,6 +6,7 @@ import { refreshSession } from './supabase.js';
 import { createPartnerInvite, acceptPartnerInvite, loadAll } from './db.js';
 import { COUPLES, PEOPLE } from './data.js';
 import { go } from './router.js';
+import SendInvite from './SendInvite.jsx';
 
 export const PENDING_CODE_KEY = 'dana.partnerCode';
 const readPending = () => { try { return sessionStorage.getItem(PENDING_CODE_KEY) || ''; } catch { return ''; } };
@@ -78,8 +79,8 @@ export default function PartnerCode() {
         <b>{code || '······'}</b>
         <div className="btn-row">
           <button className="btn secondary" onClick={copy} disabled={!code}>{copied ? 'Copied ✓' : 'Copy link'}</button>
-          <a className="btn secondary" href={`https://wa.me/?text=${encodeURIComponent(share)}`} target="_blank" rel="noreferrer">WhatsApp</a>
         </div>
+        <SendInvite code={code} senderName={session.name} senderId={session.id} />
         <small>Valid for 7 days. When your partner enters it, you are linked.</small>
       </div>
       <form className="code-in" onSubmit={submit}>

@@ -11,3 +11,8 @@ ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://local
 
 JWKS_URL = f"{SUPABASE_URL}/auth/v1/.well-known/jwks.json"
 ISSUER = f"{SUPABASE_URL}/auth/v1"
+
+# partner invitation emails (optional): set on the host to send automatically
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+INVITE_FROM = os.getenv("INVITE_FROM", "DaNA <onboarding@resend.dev>")
+APP_URL = os.getenv("APP_URL", "https://dana-gamma-seven.vercel.app").rstrip("/")

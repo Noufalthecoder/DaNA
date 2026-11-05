@@ -86,6 +86,9 @@ export async function loadSession(user) {
     needsProfile: acc.role === 'couple' && !acc.person_id,
     sexConfirmed: journey ? !!journey.sex_confirmed : true,
     intakeDone: !!journey?.intake_completed_at,
+    malaffiConsent: !!journey?.malaffi_consent,
+    uaepassLinked: !!journey?.uaepass_linked_at,
+    details: journey?.details || null,
     backend: true,
   };
 }

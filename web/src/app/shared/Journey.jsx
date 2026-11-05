@@ -1,5 +1,7 @@
 /* The journey card shown on Home: where you are, what is done, and ONE next step. Owner: Platform. */
 import { useJourney } from './journey.js';
+import MalaffiConsent from './MalaffiConsent.jsx';
+import { loadAll } from './db.js';
 
 export default function Journey({ action }) {
   const { steps, current, next } = useJourney();
@@ -21,7 +23,9 @@ export default function Journey({ action }) {
         <span className="eyebrow">Next step</span>
         <h3>{next.t}</h3>
         <p>{next.p}</p>
-        {action || <a className="btn" href={next.to}>Continue →</a>}
+        {action || (steps[current]?.key === 'malaffi'
+          ? <MalaffiConsent onDone={() => loadAll()} />
+          : <a className="btn" href={next.to}>Continue →</a>)}
       </div>
     </section>
   );
