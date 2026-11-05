@@ -173,17 +173,28 @@ export default function Benchmarks() {
   const [editing, setEditing] = useState(null);     // 'M' or 'F'
   const [restoring, setRestoring] = useState(null); // a snapshot
 
-  const load = useCallback(async () => {
-    setError('');
+  const load = useCallback(async (quiet = false) => {
+    if (!quiet) setError('');
     try {
       const [current, M, F] = await Promise.all([api('/benchmarks'), api('/benchmarks/M/snapshots'), api('/benchmarks/F/snapshots')]);
       setData({ M: current.male, F: current.female, history: { M, F } });
     } catch (err) {
-      setError(err.message);
+      if (!quiet) setError(err.message); // background refresh: keep showing the last good values
     }
   }, []);
 
   useEffect(() => { if (live) load(); }, [live, load]);
+
+  // an admin may change a benchmark at any time: refresh every 30 s and when the tab regains focus
+  // (paused while this user has the edit or restore dialog open)
+  const busyDialog = !!(editing || restoring);
+  useEffect(() => {
+    if (!live || busyDialog) return undefined;
+    const t = setInterval(() => load(true), 30000);
+    const onFocus = () => load(true);
+    window.addEventListener('focus', onFocus);
+    return () => { clearInterval(t); window.removeEventListener('focus', onFocus); };
+  }, [live, busyDialog, load]);
 
   const saved = () => { setEditing(null); setRestoring(null); load(); };
 
@@ -194,6 +205,7 @@ export default function Benchmarks() {
   return (
     <div className="bench">
       {error && <p className="dialog-note" role="alert">{error}</p>}
+      {!canEdit && <p className="bench-readonly">Read only · set by the programme admin · updates automatically</p>}
       <div className="bench-scroll">
         <table className="table bench-table">
           <thead>
