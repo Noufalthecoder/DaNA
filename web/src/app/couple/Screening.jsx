@@ -362,16 +362,8 @@ export default function Screening() {
 
   // Submit Handler
   const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!certified) {
-      setErrors({
-        certified: mode === 'uae_pass'
-          ? 'Mandatory: You must verify and electronically sign your records before proceeding to the screening report.'
-          : 'Certification & electronic signature is required before submitting your intake.'
-      });
-      return;
-    }
-
+    e?.preventDefault?.();
+    setCertified(true);
     setErrors({});
     const danaId = existingIntake?.danaId || personal.danaId || generateDanaId(session?.id || me.id);
     const payload = {
@@ -1067,9 +1059,6 @@ export default function Screening() {
                         }}
                       />
                     </div>
-                    <div style={{ background: '#F0F9F4', border: '1px solid #C3E6D0', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#0B6B3A' }}>
-                      <b>Pedigree &amp; Branches Sequence:</b> {personal.partnerName || partner.name} is included in your family pedigree and reflected in Branches along your shared ancestral lineage.
-                    </div>
                   </div>
                 )}
               </div>
@@ -1493,7 +1482,7 @@ export default function Screening() {
                   style={{ background: 'var(--green)', padding: '12px 24px', fontSize: 15 }}
                   onClick={handleSubmit}
                 >
-                  Verify &amp; eSign Intake →
+                  Verify &amp; Submit →
                 </button>
               )}
             </div>

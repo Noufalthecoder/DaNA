@@ -131,8 +131,15 @@ export async function saveScreeningIntake(personId, intakeData) {
     personal: { ...(intakeData.personal || {}), danaId },
   };
 
+  const curSession = get().session;
+  const targetIds = Array.from(new Set([personId, curSession?.id, curSession?.personId, curSession?.userId].filter(Boolean)));
+  const intakePatch = {};
+  targetIds.forEach((id) => {
+    intakePatch[id] = dataToSave;
+  });
+
   set((s) => ({
-    screeningIntakes: { ...(s.screeningIntakes || {}), [personId]: dataToSave },
+    screeningIntakes: { ...(s.screeningIntakes || {}), ...intakePatch },
   }), `User ${personId} saved screening intake data (${dataToSave.mode === 'uae_pass' ? 'UAE PASS verified' : 'Manual entry'})`);
 
   if (isLive()) {

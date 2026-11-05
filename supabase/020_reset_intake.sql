@@ -37,3 +37,4 @@ end $$;
 
 revoke all on function reset_my_intake() from public, anon;
 grant execute on function reset_my_intake() to authenticated;
+
