@@ -158,7 +158,7 @@ export default function Root() {
               </div>
               <div className="top-r" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                 <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{session.name}</span>
-                <a className="ghost" href="#/app">Exit to Dashboard</a>
+                <a className="ghost" href="#/app">Back to Home</a>
                 <button
                   className="ghost"
                   onClick={async () => {
