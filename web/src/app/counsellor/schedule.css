@@ -1,4 +1,7 @@
-/* Appointment Calendar Styles - Exact Match to Design */
+/* =====================================================================
+   Appointment Calendar & Counsellor Schedule Styles
+   High-contrast clinical UI matching DaNA design specifications
+   ===================================================================== */
 
 .appt-calendar-page {
   display: flex;
@@ -7,8 +10,19 @@
   width: 100%;
 }
 
-/* Top Header */
+/* ─── Top Header (Image 1) ─── */
 .appt-cal-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 20px 24px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.appt-cal-header-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -16,18 +30,39 @@
   flex-wrap: wrap;
 }
 
-.appt-cal-title h1 {
-  font-size: 24px;
+.appt-cal-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.appt-cal-title-row h1 {
+  font-size: 22px;
   font-weight: 700;
   color: #0F172A;
-  margin: 0 0 4px;
+  margin: 0;
   letter-spacing: -0.02em;
 }
 
-.appt-cal-title p {
-  font-size: 14px;
-  color: #64748B;
-  margin: 0;
+.appt-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ECFDF5;
+  color: #059669;
+  border: 1px solid #A7F3D0;
+  border-radius: 9999px;
+  padding: 4px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.appt-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
 }
 
 .appt-cal-actions {
@@ -42,10 +77,10 @@
   align-items: center;
   gap: 8px;
   background: #ffffff;
-  border: 1px solid #E2E8F0;
+  border: 1px solid #CBD5E1;
   color: #334155;
-  border-radius: 8px;
-  padding: 8px 14px;
+  border-radius: 9px;
+  padding: 9px 15px;
   font-size: 13.5px;
   font-weight: 500;
   cursor: pointer;
@@ -55,66 +90,51 @@
 
 .appt-btn-outline:hover {
   background: #F8FAFC;
-  border-color: #CBD5E1;
+  border-color: #94A3B8;
   color: #0F172A;
 }
 
 .appt-btn-outline.active {
-  background: #F1F5F9;
-  border-color: #94A3B8;
-  color: #0F172A;
+  background: #0F172A;
+  border-color: #0F172A;
+  color: #ffffff;
   font-weight: 600;
 }
 
-.appt-btn-primary {
+.appt-btn-new {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #0F172A;
+  background: #1E293B;
   border: 1px solid #0F172A;
   color: #ffffff;
-  border-radius: 8px;
-  padding: 8px 16px;
+  border-radius: 9px;
+  padding: 9px 18px;
   font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease;
-  line-height: 1;
-}
-
-.appt-btn-primary:hover {
-  background: #1E293B;
-  border-color: #1E293B;
-}
-
-.appt-btn-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #ffffff;
-  border: 1px solid #E2E8F0;
-  color: #64748B;
-  border-radius: 8px;
-  width: 36px;
-  height: 36px;
-  cursor: pointer;
   transition: all 0.15s ease;
+  line-height: 1;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.12);
 }
 
-.appt-btn-icon:hover {
-  background: #F8FAFC;
-  color: #0F172A;
-  border-color: #CBD5E1;
+.appt-btn-new:hover {
+  background: #0F172A;
 }
 
-/* Secondary Controls Bar */
+.appt-cal-subtitle {
+  font-size: 13px;
+  color: #64748B;
+  margin: 0;
+}
+
+/* ─── Secondary Controls Bar ─── */
 .appt-cal-controls {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  padding: 4px 0;
 }
 
 .appt-view-toggle {
@@ -144,10 +164,10 @@
 
 .appt-view-btn.active {
   background: #ffffff;
-  border-color: #0284C7;
-  color: #0369A1;
+  border-color: #00843D;
+  color: #00843D;
   font-weight: 600;
-  box-shadow: 0 1px 2px rgba(2, 132, 199, 0.08);
+  box-shadow: 0 1px 2px rgba(0, 132, 61, 0.1);
 }
 
 .appt-controls-right {
@@ -168,10 +188,6 @@
   cursor: pointer;
   outline: none;
   transition: border-color 0.15s;
-}
-
-.appt-select-doc:focus {
-  border-color: #94A3B8;
 }
 
 .appt-btn-today {
@@ -222,7 +238,7 @@
 }
 
 .appt-month-label {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
   color: #0F172A;
   min-width: 140px;
@@ -230,11 +246,27 @@
   letter-spacing: -0.01em;
 }
 
-/* Calendar Card & Grid */
+/* ─── Schedule Workspace Layout: Calendar + Side Panel ─── */
+.appt-workspace {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  width: 100%;
+}
+
+.appt-calendar-area {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ─── Calendar Card & Month Grid ─── */
 .appt-calendar-card {
   background: #ffffff;
   border: 1px solid #E2E8F0;
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
@@ -260,21 +292,22 @@
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   background: #E2E8F0;
-  gap: 1px; /* Creates clean 1px borders between cells */
+  gap: 1px;
 }
 
 .appt-day-cell {
   background: #ffffff;
-  min-height: 112px;
-  padding: 10px;
+  min-height: 118px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
   position: relative;
   transition: background-color 0.15s ease;
+  cursor: pointer;
 }
 
 .appt-day-cell:hover {
-  background-color: #FAFBF9;
+  background-color: #F8FAFC;
 }
 
 .appt-day-cell.is-other-month {
@@ -282,12 +315,13 @@
 }
 
 .appt-day-cell.is-today {
-  background-color: #F6FBF8;
+  background-color: #F0FDF4;
 }
 
 .appt-day-cell.is-selected {
-  outline: 2px solid #00843D;
-  outline-offset: -2px;
+  outline: 2.5px solid #00843D;
+  outline-offset: -2.5px;
+  background-color: #F0FDF4;
 }
 
 .appt-day-top {
@@ -298,7 +332,7 @@
 }
 
 .appt-day-num {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   color: #1E293B;
   display: inline-flex;
@@ -316,10 +350,19 @@
   background: #00843D;
   color: #ffffff;
   border-radius: 50%;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   font-weight: 700;
   box-shadow: 0 2px 4px rgba(0, 132, 61, 0.25);
+}
+
+.appt-day-badge-count {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748B;
+  background: #F1F5F9;
+  border-radius: 10px;
+  padding: 1px 6px;
 }
 
 .appt-day-appts {
@@ -334,9 +377,9 @@
   flex-direction: column;
   background: #F1F5F9;
   border-left: 3px solid #64748B;
-  border-radius: 4px;
+  border-radius: 5px;
   padding: 4px 6px;
-  font-size: 11.5px;
+  font-size: 11px;
   text-align: left;
   cursor: pointer;
   transition: transform 0.1s, box-shadow 0.1s;
@@ -344,10 +387,9 @@
 
 .appt-chip:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
-.appt-chip.urgent,
 .appt-chip.tone-red {
   background: #FEF2F2;
   border-left-color: #DC2626;
@@ -381,11 +423,11 @@
 
 .appt-chip-time {
   font-weight: 700;
-  font-size: 11px;
+  font-size: 10.5px;
 }
 
 .appt-chip-badge {
-  font-size: 9.5px;
+  font-size: 9px;
   text-transform: uppercase;
   font-weight: 700;
   padding: 1px 4px;
@@ -401,173 +443,573 @@
   margin-top: 1px;
 }
 
-.appt-chip-topic {
-  font-size: 10.5px;
-  opacity: 0.85;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Week View Styles */
-.appt-week-view {
+/* ─── SIDE PANEL / DRAWER (Images 2, 3 & 4) ─── */
+.appt-side-panel {
+  width: 440px;
+  background: #0B0F17;
+  border: 1px solid #1E293B;
+  border-radius: 16px;
+  color: #F8FAFC;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35);
+  flex-shrink: 0;
+  animation: fadeInPanel 0.2s ease-out;
 }
 
-.appt-week-header {
-  display: grid;
-  grid-template-columns: 70px repeat(7, 1fr);
-  background: #F8FAFC;
-  border-bottom: 1px solid #E2E8F0;
+@keyframes fadeInPanel {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
-.appt-week-body {
-  max-height: 520px;
+.appt-panel-header {
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid #1E293B;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.appt-panel-date-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+}
+
+.appt-panel-count-sub {
+  font-size: 13px;
+  color: #94A3B8;
+  margin: 0;
+}
+
+.appt-panel-badge-available {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.appt-panel-close-btn {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 2px 6px;
+  line-height: 1;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.appt-panel-close-btn:hover {
+  color: #FFFFFF;
+  background: #1E293B;
+}
+
+.appt-panel-body {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 640px;
   overflow-y: auto;
 }
 
-.appt-week-row {
-  display: grid;
-  grid-template-columns: 70px repeat(7, 1fr);
-  border-bottom: 1px solid #F1F5F9;
-  min-height: 58px;
+.appt-panel-section-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #F1F5F9;
+  margin: 0 0 10px;
 }
 
-.appt-time-gutter {
-  font-size: 12px;
+/* ─── List of Appointments in Drawer (Image 2) ─── */
+.appt-card-dark {
+  background: #111827;
+  border: 1px solid #1E293B;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.appt-card-dark:hover {
+  border-color: #334155;
+  background: #151E2E;
+}
+
+.appt-card-dark-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.appt-card-dark-time {
+  font-size: 15px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+/* Badges inside dark cards */
+.dark-badge-urgent {
+  background: rgba(239, 68, 68, 0.18);
+  color: #F87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.dark-badge-upcoming {
+  background: rgba(16, 185, 129, 0.16);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.32);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.dark-badge-pending {
+  background: rgba(245, 158, 11, 0.16);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.appt-card-dark-who {
+  font-size: 15px;
+  font-weight: 700;
+  color: #F8FAFC;
+  margin: 0;
+}
+
+.appt-card-dark-what {
+  font-size: 13px;
   color: #94A3B8;
-  padding: 8px 12px;
-  text-align: right;
-  border-right: 1px solid #E2E8F0;
-  background: #FAFBF9;
+  margin: 0;
 }
 
-.appt-week-slot {
-  padding: 4px;
-  border-right: 1px solid #F1F5F9;
-  position: relative;
+.appt-card-dark-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 4px;
 }
 
-/* List View Styles */
-.appt-list-view {
+.appt-card-link-btn {
+  background: transparent;
+  border: none;
+  color: #10B981;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s, transform 0.1s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.appt-card-link-btn:hover {
+  color: #34D399;
+  transform: translateX(2px);
+}
+
+.appt-panel-footer {
+  padding: 14px 22px;
+  border-top: 1px solid #1E293B;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #94A3B8;
+  background: #090D14;
+}
+
+.appt-panel-footer-btn {
+  background: transparent;
+  border: none;
+  color: #10B981;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+}
+
+.appt-panel-footer-btn:hover {
+  color: #34D399;
+  text-decoration: underline;
+}
+
+/* ─── Detail View Inside Drawer (Images 3 & 4) ─── */
+.appt-detail-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #1E293B;
+  margin-bottom: 6px;
+}
+
+.appt-detail-back-btn {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.appt-detail-back-btn:hover {
+  color: #F8FAFC;
+}
+
+.appt-detail-pager {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.appt-pager-btn {
+  background: #111827;
+  border: 1px solid #1E293B;
+  color: #94A3B8;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.appt-pager-btn:hover:not(:disabled) {
+  background: #1E293B;
+  color: #FFFFFF;
+}
+
+.appt-pager-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.appt-detail-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #94A3B8;
+}
+
+.appt-detail-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.appt-detail-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0;
+}
+
+.appt-detail-sub {
+  font-size: 13.5px;
+  color: #94A3B8;
+  margin: 4px 0 16px;
+}
+
+/* Key-value rows (Image 3) */
+.appt-detail-table {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 0;
+  border-top: 1px solid #1E293B;
+  border-bottom: 1px solid #1E293B;
+}
+
+.appt-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.appt-detail-label {
+  color: #94A3B8;
+}
+
+.appt-detail-val {
+  font-weight: 600;
+  color: #F8FAFC;
+}
+
+/* Meeting box (Image 4: Online vs Offline) */
+.appt-meeting-box {
+  background: #111827;
+  border: 1px solid #1E293B;
+  border-radius: 12px;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  margin-top: 8px;
 }
 
-.appt-list-item {
+.appt-meeting-box-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #F8FAFC;
+}
+
+.appt-meeting-box-sub {
+  font-size: 13px;
+  color: #94A3B8;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.appt-btn-join {
+  background: #00843D;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.appt-btn-join:hover {
+  background: #007234;
+}
+
+.appt-meeting-actions-sub {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
-  background: #ffffff;
-  border: 1px solid #E2E8F0;
+  font-size: 12.5px;
+  padding-top: 4px;
+}
+
+.appt-action-link {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 0;
+  font-size: 12.5px;
+  transition: color 0.15s;
+}
+
+.appt-action-link:hover {
+  color: #FFFFFF;
+  text-decoration: underline;
+}
+
+/* Appointment Action Buttons (Image 3) */
+.appt-actions-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.appt-actions-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94A3B8;
+  margin: 0;
+}
+
+.appt-actions-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.appt-act-btn {
+  background: #111827;
+  border: 1px solid #1E293B;
+  color: #F1F5F9;
+  border-radius: 9px;
+  padding: 10px 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.appt-act-btn:hover {
+  background: #1E293B;
+  border-color: #334155;
+  color: #FFFFFF;
+}
+
+.appt-act-btn.btn-cancel:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #EF4444;
+  color: #F87171;
+}
+
+.appt-btn-case-details {
+  background: #111827;
+  border: 1px solid #10B981;
+  color: #10B981;
   border-radius: 10px;
-  gap: 16px;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  padding: 12px 18px;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  text-decoration: none;
+  transition: all 0.15s;
+  margin-top: 6px;
 }
 
-.appt-list-item:hover {
-  border-color: #CBD5E1;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+.appt-btn-case-details:hover {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34D399;
+  border-color: #34D399;
 }
 
-.appt-list-time {
+/* ─── Mode Selection Cards (Image 4) ─── */
+.appt-mode-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.appt-mode-card {
+  border: 2px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 16px 14px;
+  background: #FFFFFF;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 80px;
-  padding: 6px 12px;
+  gap: 6px;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.appt-mode-card:hover {
+  border-color: #94A3B8;
   background: #F8FAFC;
-  border-radius: 8px;
-  border: 1px solid #E2E8F0;
 }
 
-.appt-list-time span {
-  font-size: 15px;
-  font-weight: 700;
+.appt-mode-card.selected {
+  border-color: #00843D;
+  background: #F0FDF4;
+  box-shadow: 0 0 0 1px #00843D;
+}
+
+.appt-mode-card strong {
+  font-size: 14.5px;
   color: #0F172A;
 }
 
-.appt-list-time small {
-  font-size: 11.5px;
-  color: #64748B;
-  text-transform: uppercase;
-  font-weight: 600;
-}
-
-.appt-list-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.appt-list-who {
-  font-size: 15px;
-  font-weight: 700;
-  color: #0F172A;
-}
-
-.appt-list-topic {
-  font-size: 13px;
-  color: #475569;
-}
-
-.appt-list-counsellor {
+.appt-mode-card small {
   font-size: 12px;
   color: #64748B;
+}
+
+/* ─── Availability Dialog Elements (Image 1) ─── */
+.avail-toggle-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
 }
 
-.appt-list-actions {
+.avail-days-grid {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 8px 0 14px;
 }
 
-/* Dialog form elements */
-.appt-form-group {
-  margin-bottom: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.appt-form-group label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1E293B;
-}
-
-.appt-form-control {
+.avail-day-pill {
   border: 1px solid #CBD5E1;
   border-radius: 8px;
-  padding: 9px 12px;
-  font-size: 13.5px;
-  outline: none;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
   background: #ffffff;
-  color: #0F172A;
-  transition: border-color 0.15s;
+  color: #334155;
+  cursor: pointer;
 }
 
-.appt-form-control:focus {
+.avail-day-pill.active {
+  background: #00843D;
+  color: #ffffff;
   border-color: #00843D;
-  box-shadow: 0 0 0 2px rgba(0, 132, 61, 0.1);
 }
 
-@media (max-width: 768px) {
-  .appt-cal-header,
-  .appt-cal-controls {
+.avail-sync-box {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 1024px) {
+  .appt-workspace {
     flex-direction: column;
-    align-items: flex-start;
   }
-  .appt-month-label {
-    text-align: left;
+  .appt-side-panel {
+    width: 100%;
   }
 }

@@ -164,7 +164,7 @@ export async function saveScreeningIntake(personId, intakeData) {
         // Also sync dana_id to accounts
         try {
           await supabase.from('accounts').update({ dana_id: danaId }).eq('user_id', user.id);
-        } catch {}
+        } catch { }
       }
     } catch (e) {
       console.warn('screening live save error (table may not be created yet):', e.message);
@@ -217,30 +217,95 @@ export function setConsent(key, value) {
 }
 
 /* slot = { id (live: counsellor_availability id), label } */
-export function book(coupleId, slot) {
+export function book(coupleId, slot, details = {}) {
   const s = get();
-  return act({ appointments: { ...s.appointments, [coupleId]: slot.label } },
-    `Couple booked a counsellor session: ${slot.label}`,
+  const label = typeof slot === 'string' ? slot : (slot?.label || 'Booked Slot');
+  const newAppt = {
+    id: details.id || `appt_${Date.now()}`,
+    date: details.date || '2026-11-09',
+    time: details.time || '10:00',
+    endTime: details.endTime || '10:45',
+    who: details.who || (coupleId === 'c1' ? 'Khalid & Fatima' : coupleId.toUpperCase()),
+    what: details.what || 'Pre-marital counselling',
+    priority: 'upcoming',
+    tone: 'green',
+    doctor: details.doctor || 'Dr. Mariam Al Hosani',
+    mode: details.mode || 'online',
+    type: details.mode === 'offline' ? 'Clinic' : 'Video',
+    provider: details.mode === 'offline' ? null : 'Google Meet',
+    meetLink: details.mode === 'offline' ? null : (details.meetLink || `https://meet.google.com/dan-${coupleId}-slot`),
+    clinicName: details.mode === 'offline' ? (details.clinicName || 'DaNA Partner Clinic') : null,
+    clinicRoom: details.mode === 'offline' ? (details.clinicRoom || 'Abu Dhabi · Building A · Room 204') : null,
+    clinicAddress: details.mode === 'offline' ? (details.clinicAddress || 'Cleveland Clinic Abu Dhabi, Al Maryah Island') : null,
+    language: 'Arabic',
+    cid: coupleId,
+    notes: details.notes || 'Booked by couple via DaNA portal.',
+  };
+  const schedule = [...(s.scheduleAppointments || []).filter((a) => a.cid !== coupleId), newAppt];
+  return act({
+    appointments: { ...s.appointments, [coupleId]: label },
+    scheduleAppointments: schedule,
+  },
+    `Couple booked a counsellor session: ${label}`,
     async () => {
-      const { error } = await supabase.rpc('book_slot', { p_slot: slot.id });
-      return { error };
+      if (slot?.id && isLive()) {
+        const { error } = await supabase.rpc('book_slot', { p_slot: slot.id });
+        return { error };
+      }
+      return { error: null };
     });
+}
+
+export function rescheduleAppointment(coupleId, newSlotLabel, newDetails = {}) {
+  const s = get();
+  const schedule = (s.scheduleAppointments || []).map((a) => {
+    if (a.cid === coupleId || a.id === newDetails.id) {
+      return {
+        ...a,
+        ...newDetails,
+        date: newDetails.date || a.date,
+        time: newDetails.time || a.time,
+        rescheduled: true,
+        rescheduledAt: new Date().toISOString(),
+        rescheduleNote: newDetails.note || 'Patient requested alternative slot',
+      };
+    }
+    return a;
+  });
+  return act({
+    appointments: { ...s.appointments, [coupleId]: newSlotLabel },
+    scheduleAppointments: schedule,
+  }, `Appointment rescheduled for ${coupleId.toUpperCase()} to ${newSlotLabel}`);
+}
+
+export function saveScheduleAppointments(scheduleList) {
+  const s = get();
+  const apptsMap = { ...s.appointments };
+  scheduleList.forEach((a) => {
+    if (a.cid) {
+      apptsMap[a.cid] = `${a.date} · ${a.time}`;
+    }
+  });
+  return act({ scheduleAppointments: scheduleList, appointments: apptsMap },
+    'Counsellor updated schedule appointments');
 }
 
 export function completeAppointment(coupleId) {
   const s = get();
   const rest = { ...s.appointments };
   delete rest[coupleId];
-  return act({ appointments: rest }, `Counsellor completed the session with ${coupleId.toUpperCase()}`,
-    () => supabase.rpc('complete_appointment', { p_appt: s.apptIds[coupleId] }));
+  const schedule = (s.scheduleAppointments || []).map((a) => (a.cid === coupleId ? { ...a, priority: 'completed', tone: 'blue' } : a));
+  return act({ appointments: rest, scheduleAppointments: schedule }, `Counsellor completed the session with ${coupleId.toUpperCase()}`,
+    () => (s.apptIds?.[coupleId] ? supabase.rpc('complete_appointment', { p_appt: s.apptIds[coupleId] }) : Promise.resolve({ error: null })));
 }
 
 export function cancelBooking(coupleId) {
   const s = get();
   const rest = { ...s.appointments };
   delete rest[coupleId];
-  return act({ appointments: rest }, 'Couple cancelled the counsellor session',
-    () => supabase.rpc('cancel_appointment', { p_appt: s.apptIds[coupleId] }));
+  const schedule = (s.scheduleAppointments || []).filter((a) => a.cid !== coupleId);
+  return act({ appointments: rest, scheduleAppointments: schedule }, `Couple cancelled the counsellor session for ${coupleId.toUpperCase()}`,
+    () => (s.apptIds?.[coupleId] ? supabase.rpc('cancel_appointment', { p_appt: s.apptIds[coupleId] }) : Promise.resolve({ error: null })));
 }
 
 export function addNote(coupleId, text) {
@@ -377,7 +442,7 @@ async function doLoad() {
           };
         }
       }
-    } catch {}
+    } catch { }
   }
   if (s.role === 'counsellor') {
     const [{ data }, refs] = await Promise.all([
@@ -461,7 +526,7 @@ export async function resetDemoDataBackend(session) {
     // 1. Try secure RPC if configured
     try {
       await supabase.rpc('reset_my_intake');
-    } catch {}
+    } catch { }
 
     const { data: { user } } = await supabase.auth.getUser();
     const uid = user?.id || session?.userId;
@@ -471,26 +536,26 @@ export async function resetDemoDataBackend(session) {
     if (uid) {
       try {
         await supabase.from('screening').delete().eq('user_id', uid);
-      } catch {}
+      } catch { }
       try {
         await supabase.from('screening').update({
           completed: false,
           submitted_at: null,
           updated_at: new Date().toISOString(),
         }).eq('user_id', uid);
-      } catch {}
+      } catch { }
     }
 
     if (pid) {
       try {
         await supabase.from('screening').delete().eq('person_id', pid);
-      } catch {}
+      } catch { }
     }
 
     // Clear standard demo personas screening rows
     try {
       await supabase.from('screening').delete().in('person_id', ['khalid', 'fatima', 'ahmed', 'noura']);
-    } catch {}
+    } catch { }
 
     // 3. Clear people intake_completed_at
     if (pid) {
@@ -500,7 +565,7 @@ export async function resetDemoDataBackend(session) {
           uaepass_linked_at: null,
           uaepass_via: null,
         }).eq('id', pid);
-      } catch {}
+      } catch { }
     }
     try {
       await supabase.from('people').update({
@@ -508,30 +573,30 @@ export async function resetDemoDataBackend(session) {
         uaepass_linked_at: null,
         uaepass_via: null,
       }).in('id', ['khalid', 'fatima', 'ahmed', 'noura']);
-    } catch {}
+    } catch { }
 
     // 4. Clear person_details
     if (pid) {
       try {
         await supabase.from('person_details').delete().eq('person_id', pid);
-      } catch {}
+      } catch { }
     }
     try {
       await supabase.from('person_details').delete().in('person_id', ['khalid', 'fatima', 'ahmed', 'noura']);
-    } catch {}
+    } catch { }
 
     // 5. Reset accounts title
     if (uid) {
       try {
         await supabase.from('accounts').update({ title: 'New member' }).eq('user_id', uid);
-      } catch {}
+      } catch { }
     }
 
     // 6. Delete test appointments and plans for the couple
     if (session?.couple) {
       try {
         await supabase.from('plans').delete().eq('couple_id', session.couple);
-      } catch {}
+      } catch { }
     }
   } catch (err) {
     console.warn('Backend reset demo error (handled gracefully):', err);

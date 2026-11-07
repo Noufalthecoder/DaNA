@@ -4,7 +4,7 @@
   Owner: Platform. Swap for a real API later without changing the pages.
 */
 import { useSyncExternalStore, useRef, useCallback } from 'react';
-import { getSyntheticIntake } from './data.js';
+import { getSyntheticIntake, INITIAL_SCHEDULE } from './data.js';
 
 export const EMPTY_OBJ = Object.freeze({});
 export const EMPTY_ARR = Object.freeze([]);
@@ -17,7 +17,15 @@ const initial = {
   notes: {},
   approved: [],
   plans: {},          // couple id -> chosen plan
-  appointments: {},   // couple id -> booked slot label
+  appointments: {
+    c1: 'Thu 5 Nov · 10:30',
+    c2: 'Thu 5 Nov · 09:00',
+    c3: 'Thu 5 Nov · 15:30',
+    c4: 'Thu 5 Nov · 11:30',
+    c5: 'Thu 5 Nov · 14:00',
+    c6: 'Thu 12 Nov · 10:00',
+  },   // couple id -> booked slot label
+  scheduleAppointments: INITIAL_SCHEDULE,
   faith: {},
   audit: [],
   family: {},          // person id -> their family_members rows
@@ -105,7 +113,12 @@ const subs = new Set();
 function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
-    return { ...initial, ...saved };
+    return {
+      ...initial,
+      ...saved,
+      appointments: (saved.appointments && Object.keys(saved.appointments).length > 0) ? saved.appointments : initial.appointments,
+      scheduleAppointments: (saved.scheduleAppointments && saved.scheduleAppointments.length > 0) ? saved.scheduleAppointments : initial.scheduleAppointments,
+    };
   } catch {
     return { ...initial };
   }
