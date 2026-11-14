@@ -294,3 +294,30 @@ export function guide({ stage, status, type, gene, partnerName = 'your partner',
   }[type];
   return both ? { eyebrow: `You and ${partnerName}`, ...both } : null;
 }
+
+/* ---- comprehension check (v1): 3 true/false statements matched to the result, each with a short why ---- */
+export const QUIZ_VERSION = 'quiz-v1';
+const Q = {
+  sick: ['Being a carrier means I am ill.', false, 'Carriers are healthy. The working copy of the gene does the job.'],
+  alone: ['My result alone tells me the chance for my future children.', false, "The chance depends on both of you. Your partner's result is needed."],
+  marry: ['This result means we should not marry.', false, 'No. It never stops a marriage. It helps you plan, and every choice is yours.'],
+  zero: ['"No change found" means a zero chance of any inherited condition.', false, 'It lowers the chance a lot, but no test checks every gene.'],
+  partnerMatters: ["My partner's result still matters.", true, 'Screening is done as a couple because the chance depends on both.'],
+  quarter: ['In each pregnancy there is a 1 in 4 chance the child has the condition.', true, 'It is true: 1 in 4 children could have it, and 3 in 4 are healthy.'],
+  next: ['If our first child has the condition, the next one will not.', false, 'Each pregnancy has the same chances, whatever happened before.'],
+  decides: ['DaNA or the counsellor decides what we should do.', false, 'No. They explain your options. The decision is yours.'],
+  sameSex: ['Sons and daughters have the same chance.', false, 'This change is on the X chromosome, so mainly sons can be affected.'],
+  daughters: ['Daughters are usually healthy.', true, 'Daughters who inherit it are usually healthy carriers.'],
+  kidsOne: ['Our children can get this condition from us.', false, 'No. A child needs the change from both parents, and only one of you carries it.'],
+  noPlan: ['We need extra tests or a plan for this result.', false, 'No extra steps are needed. You can still talk to a counsellor any time.'],
+  vusBad: ['An "uncertain" result means bad news.', false, 'Usually not. Most uncertain changes turn out to be harmless.'],
+  vusReview: ['A specialist reviews the uncertain finding before any risk is given.', true, 'Nobody gives you a number until it is reviewed.'],
+};
+
+export function quiz({ stage, status, type }) {
+  const k = stage !== 'couple'
+    ? (status === 'clear' ? ['zero', 'partnerMatters', 'marry'] : ['sick', 'alone', 'marry'])
+    : ({ plan: ['quarter', 'next', 'decides'], xlinked: ['sameSex', 'daughters', 'decides'], carrier: ['kidsOne', 'sick', 'noPlan'],
+         clear: ['zero', 'noPlan', 'marry'], uncertain: ['vusBad', 'vusReview', 'marry'] }[type] || ['sick', 'alone', 'marry']);
+  return k.map((id) => ({ id, text: Q[id][0], answer: Q[id][1], why: Q[id][2] }));
+}

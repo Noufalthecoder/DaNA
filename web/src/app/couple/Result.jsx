@@ -8,6 +8,7 @@ import { explain, explainIndividual, guide, CONDITIONS, EXPLAIN_VERSION, EXPLAIN
 import { GENES } from '../shared/data.js';
 import { set } from '../shared/store.js';
 import { useCouple } from './useCouple.js';
+import Quiz from '../shared/Quiz.jsx';
 import { isLinked, isRealReport, personalStatus } from '../shared/journey.js';
 
 /* one child figure: outline = does not carry, half = healthy carrier, full = has the condition */
@@ -158,6 +159,8 @@ export default function Result() {
           ))}
         </div>
       </section>
+
+      <Quiz stage={stage} status={status} type={stage === 'couple' ? result.type : null} />
 
       <details className="rs-more">
         <summary>More details about this test</summary>
