@@ -111,6 +111,18 @@ export default function Result() {
         </ul>
       </section>
 
+      {stage === 'couple' && status === 'xl_male' && (() => {
+        const own = guide({ stage: 'individual', status, gene: me.carrier });
+        return (
+          <section className="rs-card rs-own">
+            <span className="rs-eyebrow">About your own result</span>
+            <h3>{own.title}</h3>
+            <p>{own.line}</p>
+            <div className="btn-row"><a className="btn" href="#/app/counsellor">{own.next.label}</a></div>
+          </section>
+        );
+      })()}
+
       {stage === 'couple' && x.outcomes && (
         <section className="rs-card">
           <h3>What it means for a child</h3>

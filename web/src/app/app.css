@@ -1972,3 +1972,4 @@ body.in-app{background:#F6F7F5}
 .src-cell a:hover{text-decoration:underline}
 .src-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .src-edit{display:inline-flex;align-items:center;gap:4px;font-size:12.5px}
+.rs-own{border-left:4px solid var(--amber)}.rs-own p{color:var(--ink2);line-height:1.6;max-width:70ch}

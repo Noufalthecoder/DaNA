@@ -335,6 +335,11 @@ async function doLoad() {
     date: r.report_date, verified: r.validation_status === 'verified',
     variants: (r.genetic_variants || []).map((v) => ({ gene: v.gene_symbol, hgvs_c: v.hgvs_c, hgvs_p: v.hgvs_p, zygosity: v.zygosity, significance: v.clinical_significance, source: v.significance_source })),
   }]));
+  // uncertain findings (VUS) are not in the results summary table: take them from the reports themselves
+  for (const [pid, rep] of Object.entries(patch.reports)) {
+    if (!PEOPLE[pid] || String(rep.id).startsWith('SAMPLE-')) continue;
+    PEOPLE[pid].vus = rep.variants.find((v) => v.significance === 'vus')?.gene || undefined;
+  }
   patch.cases = Object.fromEntries((cases.data || []).map((c) => [c.couple_id, {
     id: c.id, tier: c.triage_tier, counsellor: c.case_assignments?.[0]?.counsellors?.name || null,
   }]));
