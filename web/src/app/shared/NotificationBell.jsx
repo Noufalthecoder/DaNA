@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Calendar, CheckCircle } from 'lucide-react';
 import { useStore } from './store.js';
 import { go } from './router.js';
 import {
@@ -32,6 +33,10 @@ function NotificationTypeIcon({ type }) {
       return <IconShield size={16} />;
     case 'CONSENT_REVOKED':
       return <IconLock size={16} />;
+    case 'CONSULTATION_REQUEST':
+      return <Calendar size={16} color="#00843D" />;
+    case 'CONSULTATION_CONFIRMED':
+      return <CheckCircle size={16} color="#00843D" />;
     default:
       return <IconBell size={16} />;
   }
@@ -41,6 +46,7 @@ export default function NotificationBell() {
   initConnectionsStore();
   const session = useStore((s) => s.session);
   const notificationsState = useStore((s) => s.notifications);
+  const scheduleAppointmentsState = useStore((s) => s.scheduleAppointments);
   const [open, setOpen] = useState(false);
   const popoverRef = useRef(null);
 

@@ -80,6 +80,7 @@ export default function Connections({ defaultTab = 'discover' }) {
   // Request modal state
   const [requestTarget, setRequestTarget] = useState(null);
   const [requestNote, setRequestNote] = useState('');
+  const [confirmAction, setConfirmAction] = useState(null);
 
   // React to hashchange events (e.g. from notification clicks) & live Supabase sync
   useEffect(() => {
@@ -260,24 +261,38 @@ export default function Connections({ defaultTab = 'discover' }) {
     }
   };
 
-  const handleRemove = async (connectionId, partnerName) => {
-    if (!window.confirm(`Disconnect from ${partnerName}? Your couple result and shared plans end for both of you. Your own results stay.`)) return;
-    try {
-      await removeConnection(connectionId, meId);
-      notify(`Disconnected from ${partnerName}.`);
-    } catch (err) {
-      notify(err.message, 'error');
-    }
+  const handleRemove = (connectionId, partnerName) => {
+    setConfirmAction({
+      title: 'Disconnect Partner',
+      message: `Disconnect from ${partnerName}? Your couple result and shared plans end for both of you. Your own results stay.`,
+      actionLabel: 'Disconnect',
+      isDanger: true,
+      onConfirm: async () => {
+        try {
+          await removeConnection(connectionId, meId);
+          notify(`Disconnected from ${partnerName}.`);
+        } catch (err) {
+          notify(err.message, 'error');
+        }
+      }
+    });
   };
 
-  const handleBlock = async (targetId, targetName) => {
-    if (!window.confirm(`Block ${targetName}? This also ends any link between you. Neither of you can find, request or link with the other until you unblock.`)) return;
-    try {
-      await blockUser(meId, targetId);
-      notify(`Blocked ${targetName}.`);
-    } catch (err) {
-      notify(err.message, 'error');
-    }
+  const handleBlock = (targetId, targetName) => {
+    setConfirmAction({
+      title: 'Block User',
+      message: `Block ${targetName}? This also ends any link between you. Neither of you can find, request or link with the other until you unblock.`,
+      actionLabel: 'Block User',
+      isDanger: true,
+      onConfirm: async () => {
+        try {
+          await blockUser(meId, targetId);
+          notify(`Blocked ${targetName}.`);
+        } catch (err) {
+          notify(err.message, 'error');
+        }
+      }
+    });
   };
 
   const handleUnblock = async (targetId, targetName) => {
@@ -854,6 +869,50 @@ export default function Connections({ defaultTab = 'discover' }) {
               </div>
             )}
           </Card>
+        )}
+
+        {/* Confirm Action In-App Modal */}
+        {confirmAction && (
+          <div className="conn-modal-backdrop" onClick={() => setConfirmAction(null)}>
+            <div className="conn-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440 }}>
+              <div className="conn-modal-header">
+                <h3>{confirmAction.title}</h3>
+                <button
+                  type="button"
+                  className="conn-modal-close"
+                  onClick={() => setConfirmAction(null)}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="conn-modal-body">
+                <p style={{ margin: 0, fontSize: 14, color: '#334155', lineHeight: 1.5 }}>
+                  {confirmAction.message}
+                </p>
+              </div>
+              <div className="conn-modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-line"
+                  onClick={() => setConfirmAction(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{ background: confirmAction.isDanger ? '#DC2626' : undefined, borderColor: confirmAction.isDanger ? '#DC2626' : undefined, color: '#fff' }}
+                  onClick={() => {
+                    const action = confirmAction.onConfirm;
+                    setConfirmAction(null);
+                    action();
+                  }}
+                >
+                  {confirmAction.actionLabel || 'Confirm'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Send Request Modal */}

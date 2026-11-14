@@ -11,6 +11,7 @@ import { loadAll, logAudit, resetDemoDataBackend } from './db.js';
 import NotificationBell from './NotificationBell.jsx';
 import { isLinked, NEEDS_PARTNER } from './journey.js';
 import { syncRequestsFromSupabase } from './connectionsService.js';
+import { syncConsultationsFromSupabase, subscribeConsultationRealtime } from './consultationService.js';
 
 export default function Shell({ menu, path, children }) {
   const session = useStore((s) => s.session);
@@ -24,8 +25,11 @@ export default function Shell({ menu, path, children }) {
   useEffect(() => {
     if (session?.id) {
       syncRequestsFromSupabase(session.id, session.email, session.userId);
+      syncConsultationsFromSupabase(session.couple, session.id);
+      subscribeConsultationRealtime(session.couple, session.id);
       const timer = setInterval(() => {
         syncRequestsFromSupabase(session.id, session.email, session.userId);
+        syncConsultationsFromSupabase(session.couple, session.id);
       }, 10000);
       return () => clearInterval(timer);
     }
