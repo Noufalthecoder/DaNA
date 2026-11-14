@@ -14,12 +14,13 @@ import {
   AlertCircle,
   FileText,
   Navigation,
-  Info
+  Info,
+  CheckCircle
 } from 'lucide-react';
 import { Page, Card, Avatar } from '../shared/ui.jsx';
 import { useStore } from '../shared/store.js';
 import { SLOTS, INITIAL_SCHEDULE } from '../shared/data.js';
-import { book as bookSlot, cancelBooking, rescheduleAppointment, isLive } from '../shared/db.js';
+import { book as bookSlot, cancelBooking, rescheduleAppointment, confirmAppointment, isLive } from '../shared/db.js';
 import './counsellor.css';
 
 export default function Counsellor() {
@@ -34,6 +35,23 @@ export default function Counsellor() {
   const [copySuccess, setCopySuccess] = useState(false);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [showDirectionsModal, setShowDirectionsModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+
+  const formatDateLabel = (d) => {
+    if (!d) return '';
+    if (typeof d === 'string' && d.includes('-')) {
+      const parts = d.split('-');
+      if (parts.length === 3) {
+        const [y, m, day] = parts;
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const mIdx = parseInt(m, 10) - 1;
+        if (mIdx >= 0 && mIdx < 12) {
+          return `${parseInt(day, 10)} ${months[mIdx]} ${y}`;
+        }
+      }
+    }
+    return d;
+  };
 
   // Reschedule form state
   const [selectedNewSlot, setSelectedNewSlot] = useState(SLOTS[0]?.label || '');
@@ -87,10 +105,13 @@ export default function Counsellor() {
   };
 
   const handleCancel = () => {
-    if (window.confirm('Are you sure you want to cancel your consultation appointment?')) {
-      cancelBooking(cid);
-      showToast('Consultation appointment cancelled');
-    }
+    setShowCancelModal(true);
+  };
+
+  const handleConfirmCancel = () => {
+    cancelBooking(cid);
+    setShowCancelModal(false);
+    showToast('Consultation appointment cancelled');
   };
 
   const handleConfirmReschedule = () => {
@@ -123,12 +144,17 @@ export default function Counsellor() {
       who: session?.name || 'Khalid & Fatima',
       doctor: counsellorName,
       what: 'Pre-marital counselling',
+      priority: 'pending',
+      status: 'pending',
+      confirmed: false,
+      requestedAt: new Date().toISOString(),
+      tone: 'amber',
       meetLink: isOnline ? `https://meet.google.com/dan-${cid}-${Date.now().toString().slice(-4)}` : null,
       clinicName: isOnline ? null : 'DaNA Partner Clinic',
       clinicRoom: isOnline ? null : 'Abu Dhabi · Building A · Room 204',
       clinicAddress: isOnline ? null : 'Cleveland Clinic Abu Dhabi, Al Maryah Island',
     });
-    showToast(`Appointment booked for ${slot.label}`);
+    showToast(`Appointment request forwarded to ${counsellorName} for confirmation.`);
   };
 
   return (
@@ -171,8 +197,14 @@ export default function Counsellor() {
                   </span>
                   {activeAppt.priority === 'urgent' ? (
                     <span className="patient-appt-status-pill urgent">Tier 1 · Urgent</span>
+                  ) : activeAppt.confirmed === false || activeAppt.priority === 'pending' ? (
+                    <span className="patient-appt-status-pill pending">
+                      <Clock size={12} /> Awaiting Counsellor Confirmation
+                    </span>
                   ) : (
-                    <span className="patient-appt-status-pill upcoming">Confirmed</span>
+                    <span className="patient-appt-status-pill upcoming">
+                      <Check size={12} /> ✓ Verified & Confirmed
+                    </span>
                   )}
                 </div>
               </div>
@@ -189,7 +221,7 @@ export default function Counsellor() {
                 <span className="patient-appt-meta-label">Date</span>
                 <span className="patient-appt-meta-value">
                   <Calendar size={15} color="#2563EB" />
-                  {activeAppt.date}
+                  {formatDateLabel(activeAppt.date)}
                 </span>
               </div>
 
@@ -216,6 +248,42 @@ export default function Counsellor() {
               </div>
             </div>
 
+            {/* Request & Acceptance Verification Banner */}
+            {activeAppt.confirmed === false || activeAppt.priority === 'pending' ? (
+              <div className="patient-status-banner pending">
+                <div className="patient-status-banner-left">
+                  <div className="patient-pending-icon-wrap">
+                    <Clock size={22} color="#D97706" />
+                  </div>
+                  <div>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: 14.5, color: '#92400E', fontWeight: 700 }}>
+                      Request Forwarded to {activeAppt.doctor || counsellorName}
+                    </h4>
+                    <p style={{ margin: 0, fontSize: 13, color: '#B45309', lineHeight: 1.45 }}>
+                      Your consultation request for <b>{formatDateLabel(activeAppt.date)} at {activeAppt.time} GST</b> has been forwarded for clinical review. Once confirmed, this appointment will be officially verified on both portals and your secure meeting room will activate.
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+            ) : (
+              <div className="patient-status-banner verified">
+                <div className="patient-status-banner-left">
+                  <div className="patient-verified-icon-wrap">
+                    <CheckCircle size={22} color="#059669" />
+                  </div>
+                  <div>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: 14.5, color: '#065F46', fontWeight: 700 }}>
+                      ✓ Appointment Verified & Confirmed
+                    </h4>
+                    <p style={{ margin: 0, fontSize: 13, color: '#047857', lineHeight: 1.45 }}>
+                      <b>{activeAppt.doctor || counsellorName}</b> has confirmed your consultation. This appointment is verified across both portals and your encrypted video meeting room is active.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Modality Specific Section (Image 5) */}
             {activeAppt.mode === 'online' ? (
               /* Online / Google Meet Layout */
@@ -241,16 +309,28 @@ export default function Counsellor() {
                       {copySuccess ? 'Copied' : 'Copy meeting link'}
                     </button>
 
-                    <a
-                      href={activeAppt.meetLink || 'https://meet.google.com/dan-prem-103'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="patient-btn-join"
-                    >
-                      <Video size={16} />
-                      Join consultation
-                      <ExternalLink size={14} />
-                    </a>
+                    {activeAppt.confirmed === false || activeAppt.priority === 'pending' ? (
+                      <button
+                        type="button"
+                        className="patient-btn-join disabled"
+                        disabled
+                        title="Meeting link will activate once confirmed by counsellor"
+                      >
+                        <Clock size={15} />
+                        Awaiting Counsellor Acceptance
+                      </button>
+                    ) : (
+                      <a
+                        href={activeAppt.meetLink || 'https://meet.google.com/dan-prem-103'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="patient-btn-join"
+                      >
+                        <Video size={16} />
+                        Join consultation
+                        <ExternalLink size={14} />
+                      </a>
+                    )}
                   </div>
                 </div>
 
@@ -334,9 +414,9 @@ export default function Counsellor() {
           <div className="patient-appt-card">
             <div className="patient-book-section">
               <div className="patient-appt-title-group">
-                <h3>Book a Consultation</h3>
+                <h3>Request a Consultation</h3>
                 <p style={{ margin: 0, color: '#64748B', fontSize: 14 }}>
-                  Schedule a confidential 45-minute consultation with {counsellorName} to discuss your screening results and family planning options.
+                  Schedule a confidential 45-minute consultation with {counsellorName} to discuss your screening results. Choose your format and preferred slot; your request will be forwarded for confirmation.
                 </p>
               </div>
 
@@ -380,7 +460,7 @@ export default function Counsellor() {
                       >
                         <Clock size={16} color="#059669" />
                         <span>{s.label}</span>
-                        <small style={{ color: '#64748B', fontSize: 11.5 }}>Book Now →</small>
+                        <small style={{ color: '#059669', fontSize: 11.5, fontWeight: 600 }}>Request Slot →</small>
                       </button>
                     ))}
                   </div>
@@ -585,6 +665,67 @@ export default function Counsellor() {
                 <ExternalLink size={14} />
                 Open Google Maps
               </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Cancel Appointment Confirmation Modal (In-App Modal, No Browser Alert) ─── */}
+      {showCancelModal && (
+        <div className="patient-modal-overlay" onClick={() => setShowCancelModal(false)}>
+          <div className="patient-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
+            <div className="patient-modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <AlertCircle size={20} color="#DC2626" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 16 }}>Cancel Consultation</h3>
+                  <span style={{ fontSize: 12, color: '#64748B' }}>Confirm cancellation</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCancelModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="patient-modal-body" style={{ gap: 14 }}>
+              <p style={{ margin: 0, fontSize: 13.5, color: '#334155', lineHeight: 1.5 }}>
+                Are you sure you want to cancel your consultation appointment with <b>{activeAppt?.doctor || counsellorName}</b>?
+              </p>
+
+              {activeAppt && (
+                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#475569' }}>
+                  <div style={{ fontWeight: 600, color: '#0F172A', marginBottom: 2 }}>{activeAppt.what || 'Pre-marital counselling'}</div>
+                  <div>📅 {formatDateLabel(activeAppt.date)} · ⏰ {activeAppt.time} GST ({activeAppt.mode === 'online' ? 'Google Meet Video' : 'Clinic Visit'})</div>
+                </div>
+              )}
+
+              <p style={{ margin: 0, fontSize: 12.5, color: '#64748B', lineHeight: 1.4 }}>
+                Your slot will be freed up immediately. You can book a new appointment from scratch anytime.
+              </p>
+            </div>
+
+            <div className="patient-modal-footer">
+              <button
+                type="button"
+                className="patient-btn-secondary"
+                onClick={() => setShowCancelModal(false)}
+              >
+                Keep Appointment
+              </button>
+              <button
+                type="button"
+                className="patient-btn-join"
+                style={{ background: '#DC2626', borderColor: '#DC2626', color: '#ffffff' }}
+                onClick={handleConfirmCancel}
+              >
+                Yes, Cancel Appointment
+              </button>
             </div>
           </div>
         </div>

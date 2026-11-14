@@ -17,12 +17,13 @@ import {
   X,
   ExternalLink,
   Copy,
-  CalendarCheck
+  CalendarCheck,
+  CheckCircle
 } from 'lucide-react';
 import { Dialog, Badge } from '../shared/ui.jsx';
 import { useStore } from '../shared/store.js';
 import { COUPLES, PEOPLE, INITIAL_SCHEDULE } from '../shared/data.js';
-import { completeAppointment, saveScheduleAppointments } from '../shared/db.js';
+import { completeAppointment, saveScheduleAppointments, confirmAppointment, declineAppointment } from '../shared/db.js';
 import './schedule.css';
 
 const DOCTORS = [
@@ -40,6 +41,22 @@ const MONTH_NAMES = [
 
 export default function Schedule() {
   const [currentDate, setCurrentDate] = useState(new Date(2026, 10, 5)); // November 5, 2026
+
+  const formatDateLabel = (d) => {
+    if (!d) return '';
+    if (typeof d === 'string' && d.includes('-')) {
+      const parts = d.split('-');
+      if (parts.length === 3) {
+        const [y, m, day] = parts;
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const mIdx = parseInt(m, 10) - 1;
+        if (mIdx >= 0 && mIdx < 12) {
+          return `${parseInt(day, 10)} ${months[mIdx]} ${y}`;
+        }
+      }
+    }
+    return d;
+  };
   const [selectedDateStr, setSelectedDateStr] = useState('2026-11-05');
   const [viewMode, setViewMode] = useState('month'); // 'month' | 'week' | 'day' | 'list' | 'consultation'
   const [selectedDoctor, setSelectedDoctor] = useState('All Doctors');
@@ -59,8 +76,65 @@ export default function Schedule() {
   const [newApptModal, setNewApptModal] = useState(false);
   const [rescheduleModal, setRescheduleModal] = useState(false);
   const [apptToReschedule, setApptToReschedule] = useState(null);
+  const [apptToCancel, setApptToCancel] = useState(null);
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+
+  const pendingRequests = useMemo(() => {
+    return appointments.filter((a) => a.priority === 'pending' || a.confirmed === false);
+  }, [appointments]);
+
+  // Deep-link / Notification handler: auto-open drawer when navigating with ?review=<id>
+  useEffect(() => {
+    const checkHashReview = () => {
+      const hash = window.location.hash || '';
+      if (hash.includes('review=')) {
+        const match = hash.match(/review=([^&]+)/);
+        if (match && match[1]) {
+          const targetId = match[1];
+          const target = appointments.find((a) => a.id === targetId || a.cid === targetId);
+          if (target) {
+            setSelectedDateStr(target.date);
+            setDrawerAppt(target);
+            setSidePanelOpen(true);
+          }
+        }
+      }
+    };
+    checkHashReview();
+    window.addEventListener('hashchange', checkHashReview);
+    return () => window.removeEventListener('hashchange', checkHashReview);
+  }, [appointments]);
+
+  const handleAcceptRequest = (appt) => {
+    confirmAppointment(appt.id || appt.cid);
+    setAppointments((prev) =>
+      prev.map((a) => (a.id === appt.id || (a.cid && a.cid === appt.cid) ? {
+        ...a,
+        priority: 'upcoming',
+        status: 'confirmed',
+        confirmed: true,
+        confirmedAt: new Date().toISOString(),
+        tone: 'green',
+      } : a))
+    );
+    setDrawerAppt((curr) => ({
+      ...curr,
+      priority: 'upcoming',
+      status: 'confirmed',
+      confirmed: true,
+      confirmedAt: new Date().toISOString(),
+      tone: 'green',
+    }));
+    showToast(`Appointment with ${appt.who} verified & confirmed! Both portals synced.`);
+  };
+
+  const handleDeclineRequest = (appt) => {
+    declineAppointment(appt.id || appt.cid);
+    setAppointments((prev) => prev.filter((a) => a.id !== appt.id && a.cid !== appt.cid));
+    setDrawerAppt(null);
+    showToast(`Appointment request for ${appt.who} declined.`);
+  };
 
   // Availability Settings State (Image 1)
   const [isAvailable, setIsAvailable] = useState(true);
@@ -174,11 +248,7 @@ export default function Schedule() {
   };
 
   const handleCancelAppt = (appt) => {
-    if (window.confirm(`Cancel appointment with ${appt.who} on ${appt.date} at ${appt.time}?`)) {
-      setAppointments((prev) => prev.filter((a) => a.id !== appt.id));
-      setDrawerAppt(null);
-      showToast(`Appointment with ${appt.who} cancelled.`);
-    }
+    setApptToCancel(appt);
   };
 
   const handleConfirmReschedule = (newSlotTime) => {
@@ -385,6 +455,37 @@ export default function Schedule() {
         </div>
       </div>
 
+      {/* Pending Requests Alert Notification */}
+      {pendingRequests.length > 0 && (
+        <div className="appt-pending-notification-bar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span className="appt-pulsing-amber-dot" />
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: '#92400E' }}>
+              {pendingRequests.length} Appointment Request{pendingRequests.length > 1 ? 's' : ''} Awaiting Confirmation
+            </span>
+            <span style={{ fontSize: 13, color: '#B45309' }}>
+              — Patient awaiting clinical review and verification
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            {pendingRequests.map((req) => (
+              <button
+                key={req.id}
+                type="button"
+                className="btn-review-request"
+                onClick={() => {
+                  setSelectedDateStr(req.date);
+                  setDrawerAppt(req);
+                  setSidePanelOpen(true);
+                }}
+              >
+                Review {req.who} ({req.date.slice(5)}) →
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ─── Main Workspace: Calendar Left + Side Panel Right (Image 2) ─── */}
       <div className="appt-workspace">
         <div className="appt-calendar-area">
@@ -400,6 +501,9 @@ export default function Schedule() {
                 {calendarCells.map((cell, idx) => {
                   const dayAppts = filteredAppointments.filter((a) => a.date === cell.dateStr);
                   const isSelected = selectedDateStr === cell.dateStr;
+                  const MAX_VISIBLE_CHIPS = 3;
+                  const visibleAppts = dayAppts.slice(0, MAX_VISIBLE_CHIPS);
+                  const extraCount = dayAppts.length - MAX_VISIBLE_CHIPS;
 
                   return (
                     <div
@@ -415,15 +519,10 @@ export default function Schedule() {
                         <span className={`appt-day-num ${cell.isToday ? 'today-badge' : ''}`}>
                           {cell.dayNumber}
                         </span>
-                        {dayAppts.length > 0 && (
-                          <span className="appt-day-badge-count">
-                            {dayAppts.length}
-                          </span>
-                        )}
                       </div>
 
                       <div className="appt-day-appts">
-                        {dayAppts.map((appt) => (
+                        {visibleAppts.map((appt) => (
                           <div
                             key={appt.id}
                             className={`appt-chip tone-${appt.tone || 'blue'}`}
@@ -433,14 +532,32 @@ export default function Schedule() {
                               setSidePanelOpen(true);
                               setDrawerAppt(appt); // Open detail view inside drawer
                             }}
+                            title={`${appt.time} · ${appt.who} (${appt.mode === 'online' ? 'Google Meet Video' : 'Partner Clinic'})`}
                           >
-                            <div className="appt-chip-h">
-                              <span className="appt-chip-time">{appt.time}</span>
-                              <span className="appt-chip-badge">{appt.mode === 'online' ? 'Video' : 'Clinic'}</span>
-                            </div>
-                            <div className="appt-chip-who">{appt.who}</div>
+                            {appt.mode === 'online' ? (
+                              <Video size={10} className="appt-chip-icon" />
+                            ) : (
+                              <MapPin size={10} className="appt-chip-icon" />
+                            )}
+                            <span className="appt-chip-time">{appt.time}</span>
+                            <span className="appt-chip-who">{appt.who}</span>
                           </div>
                         ))}
+
+                        {extraCount > 0 && (
+                          <button
+                            type="button"
+                            className="appt-chip-more"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedDateStr(cell.dateStr);
+                              setSidePanelOpen(true);
+                              setDrawerAppt(null);
+                            }}
+                          >
+                            {extraCount} more
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -620,7 +737,7 @@ export default function Schedule() {
                   <h3 className="appt-panel-section-title">Today's appointments</h3>
 
                   {selectedDayAppts.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '40px 16px', color: '#94A3B8' }}>
+                    <div style={{ textAlign: 'center', padding: '40px 16px', color: '#64748B' }}>
                       <CalendarIcon size={32} style={{ margin: '0 auto 10px', opacity: 0.4 }} />
                       <p style={{ margin: 0, fontSize: 14 }}>No appointments scheduled for this date.</p>
                       <button
@@ -706,7 +823,7 @@ export default function Schedule() {
                       >
                         ⟨ Prev
                       </button>
-                      <span style={{ fontSize: 11.5, color: '#94A3B8' }}>
+                      <span style={{ fontSize: 11.5, color: '#64748B' }}>
                         {currentApptIndex + 1} of {selectedDayAppts.length}
                       </span>
                       <button
@@ -730,12 +847,12 @@ export default function Schedule() {
                         className={
                           drawerAppt.priority === 'urgent'
                             ? 'dark-badge-urgent'
-                            : drawerAppt.priority === 'pending'
+                            : drawerAppt.priority === 'pending' || drawerAppt.confirmed === false
                               ? 'dark-badge-pending'
                               : 'dark-badge-upcoming'
                         }
                       >
-                        {drawerAppt.priority}
+                        {drawerAppt.priority === 'urgent' ? 'Tier 1 · Urgent' : (drawerAppt.priority === 'pending' || drawerAppt.confirmed === false) ? 'Action Required: Request' : '✓ Verified'}
                       </span>
                     </div>
                     <p className="appt-detail-sub">
@@ -743,11 +860,50 @@ export default function Schedule() {
                     </p>
                   </div>
 
+                  {/* Action Required: Acceptance Box */}
+                  {(drawerAppt.priority === 'pending' || drawerAppt.confirmed === false) ? (
+                    <div className="drawer-request-action-box">
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <Clock size={15} color="#D97706" />
+                          <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#0F172A' }}>Patient Appointment Request</h4>
+                        </div>
+                        <span style={{ background: '#FEF3C7', color: '#92400E', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6 }}>
+                          Action Required
+                        </span>
+                      </div>
+                      <p style={{ margin: '0 0 14px 0', fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
+                        <b>{drawerAppt.cid === 'c1' && drawerAppt.who === 'Khalid Al Mansoori' ? 'Khalid & Fatima' : drawerAppt.who}</b> requested a <b>{drawerAppt.mode === 'online' ? 'Google Meet Video' : 'Clinic Visit'}</b> consultation on <b>{formatDateLabel(drawerAppt.date)} at {drawerAppt.time} GST</b>. Review and confirm to verify on both portals.
+                      </p>
+                      <div className="drawer-btn-row">
+                        <button
+                          type="button"
+                          className="drawer-btn-accept"
+                          onClick={() => handleAcceptRequest(drawerAppt)}
+                        >
+                          <Check size={14} /> Accept Request
+                        </button>
+                        <button
+                          type="button"
+                          className="drawer-btn-decline"
+                          onClick={() => handleDeclineRequest(drawerAppt)}
+                        >
+                          <X size={14} /> Decline
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="drawer-verified-badge-box">
+                      <CheckCircle size={16} color="#059669" />
+                      <span>✓ Verified & Confirmed · Synced with Patient Portal</span>
+                    </div>
+                  )}
+
                   {/* Table details (Image 3) */}
                   <div className="appt-detail-table">
                     <div className="appt-detail-row">
                       <span className="appt-detail-label">Date</span>
-                      <span className="appt-detail-val">5 Nov 2026</span>
+                      <span className="appt-detail-val">{drawerAppt.date}</span>
                     </div>
                     <div className="appt-detail-row">
                       <span className="appt-detail-label">Time</span>
@@ -767,7 +923,7 @@ export default function Schedule() {
                   {drawerAppt.mode === 'online' ? (
                     <div className="appt-meeting-box">
                       <div className="appt-meeting-box-title">
-                        <Video size={16} color="#34D399" />
+                        <Video size={16} color="#00843D" />
                         <span>Google Meet</span>
                       </div>
                       <p className="appt-meeting-box-sub">
@@ -805,10 +961,10 @@ export default function Schedule() {
                   ) : (
                     <div className="appt-meeting-box">
                       <div className="appt-meeting-box-title">
-                        <MapPin size={16} color="#34D399" />
+                        <MapPin size={16} color="#00843D" />
                         <span>{drawerAppt.clinicName || 'DaNA Partner Clinic'}</span>
                       </div>
-                      <p className="appt-meeting-box-sub" style={{ color: '#F1F5F9', fontWeight: 600 }}>
+                      <p className="appt-meeting-box-sub" style={{ color: '#0F172A', fontWeight: 600 }}>
                         {drawerAppt.clinicRoom || 'Abu Dhabi · Building A · Room 204'}
                       </p>
                       <p className="appt-meeting-box-sub">
@@ -818,7 +974,7 @@ export default function Schedule() {
                         <button
                           type="button"
                           className="appt-card-link-btn"
-                          onClick={() => alert(`Directions to ${drawerAppt.clinicName}: Cleveland Clinic Abu Dhabi, Al Maryah Island, Clinical Building A, 2nd Floor, Room 204.`)}
+                          onClick={() => showToast(`Directions: Cleveland Clinic Abu Dhabi, Al Maryah Island, Clinical Building A, 2nd Floor, Room 204.`)}
                         >
                           View directions →
                         </button>
@@ -848,7 +1004,7 @@ export default function Schedule() {
                           setRescheduleModal(true);
                         }}
                       >
-                        <CalendarCheck size={16} color="#38BDF8" />
+                        <CalendarCheck size={16} color="#0284C7" />
                         Reschedule
                       </button>
 
@@ -857,7 +1013,7 @@ export default function Schedule() {
                         className="appt-act-btn"
                         onClick={() => handleMarkComplete(drawerAppt)}
                       >
-                        <Check size={16} color="#34D399" />
+                        <Check size={16} color="#059669" />
                         Complete
                       </button>
 
@@ -866,7 +1022,7 @@ export default function Schedule() {
                         className="appt-act-btn btn-cancel"
                         onClick={() => handleCancelAppt(drawerAppt)}
                       >
-                        <X size={16} color="#F87171" />
+                        <X size={16} color="#DC2626" />
                         Cancel
                       </button>
                     </div>
@@ -968,9 +1124,12 @@ export default function Schedule() {
                 );
               })}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <div className="appt-form-group">
-                <label>Day Start Time (GST)</label>
+                <label>
+                  <Clock size={13} color="#64748B" />
+                  Day Start Time (GST)
+                </label>
                 <input
                   type="time"
                   className="appt-form-control"
@@ -979,7 +1138,10 @@ export default function Schedule() {
                 />
               </div>
               <div className="appt-form-group">
-                <label>Day End Time (GST)</label>
+                <label>
+                  <Clock size={13} color="#64748B" />
+                  Day End Time (GST)
+                </label>
                 <input
                   type="time"
                   className="appt-form-control"
@@ -1277,6 +1439,52 @@ export default function Schedule() {
           <p className="fine" style={{ marginTop: 14 }}>
             Patients will be automatically notified via SMS and their DaNA patient dashboard.
           </p>
+        </Dialog>
+      )}
+
+      {/* ─── CANCEL APPOINTMENT CONFIRMATION DIALOG (IN-APP) ─── */}
+      {apptToCancel && (
+        <Dialog
+          title="Cancel Appointment"
+          onClose={() => setApptToCancel(null)}
+          footer={
+            <>
+              <button
+                type="button"
+                className="btn-line"
+                onClick={() => setApptToCancel(null)}
+              >
+                Keep Appointment
+              </button>
+              <button
+                type="button"
+                className="btn"
+                style={{ background: '#DC2626', borderColor: '#DC2626', color: '#ffffff' }}
+                onClick={() => {
+                  const target = apptToCancel;
+                  setAppointments((prev) => prev.filter((a) => a.id !== target.id));
+                  setDrawerAppt(null);
+                  setApptToCancel(null);
+                  showToast(`Appointment with ${target.who} cancelled.`);
+                }}
+              >
+                Yes, Cancel Appointment
+              </button>
+            </>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <p style={{ fontSize: 14, color: '#334155', margin: 0, lineHeight: 1.5 }}>
+              Are you sure you want to cancel the scheduled consultation with <b>{apptToCancel.who}</b>?
+            </p>
+            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#475569' }}>
+              <div><b>Session:</b> {apptToCancel.what || 'Premarital genetic counselling'}</div>
+              <div><b>Scheduled:</b> {apptToCancel.date} · {apptToCancel.time} GST ({apptToCancel.type || 'Video'})</div>
+            </div>
+            <p style={{ fontSize: 12.5, color: '#64748B', margin: 0 }}>
+              The slot will become available on the calendar and an automated notification will be sent.
+            </p>
+          </div>
         </Dialog>
       )}
     </div>

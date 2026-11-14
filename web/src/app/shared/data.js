@@ -33,7 +33,7 @@ export const PEOPLE = {
 };
 
 export const COUPLES = [
-  { id: 'c1', a: 'khalid', b: 'fatima', stage: 'Engaged', pregnantWeeks: null, screened: '2026-10-12' },
+  { id: 'c1', a: 'khalid', b: 'fatima', stage: 'Married', pregnantWeeks: null, screened: '2026-10-12' },
   { id: 'c2', a: 'ahmed', b: 'noura', stage: 'Married', pregnantWeeks: 11, screened: '2026-09-02' },
   { id: 'c3', a: 'saeed', b: 'maryam', stage: 'Engaged', pregnantWeeks: null, screened: '2026-10-20' },
   { id: 'c4', a: 'omar', b: 'latifa', stage: 'Married', pregnantWeeks: null, screened: '2026-08-15' },
@@ -117,24 +117,6 @@ export const INITIAL_SCHEDULE = [
     language: 'Arabic',
     cid: 'c2',
     notes: 'Gestational age 11 weeks. Bilateral carrier screening positive for GJB2 sensorineural hearing loss. Tier 1 triage expedited.',
-  },
-  {
-    id: 'appt_2',
-    date: '2026-11-05',
-    time: '10:30',
-    endTime: '11:15',
-    who: 'Khalid & Fatima',
-    what: 'Pre-marital counselling',
-    priority: 'upcoming',
-    tone: 'green',
-    doctor: 'Dr. Mariam Al Hosani',
-    mode: 'online',
-    type: 'Video',
-    provider: 'Google Meet',
-    meetLink: 'https://meet.google.com/dan-prem-103',
-    language: 'Arabic',
-    cid: 'c1',
-    notes: 'Both partners confirmed Beta-thalassaemia trait carriers (HBB). Discussing PGT-M vs preconception guidance.',
   },
   {
     id: 'appt_3',
@@ -241,7 +223,7 @@ export const SYNTHETIC_INTAKES = {
       nationality: 'United Arab Emirates',
       city: 'Abu Dhabi',
       partnerName: 'Khalid Al Mansoori',
-      maritalStatus: 'Preconception',
+      maritalStatus: 'Married',
       pregnancyStatus: 'no',
     },
     medical: {
@@ -299,7 +281,7 @@ export const SYNTHETIC_INTAKES = {
       nationality: 'United Arab Emirates',
       city: 'Abu Dhabi',
       partnerName: 'Fatima Al Hammadi',
-      maritalStatus: 'Preconception',
+      maritalStatus: 'Married',
       pregnancyStatus: 'no',
     },
     medical: {

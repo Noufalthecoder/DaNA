@@ -220,15 +220,48 @@ export function setConsent(key, value) {
 export function book(coupleId, slot, details = {}) {
   const s = get();
   const label = typeof slot === 'string' ? slot : (slot?.label || 'Booked Slot');
+
+  let apptDate = details.date;
+  let apptTime = details.time;
+  let apptEndTime = details.endTime;
+
+  if (!apptDate && slot?.iso) {
+    apptDate = slot.iso.slice(0, 10);
+    apptTime = slot.iso.slice(11, 16);
+  } else if (!apptDate && label) {
+    if (label.includes('9 Nov')) { apptDate = '2026-11-09'; apptTime = '10:00'; }
+    else if (label.includes('10 Nov')) { apptDate = '2026-11-10'; apptTime = '13:30'; }
+    else if (label.includes('11 Nov')) { apptDate = '2026-11-11'; apptTime = '17:00'; }
+    else if (label.includes('12 Nov')) { apptDate = '2026-11-12'; apptTime = '11:00'; }
+    else {
+      apptDate = '2026-11-09';
+      apptTime = '10:00';
+    }
+  }
+
+  if (!apptEndTime && apptTime) {
+    const [h, m] = apptTime.split(':').map(Number);
+    const endMinutes = h * 60 + m + 45;
+    const endH = String(Math.floor(endMinutes / 60)).padStart(2, '0');
+    const endM = String(endMinutes % 60).padStart(2, '0');
+    apptEndTime = `${endH}:${endM}`;
+  }
+
+  const isPending = details.confirmed === false || details.priority === 'pending' || details.status === 'pending';
+
   const newAppt = {
     id: details.id || `appt_${Date.now()}`,
-    date: details.date || '2026-11-09',
-    time: details.time || '10:00',
-    endTime: details.endTime || '10:45',
+    date: apptDate || '2026-11-09',
+    time: apptTime || '10:00',
+    endTime: apptEndTime || '10:45',
     who: details.who || (coupleId === 'c1' ? 'Khalid & Fatima' : coupleId.toUpperCase()),
     what: details.what || 'Pre-marital counselling',
-    priority: 'upcoming',
-    tone: 'green',
+    priority: details.priority || (isPending ? 'pending' : 'upcoming'),
+    status: details.status || (isPending ? 'pending' : 'confirmed'),
+    confirmed: details.confirmed !== undefined ? details.confirmed : !isPending,
+    requestedAt: details.requestedAt || new Date().toISOString(),
+    confirmedAt: details.confirmedAt || (!isPending ? new Date().toISOString() : null),
+    tone: details.tone || (isPending ? 'amber' : 'green'),
     doctor: details.doctor || 'Dr. Mariam Al Hosani',
     mode: details.mode || 'online',
     type: details.mode === 'offline' ? 'Clinic' : 'Video',
@@ -242,15 +275,51 @@ export function book(coupleId, slot, details = {}) {
     notes: details.notes || 'Booked by couple via DaNA portal.',
   };
   const schedule = [...(s.scheduleAppointments || []).filter((a) => a.cid !== coupleId), newAppt];
+  const notifs = [...(s.notifications || [])];
+  if (isPending) {
+    const notifId = `notif_consult_${newAppt.id}`;
+    if (!notifs.some((n) => n.id === notifId || n.requestId === newAppt.id)) {
+      notifs.unshift({
+        id: notifId,
+        requestId: newAppt.id,
+        userId: 'mariam',
+        actorId: coupleId,
+        type: 'CONSULTATION_REQUEST',
+        title: 'New Consultation Request',
+        body: `${newAppt.who} requested a ${newAppt.mode === 'offline' ? 'Clinic' : 'Google Meet Video'} consultation for ${newAppt.date} at ${newAppt.time} GST.`,
+        link: '/app/schedule',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  const extraFlags = coupleId === 'c1' ? { c1Cancelled: false } : {};
   return act({
     appointments: { ...s.appointments, [coupleId]: label },
     scheduleAppointments: schedule,
+    notifications: notifs,
+    ...extraFlags,
   },
     `Couple booked a counsellor session: ${label}`,
     async () => {
-      if (slot?.id && isLive()) {
-        const { error } = await supabase.rpc('book_slot', { p_slot: slot.id });
-        return { error };
+      if (isLive()) {
+        try {
+          await supabase.from('consultation_requests').insert({
+            id: newAppt.id,
+            couple_id: coupleId,
+            requester_id: s.session?.id || 'fatima',
+            requested_starts_at: `${newAppt.date}T${newAppt.time}:00+04:00`,
+            requested_ends_at: `${newAppt.date}T${newAppt.endTime}:00+04:00`,
+            modality: newAppt.mode,
+            topic: newAppt.what,
+            status: isPending ? 'PENDING' : 'CONFIRMED',
+            meet_link: newAppt.meetLink,
+            created_at: new Date().toISOString(),
+          });
+        } catch (e) {
+          console.warn('consultation_requests insert notice:', e?.message);
+        }
       }
       return { error: null };
     });
@@ -290,6 +359,99 @@ export function saveScheduleAppointments(scheduleList) {
     'Counsellor updated schedule appointments');
 }
 
+
+export function confirmAppointment(apptIdOrCid) {
+  const s = get();
+  let coupleWho = '';
+  let updatedRow = null;
+  const schedule = (s.scheduleAppointments || []).map((a) => {
+    if (a.id === apptIdOrCid || a.cid === apptIdOrCid) {
+      coupleWho = a.who || a.cid;
+      updatedRow = {
+        ...a,
+        priority: 'upcoming',
+        status: 'confirmed',
+        confirmed: true,
+        confirmedAt: new Date().toISOString(),
+        tone: 'green',
+      };
+      return updatedRow;
+    }
+    return a;
+  });
+  const existingNotifs = (s.notifications || []).map((n) => {
+    if (n.requestId === apptIdOrCid || n.actorId === apptIdOrCid) {
+      return { ...n, isRead: true };
+    }
+    return n;
+  });
+  const coupleUsers = updatedRow?.cid === 'c5' ? ['rashid', 'aisha'] :
+    updatedRow?.cid === 'c2' ? ['ahmed', 'noura'] :
+    updatedRow?.cid === 'c3' ? ['saeed', 'maryam'] :
+    updatedRow?.cid === 'c4' ? ['omar', 'latifa'] :
+    ['fatima', 'khalid'];
+
+  const coupleNotifs = coupleUsers.map((pId) => ({
+    id: `notif_confirmed_${Date.now()}_${pId}`,
+    userId: pId,
+    actorId: 'mariam',
+    type: 'CONSULTATION_CONFIRMED',
+    title: 'Consultation Confirmed',
+    body: `Dr. Mariam confirmed your premarital consultation for ${updatedRow?.date} at ${updatedRow?.time} GST.`,
+    link: '/app/counsellor',
+    isRead: false,
+    createdAt: new Date().toISOString(),
+  }));
+
+  return act({
+    scheduleAppointments: schedule,
+    notifications: [...coupleNotifs, ...existingNotifs],
+  },
+    `Counsellor verified and confirmed appointment for ${coupleWho || apptIdOrCid}`,
+    async () => {
+      if (isLive() && updatedRow) {
+        try {
+          await supabase.from('consultation_requests').update({
+            status: 'CONFIRMED',
+            responded_at: new Date().toISOString(),
+          }).or(`id.eq.${updatedRow.id},couple_id.eq.${updatedRow.cid}`);
+        } catch (e) {
+          console.warn('confirmAppointment live notice:', e?.message);
+        }
+      }
+      return { error: null };
+    }
+  );
+}
+
+export function declineAppointment(apptIdOrCid, reason = '') {
+  const s = get();
+  const target = (s.scheduleAppointments || []).find((a) => a.id === apptIdOrCid || a.cid === apptIdOrCid);
+  const coupleId = target?.cid || apptIdOrCid;
+  const rest = { ...s.appointments };
+  if (coupleId) delete rest[coupleId];
+  const schedule = (s.scheduleAppointments || []).filter((a) => a.id !== apptIdOrCid && a.cid !== apptIdOrCid);
+  return act({
+    appointments: rest,
+    scheduleAppointments: schedule,
+  }, `Counsellor declined appointment request for ${target?.who || coupleId}: ${reason || 'Schedule conflict'}`,
+    async () => {
+      if (isLive() && target) {
+        try {
+          await supabase.from('consultation_requests').update({
+            status: 'DECLINED',
+            counsellor_notes: reason,
+            responded_at: new Date().toISOString(),
+          }).or(`id.eq.${target.id},couple_id.eq.${coupleId}`);
+        } catch (e) {
+          console.warn('declineAppointment live notice:', e?.message);
+        }
+      }
+      return { error: null };
+    }
+  );
+}
+
 export function completeAppointment(coupleId) {
   const s = get();
   const rest = { ...s.appointments };
@@ -304,8 +466,22 @@ export function cancelBooking(coupleId) {
   const rest = { ...s.appointments };
   delete rest[coupleId];
   const schedule = (s.scheduleAppointments || []).filter((a) => a.cid !== coupleId);
-  return act({ appointments: rest, scheduleAppointments: schedule }, `Couple cancelled the counsellor session for ${coupleId.toUpperCase()}`,
-    () => (s.apptIds?.[coupleId] ? supabase.rpc('cancel_appointment', { p_appt: s.apptIds[coupleId] }) : Promise.resolve({ error: null })));
+  const notifs = (s.notifications || []).filter((n) => n.actorId !== coupleId && !n.requestId?.startsWith(`appt_${coupleId}`));
+  const extraFlags = coupleId === 'c1' ? { c1Cancelled: true } : {};
+  return act({ appointments: rest, scheduleAppointments: schedule, notifications: notifs, ...extraFlags }, `Couple cancelled the counsellor session for ${coupleId.toUpperCase()}`,
+    async () => {
+      if (isLive()) {
+        try {
+          await supabase.from('consultation_requests').update({
+            status: 'CANCELLED',
+            responded_at: new Date().toISOString(),
+          }).eq('couple_id', coupleId);
+        } catch (e) {
+          console.warn('cancelBooking live notice:', e?.message);
+        }
+      }
+      return (s.apptIds?.[coupleId] ? supabase.rpc('cancel_appointment', { p_appt: s.apptIds[coupleId] }) : Promise.resolve({ error: null }));
+    });
 }
 
 export function addNote(coupleId, text) {

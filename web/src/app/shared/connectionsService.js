@@ -127,6 +127,18 @@ export function initConnectionsStore() {
   if (!state.notifications) {
     updates.notifications = [
       {
+        id: 'notif_consult_appt_4',
+        requestId: 'appt_4',
+        userId: 'mariam',
+        actorId: 'c5',
+        type: 'CONSULTATION_REQUEST',
+        title: 'New Consultation Request',
+        body: 'Rashid & Aisha requested an Online Video consultation for 5 Nov at 14:00 GST.',
+        link: '/app/schedule?review=appt_4',
+        isRead: false,
+        createdAt: '2026-11-04T16:30:00Z',
+      },
+      {
         id: 'notif_welcome',
         userId: 'khalid',
         actorId: 'ahmed',
@@ -148,6 +160,23 @@ export function initConnectionsStore() {
         isRead: true,
         createdAt: '2026-10-12T09:00:00Z',
       },
+    ];
+    modified = true;
+  } else if (!state.notifications.some((n) => n.id === 'notif_consult_appt_4' || n.requestId === 'appt_4')) {
+    updates.notifications = [
+      {
+        id: 'notif_consult_appt_4',
+        requestId: 'appt_4',
+        userId: 'mariam',
+        actorId: 'c5',
+        type: 'CONSULTATION_REQUEST',
+        title: 'New Consultation Request',
+        body: 'Rashid & Aisha requested an Online Video consultation for 5 Nov at 14:00 GST.',
+        link: '/app/schedule?review=appt_4',
+        isRead: false,
+        createdAt: '2026-11-04T16:30:00Z',
+      },
+      ...state.notifications,
     ];
     modified = true;
   }
@@ -1173,7 +1202,37 @@ export function getConsentsForConnection() {
 export function getNotifications(userId) {
   initConnectionsStore();
   const state = get();
-  return (state.notifications || []).filter((n) => n.userId === userId);
+  let notifs = state.notifications || [];
+
+  if (userId === 'mariam') {
+    const pendingAppts = (state.scheduleAppointments || []).filter(
+      (a) => a.priority === 'pending' || a.confirmed === false
+    );
+    let added = false;
+    pendingAppts.forEach((a) => {
+      const notifId = `notif_consult_${a.id}`;
+      if (!notifs.some((n) => n.id === notifId || n.requestId === a.id)) {
+        notifs = [{
+          id: notifId,
+          requestId: a.id,
+          userId: 'mariam',
+          actorId: a.cid || a.id,
+          type: 'CONSULTATION_REQUEST',
+          title: 'New Consultation Request',
+          body: `${a.who || 'Couple'} requested a ${a.mode === 'offline' ? 'Clinic' : 'Online Video'} consultation for ${a.date} at ${a.time} GST.`,
+          link: `/app/schedule?review=${a.id}`,
+          isRead: false,
+          createdAt: a.requestedAt || '2026-11-04T16:30:00Z',
+        }, ...notifs];
+        added = true;
+      }
+    });
+    if (added) {
+      setTimeout(() => set({ notifications: notifs }), 0);
+    }
+  }
+
+  return notifs.filter((n) => n.userId === userId);
 }
 
 export function markNotificationAsRead(notificationId, userId) {
@@ -1195,9 +1254,8 @@ export function markAllNotificationsAsRead(userId) {
 }
 
 export function getUnreadNotificationCount(userId) {
-  initConnectionsStore();
-  const state = get();
-  return (state.notifications || []).filter((n) => n.userId === userId && !n.isRead).length;
+  const notifs = getNotifications(userId);
+  return notifs.filter((n) => !n.isRead).length;
 }
 
 // -----------------------------------------------------------------------------
