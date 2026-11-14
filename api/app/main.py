@@ -119,6 +119,7 @@ def ingest_malaffi(bundle: dict | None = Body(None), user: User = Depends(curren
     svc.insert("results", {"person_id": person, "gene": found, "lab": p.report.get("laboratory_name") or "Malaffi",
                            "reported_on": p.report["report_date"], "malaffi_ref": p.report["report_id"]}, upsert_on="person_id")
     svc.rpc("rescore_my_case", {"p_person": person})
+    blood = None
     if simulated:
         # the simulated Malaffi record also holds the premarital blood tests (a real record does too)
         try:
@@ -126,11 +127,12 @@ def ingest_malaffi(bundle: dict | None = Body(None), user: User = Depends(curren
             svc.insert("lab_results", {"person_id": person, "source": "malaffi", "lab_name": p.report.get("laboratory_name"),
                                        "report_ref": p.report["report_id"], "collected_on": p.report["report_date"],
                                        **synthetic_blood(sex, found)})
-        except Exception:  # blood results are a bonus for the demo; never fail the genetic sync over them
-            pass
+            blood = True
+        except Exception as e:  # blood results are a bonus for the demo; never fail the genetic sync over them
+            blood = f"not saved: {str(e)[:160]}"
     svc.insert("audit_log", {"actor": user.id, "actor_name": acc["display_name"], "action": "Synced and validated a Malaffi lab report",
                              "resource_type": "genetic_reports", "resource_id": saved["id"]})
-    return {"saved": True, "report_id": p.report["report_id"], "variants": len(p.variants), "warnings": p.warnings}
+    return {"saved": True, "report_id": p.report["report_id"], "variants": len(p.variants), "warnings": p.warnings, "blood": blood}
 
 
 # ---------- risk benchmarks: 2 rows (M, F), every change snapshotted by the database ----------
