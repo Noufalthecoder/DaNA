@@ -193,14 +193,8 @@ export function searchUsers(requesterId, query = '') {
       const email = (p.email || '').toLowerCase();
 
       // Match by username, person_id, unique DaNA ID, display name, or email
-      return (
-        username === q ||
-        id.toLowerCase() === q ||
-        danaId === q ||
-        name === q ||
-        short === q ||
-        email === q
-      );
+      // DaNA ID only: names and emails never find anyone (stops strangers sending requests)
+      return danaId === q;
     })
     .map(([id, p]) => {
       const isConnected = isUserConnected(requesterId, id);
@@ -252,8 +246,11 @@ export async function searchUsersAsync(requesterId, query = '') {
     return [];
   }
 
-  const cleanQ = raw.replace(/^@/, '').trim();
-  const upperQ = cleanQ.toUpperCase();
+  let cleanQ = raw.replace(/\s+/g, '').toUpperCase();
+  if (/^[0-9A-F]{6}$/.test(cleanQ)) cleanQ = `DANA-${cleanQ}`;
+  const isLive = !!(supabase && get().session?.backend);
+  if (!(isLive ? /^DANA-[0-9A-F]{6}$/ : /^DANA-[0-9A-Z]{4,6}$/).test(cleanQ)) return []; // DaNA ID only
+  const upperQ = cleanQ;
   const lowerQ = cleanQ.toLowerCase();
 
   // Resolve target username whether user entered a username (e.g. fatima) or unique DaNA ID (e.g. DANA-8822)
@@ -656,6 +653,12 @@ export function generateGmailInviteUrl({ senderName, senderDanaId, recipientEmai
 
 export function sendConnectionRequest(senderId, receiverId, note = '', meta = {}) {
   initConnectionsStore();
+  // Live: the server checks everything and applies limits (021 send_connection_request)
+  const live = get().session;
+  if (supabase && live?.backend) {
+    return supabase.rpc('send_connection_request', { p_to: receiverId, p_note: (note || '').trim() || null })
+      .then(({ data, error }) => { if (error) throw new Error(error.message); return data; });
+  }
   if (senderId === receiverId) {
     throw new Error('You cannot send a connection request to yourself.');
   }

@@ -161,8 +161,9 @@ export default function Connections({ defaultTab = 'discover' }) {
         }
       } catch (err) {
         if (active) {
-          // Fallback to strict synchronous search
-          setSearchResults(searchUsers(meId, raw));
+          // live errors (rate limit, wrong format) are shown; offline falls back to the local search
+          if (session?.backend) { setSearchResults([]); notify(err.message, 'error'); }
+          else setSearchResults(searchUsers(meId, raw));
           setIsSearching(false);
           setSearchDone(true);
         }
@@ -206,10 +207,10 @@ export default function Connections({ defaultTab = 'discover' }) {
   };
 
   // Actions
-  const handleSendRequest = () => {
+  const handleSendRequest = async () => {
     if (!requestTarget) return;
     try {
-      sendConnectionRequest(meId, requestTarget.id, requestNote, {
+      await sendConnectionRequest(meId, requestTarget.id, requestNote, {
         targetEmail: requestTarget.email,
         targetName: requestTarget.name,
       });
@@ -399,7 +400,7 @@ export default function Connections({ defaultTab = 'discover' }) {
         {tab === 'discover' && (
           <Card title="Search & Connect with Your Partner">
             <p className="lead-in">
-              Type your partner’s <b>full name</b>, <b>email</b> or <b>DaNA ID</b>. They will get a request to accept.
+              Ask your partner for their <b>DaNA ID</b> (shown at the top of their Connections page) and type it here. Names and emails cannot be searched, so strangers cannot find you.
             </p>
 
             <div className="conn-search-box">
@@ -409,7 +410,7 @@ export default function Connections({ defaultTab = 'discover' }) {
               <input
                 type="text"
                 className="conn-search-input"
-                placeholder="Partner's full name, email or DaNA ID (e.g. Fatima Al Hammadi or DANA-3F9A2C)"
+                placeholder="Partner's DaNA ID, e.g. DANA-3F9A2C"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 autoFocus
@@ -445,7 +446,7 @@ export default function Connections({ defaultTab = 'discover' }) {
                 </div>
                 <h3>Private by design</h3>
                 <p>
-                  DaNA never shows a list of members. Only an exact full name, email or DaNA ID finds someone, and they see nothing about you until they accept.
+                  DaNA never shows a list of members. Only the exact DaNA ID your partner shares with you finds them. Searches are limited, and nobody sees anything about you until they accept.
                 </p>
               </div>
             )}
@@ -735,7 +736,7 @@ export default function Connections({ defaultTab = 'discover' }) {
               <Card title="No Active Connection">
                 <div className="conn-empty-state">
                   <p className="conn-empty-state-p muted">
-                    You have not connected with a premarital partner yet. Search for your partner by username or DaNA ID to get started.
+                    You have not connected with a premarital partner yet. Ask your partner for their DaNA ID and search for it to get started.
                   </p>
                   <button className="btn btn-sm" onClick={() => switchTab('discover')}>
                     <IconSearch size={15} />
