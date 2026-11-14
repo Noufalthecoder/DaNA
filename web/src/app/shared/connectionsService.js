@@ -274,6 +274,16 @@ export async function searchUsersAsync(requesterId, query = '') {
   if (supabase && state.session?.backend) {
     const { data, error } = await supabase.rpc('find_partner', { q: cleanQ });
     if (error) throw new Error(error.message);
+    const miss = (data || []).find((r) => r.status && r.status !== 'ok');
+    if (miss) {
+      throw new Error({
+        not_found: `No DaNA account has the ID ${cleanQ}. Check it with your partner.`,
+        self: 'That is your own DaNA ID. Send it to your partner, and ask for theirs.',
+        same_sex: 'That DaNA ID belongs to someone of the same sex. Premarital screening links a woman and a man.',
+        no_sex: 'One of you has not finished step 1 (choosing female or male). Finish it on Home first.',
+        linked: 'That person is already linked to a partner.',
+      }[miss.status] || 'No match for that DaNA ID.');
+    }
     return (data || []).filter((r) => !blockedIds.has(r.person_id)).map((r) => {
       PEOPLE[r.person_id] ||= { name: r.display_name, short: r.display_name.split(' ')[0], sex: r.sex };
       return {
