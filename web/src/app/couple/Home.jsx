@@ -16,7 +16,8 @@ export default function Home() {
   const reports = useStore((s) => s.reports) || EMPTY_OBJ;
   const mine = reports[me.id];
   const theirs = reports[partner.id];
-  const waiting = live && (!mine || !theirs);
+  const fresh = useStore((s) => !!s.session?.fresh);
+  const waiting = (live && (!mine || !theirs)) || (fresh && !mine);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const fetchMine = async () => {

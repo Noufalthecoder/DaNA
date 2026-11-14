@@ -53,14 +53,15 @@ export function useJourney() {
   const seen = useStore((s) => s.resultSeen) || EMPTY_OBJ; // person id -> true once they opened My result
 
   const live = !!session?.backend;
+  const tracked = live || !!session?.fresh; // fresh UAE PASS demo: every step really happens
   const linked = isLinked(session);
   const partnerId = session?.partnerId;
   const done = {
-    profile: !live || (!session?.needsProfile && session?.sexConfirmed !== false),
-    malaffi: !live || isRealReport(reports[session?.id]),
-    details: !live || !!session?.details || !!intakes[session?.id]?.completed || !!session?.intakeDone,
-    result: !live || !!seen[session?.id],
-    together: linked && (!live || (isRealReport(reports[session?.id]) && !!(partnerId && isRealReport(reports[partnerId])))),
+    profile: !tracked || (!session?.needsProfile && session?.sexConfirmed !== false),
+    malaffi: !tracked || isRealReport(reports[session?.id]),
+    details: !tracked || !!session?.details || !!session?.intakeDone || (!session?.fresh && !!intakes[session?.id]?.completed),
+    result: !tracked || !!seen[session?.id],
+    together: linked && (!tracked || (isRealReport(reports[session?.id]) && (!live || !!(partnerId && isRealReport(reports[partnerId]))))),
     options: !!(session?.couple && plans[session.couple]),
     family: sent.length > 0,
   };
@@ -72,7 +73,7 @@ export function useJourney() {
   if (steps[at]?.key === 'together' && !linked) {
     next = { t: 'Link your partner to see your couple result', p: 'On Connections: send an invitation, or find your partner by full name or DaNA ID.', to: '#/app/connections' };
   }
-  if (steps[at]?.key === 'profile' && live && !session?.needsProfile) {
+  if (steps[at]?.key === 'profile' && tracked && !session?.needsProfile) {
     next = { ...next, t: 'Confirm your profile', p: 'Please confirm if you are female or male. Older accounts were saved without asking.' };
   }
   return { steps, current, next, live, linked, done };

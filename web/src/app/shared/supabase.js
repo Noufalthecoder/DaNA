@@ -119,6 +119,7 @@ export async function loadSession(user) {
 
 /* re-read my account after onboarding steps (profile created, partner linked) */
 export async function refreshSession() {
+  if (!supabase || !get().session?.backend) return get().session; // offline demo: nothing to re-read
   const { data } = await supabase.auth.getUser();
   if (!data?.user) return null;
   const prev = get().session || {};

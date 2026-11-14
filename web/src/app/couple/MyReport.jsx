@@ -26,12 +26,14 @@ export default function MyReport() {
   const status = personalStatus(me.sex, me.carrier, GENES[me.carrier]?.inheritance);
   const [hTitle, hText] = headline(lang, status, me.carrier);
 
+  const demoLab = useStore((s) => s.demoLab?.[session.id]);
   useEffect(() => {
-    if (!session?.backend || !supabase) return;
+    if (!session?.backend) { setLab(demoLab || null); return; }
+    if (!supabase) return;
     supabase.from('lab_results').select('*').eq('person_id', session.id)
       .order('collected_on', { ascending: false }).limit(1)
       .then(({ data }) => setLab(data?.[0] || null));
-  }, [session?.backend, session?.id]);
+  }, [session?.backend, session?.id, demoLab]);
   useEffect(() => { logAudit(`Viewed premarital report (${REPORT_VERSION}, ${lang})`).catch(() => {}); }, [lang]);
 
   const issued = new Date();

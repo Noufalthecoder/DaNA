@@ -428,6 +428,7 @@ const rpc = async (fn, args) => {
 
 /* step 1: my own health profile (sex is needed to interpret X-linked results) */
 export async function startMyProfile(sex) {
+  if (!isLive()) return demoProfile(sex);
   const old = get().session?.id;
   const pid = await rpc('start_my_profile', { p_sex: sex });
   // the screening intake was saved under the login id before the profile existed: move it across
@@ -438,6 +439,7 @@ export async function startMyProfile(sex) {
 
 /* step 3: fetch my lab report from Malaffi (validated and saved by the API) */
 export async function fetchMalaffi() {
+  if (!isLive()) return demoFetch();
   const r = await api('/ingest/malaffi', { method: 'POST' });
   await loadAll();
   return r;
@@ -446,9 +448,10 @@ export async function fetchMalaffi() {
 export const createPartnerInvite = () => rpc('create_partner_invite');
 export const acceptPartnerInvite = (code) => rpc('accept_partner_invite', { p_code: code });
 export const startSampleJourney = () => rpc('start_sample_journey');
-export const grantMalaffiConsent = (viaUaePass) => rpc('grant_malaffi_consent', { p_signed_in_with_uaepass: !!viaUaePass });
-export const saveMyDetails = (details) => rpc('save_my_details', { p: details });
+export const grantMalaffiConsent = (viaUaePass) => (isLive() ? rpc('grant_malaffi_consent', { p_signed_in_with_uaepass: !!viaUaePass }) : Promise.resolve(true));
+export const saveMyDetails = (details) => (isLive() ? rpc('save_my_details', { p: details }) : demoDetails(details));
 export async function setMySex(sex) {
+  if (!isLive()) return demoProfile(sex);
   await rpc('set_my_sex', { p_sex: sex });
   const id = get().session?.id;
   if (id && PEOPLE[id]) PEOPLE[id].sex = sex;
@@ -538,3 +541,38 @@ export async function resetDemoDataBackend(session) {
   }
 }
 
+/* ---------- offline UAE PASS demo: the same journey, saved in this browser only ---------- */
+const DEMO_VARIANT = { HBB: 'c.20A>T', GJB2: 'c.35delG', SMN1: 'c.840C>T', CFTR: 'c.1521_1523del', G6PD: 'c.563C>T' };
+function demoProfile(sex) {
+  const s = get().session;
+  if (PEOPLE[s.id]) PEOPLE[s.id].sex = sex;
+  set({ session: { ...s, needsProfile: false, sexConfirmed: true } }, `Confirmed profile (${sex === 'F' ? 'female' : 'male'})`);
+  return s.id;
+}
+async function demoFetch() {
+  const s = get().session;
+  const me = PEOPLE[s.id] || {};
+  await new Promise((r) => setTimeout(r, 1200)); // a moment, like a real fetch
+  const today = new Date().toISOString().slice(0, 10);
+  const gene = me.carrier || null;
+  const report = {
+    id: `MALAFFI-DEMO-${s.id.toUpperCase()}`, lab: 'Abu Dhabi Genomics Lab (simulated)', accreditation: 'CAP-0000000',
+    date: today, verified: true,
+    variants: gene ? [{ gene, hgvs_c: DEMO_VARIANT[gene] || 'c.?', zygosity: 'heterozygous', significance: 'pathogenic' }] : [],
+  };
+  const female = me.sex === 'F';
+  const hbb = gene === 'HBB';
+  const lab = {
+    hb: hbb ? (female ? 11.6 : 12.9) : (female ? 13.1 : 15.0), hba2: hbb ? 5.1 : 2.6, hb_variant: 'none',
+    hiv: 'non_reactive', hbsag: 'non_reactive', anti_hcv: 'non_reactive', syphilis: 'non_reactive',
+    ...(female ? { rubella_igg: 42, rhd: 'positive' } : {}),
+  };
+  set((st) => ({ reports: { ...(st.reports || {}), [s.id]: report }, demoLab: { ...(st.demoLab || {}), [s.id]: lab } }),
+    'Fetched premarital results from Malaffi (demo)');
+  return { saved: true, report_id: report.id };
+}
+function demoDetails(details) {
+  const s = get().session;
+  set({ session: { ...s, details, intakeDone: true } }, 'Saved screening details (demo)');
+  return new Date().toISOString();
+}

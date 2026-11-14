@@ -55,8 +55,9 @@ export default function Result() {
   const reports = useStore((s) => s.reports) || EMPTY_OBJ;
   // individual first: before linking (Connections) only MY result is explained, never someone else's
   const session = useStore((s) => s.session);
+  const fresh = !!session?.fresh;
   const linked = live ? (isConnected && isLinked(session)) : true;
-  const mine = live ? isRealReport(reports[me.id]) : true;
+  const mine = live || fresh ? isRealReport(reports[me.id]) : true;
   const theirs = live ? isRealReport(reports[partner.id]) : true;
   const stage = !mine ? 'no-result' : !linked ? 'individual' : !theirs ? 'partner-waiting' : 'couple';
   const waiting = stage !== 'couple';
