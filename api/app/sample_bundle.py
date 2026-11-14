@@ -32,3 +32,24 @@ def malaffi_bundle(report_id: str, gene: str = "HBB", hgvs_c: str = "c.20A>T", h
                           "signature": [{"sigFormat": "application/jose", "data": "c2ltdWxhdGVkLXNpZ25hdHVyZQ=="}]}},
         ],
     }
+
+
+def synthetic_blood(sex: str, carrier_gene: str | None) -> dict:
+    """Plausible premarital blood results for the simulated Malaffi record. A beta-thalassaemia
+    (HBB) carrier shows the usual carrier pattern: raised HbA2 with small red cells; others are normal."""
+    female = sex == "F"
+    hbb = carrier_gene == "HBB"
+    row = {
+        "hb": (11.6 if female else 12.9) if hbb else (13.1 if female else 15.0),
+        "mcv": 66.0 if hbb else 88.0,
+        "mch": 21.5 if hbb else 29.5,
+        "hba2": 5.1 if hbb else 2.6,
+        "hbf": 0.8,
+        "hb_variant": "none",
+        "ferritin": 64.0 if female else 120.0,
+        "hiv": "non_reactive", "hbsag": "non_reactive", "anti_hcv": "non_reactive", "syphilis": "non_reactive",
+        "panel_genes": 570,
+    }
+    if female:
+        row.update({"rubella_igg": 42.0, "rhd": "positive", "g6pd_pct": 96.0})
+    return row

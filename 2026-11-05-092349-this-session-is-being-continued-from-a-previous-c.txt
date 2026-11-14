@@ -1,0 +1,2811 @@
+  ⎿  Compacted
+  ⎿  Read render.yaml (24 lines)
+  ⎿  Read web\src\app\routes.jsx (59 lines)
+  ⎿  Read docs\TEAM.md (68 lines)
+  ⎿  Read api\README.md (68 lines)
+  ⎿  Read ..\..\MOHAMM~1\AppData\Local\Temp\claude\df9b343ed30252b2\1dae0f0e-537
+     a-461f-adaa-6b4fbc85d98a\scratchpad\api_live_test.py (27 lines)
+
+● Task "Restart the dev server with the Supabase keys" still running in
+  background
+
+● Task "Run the FastAPI server locally" still running in background
+  ⎿  Skills restored (anthropic-skills:docs, dataviz)
+
+> /compact
+  ⎿  Compacted
+  ⎿  Read render.yaml (24 lines)
+  ⎿  Read web\src\app\routes.jsx (59 lines)
+  ⎿  Read docs\TEAM.md (68 lines)
+  ⎿  Read api\README.md (68 lines)
+  ⎿  Read ..\..\MOHAMM~1\AppData\Local\Temp\claude\df9b343ed30252b2\1dae0f0e-537
+     a-461f-adaa-6b4fbc85d98a\scratchpad\api_live_test.py (27 lines)
+
+● Task "Restart the dev server with the Supabase keys" still running in
+  background
+
+● Task "Run the FastAPI server locally" still running in background
+
+> /compact
+  ⎿  Not enough messages to compact.
+
+> /compact
+  ⎿  Not enough messages to compact.
+
+> /compact
+  ⎿  Not enough messages to compact.
+
+> <ide_opened_file>The user opened the file c:\Users\Mohammed Noufal
+  V\abhudhabi\web\.env.local in the IDE. This may or may not be related to the
+  current task.</ide_opened_file>
+  ⎿  [Image #19]
+
+● The Blueprint sync worked and created dana-api. I'll check whether the API is
+  up.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Your Blueprint sync worked and the dana-api service was created. But
+  https://dana-api.onrender.com is not your API. That name belongs to someone
+  else's Render service: its /health returns a different reply, and /me and
+  /docs give 404.
+
+  Render gives each service a unique address, so yours probably has a suffix,
+  like dana-api-xxxx.onrender.com. To find it:
+
+  1. In the Render dashboard, click dana-api (the link in the "Create web
+     service" row).
+  2. Wait until the status at the top says Live. The first build takes about 3–5
+     minutes; the Logs tab shows progress.
+  3. Copy the URL shown under the service name and send it to me.
+
+  Also confirm that SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY are filled
+  in under Environment. If they're empty, the API won't work.
+
+  Once I have the link, I'll test /health, /docs, the sign-in endpoints and the
+  Malaffi import against it.
+
+[Image #20]
+
+● Live at https://dana-api-589n.onrender.com. Running the full test against it.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Everything passes except the Malaffi import. I'll find that bug.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● The error comes from the sync_cases database function. Supabase blocks any
+  UPDATE without a WHERE that runs through its REST layer.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Line 277 updates every counsellor with no WHERE. I'll add where true in a new
+  migration and keep 004 in step.
+  Ran 1 shell command (ctrl+o to expand)
+
+● Bash(cd "/c/Users/Mohammed Noufal V/abhudhabi/supabase" && sed -i
+      "277s/a.status = 'active');/a.status = 'active') where true;/"
+      004_spec_v3.sql && { echo "-- 007: s…)
+  ⎿  Created ~\abhudhabi\supabase\007_sync_cases_fix.sql (+12 -0)
+       1 +-- 007: sync_cases updated every counsellor without a WHERE cla
+         +use; Supabase's safeupdate blocks that via the API.            
+       2 +create or replace function sync_cases() returns int            
+       3 +language plpgsql security definer set search_path = public as $
+         +$                                                              
+       4 +declare n int := 0; c record;                                  
+       5 +begin                                                          
+       6 +  if auth.uid() is not null and coalesce(my_role(), '') not in 
+         +('counsellor', 'admin') then                                   
+       7 +    raise exception 'Only staff can recompute cases';          
+       8 +  end if;                                                      
+       9 +  for c in select id from couples loop perform upsert_case(c.id
+         +); n := n + 1; end loop;                                       
+      10 +  update counsellors k set active_caseload = (select count(*) f
+         +rom case_assignments a where a.counsellor_id = k.id and a.statu
+         +s = 'active') where true;                                      
+      11 +  return n;                                                    
+      12 +end $$;                                                        
+  ⎿  … 1 more file changed
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● The API is live at https://dana-api-589n.onrender.com. I ran the full test
+  against it, and everything passed except the Malaffi import, which I've fixed
+  but you need to run one SQL file to finish.
+
+  ┌──────────────────────────────┬──────────────────────────────────────────┐
+  │            Check             │                  Result                  │
+  ├──────────────────────────────┼──────────────────────────────────────────┤
+  │ /health                      │ ok; database and Malaffi import both     │
+  │                              │ configured, so the keys are set          │
+  ├──────────────────────────────┼──────────────────────────────────────────┤
+  │ /docs                        │ 200                                      │
+  ├──────────────────────────────┼──────────────────────────────────────────┤
+  │ /me, /me/report, /cases with │ correct account, lab report and case     │
+  │  a real login                │ returned                                 │
+  ├──────────────────────────────┼──────────────────────────────────────────┤
+  │ No token or a forged token   │ 401, as it should be                     │
+  ├──────────────────────────────┼──────────────────────────────────────────┤
+  │ POST /ingest/malaffi         │ failed: "UPDATE requires a WHERE clause" │
+  └──────────────────────────────┴──────────────────────────────────────────┘
+
+  Why the import failed: the sync_cases database function updates every
+  counsellor's caseload with no WHERE. Supabase blocks that when the call comes
+  through its REST API, which is how the deployed API calls it. Adding where
+  true fixes it.
+
+  The fix is in supabase/007_sync_cases_fix.sql, committed and pushed (607b157).
+  Nothing on Render needs redeploying, because the fix is in the database.
+
+  To finish: open the Supabase dashboard → SQL Editor, paste the contents of
+  007_sync_cases_fix.sql and click Run. Then tell me and I'll re-test the
+  import.
+
+  The failed test may have saved its lab report before it stopped. It belongs to
+  a throwaway dana.api.check+… login, so it's harmless; you can delete those
+  test users in Supabase Auth.
+
+  Two things to know:
+  - On the free plan the API sleeps after 15 minutes idle, so the first request
+    after that takes about 50 seconds.
+  - The web app doesn't call this API yet. Next I can wire the Malaffi fetch
+    button to it, using VITE_API_URL=https://dana-api-589n.onrender.com in
+    Vercel.
+
+> <ide_selection>The user selected the lines 1 to 13 from c:\Users\Mohammed
+  Noufal V\abhudhabi\supabase\007_sync_cases_fix.sql:
+  -- 007: sync_cases updated every counsellor without a WHERE clause;
+  Supabase's safeupdate blocks that via the API.
+  create or replace function sync_cases() returns int
+  language plpgsql security definer set search_path = public as $$
+  declare n int := 0; c record;
+  begin
+    if auth.uid() is not null and coalesce(my_role(), '') not in ('counsellor',
+  'admin') then
+      raise exception 'Only staff can recompute cases';
+    end if;
+    for c in select id from couples loop perform upsert_case(c.id); n := n + 1;
+  end loop;
+    update counsellors k set active_caseload = (select count(*) from
+  case_assignments a where a.counsellor_id = k.id and a.status = 'active')
+  where true;
+    return n;
+  end $$;
+
+  This may or may not be related to the current task.</ide_selection>
+
+> i ran this
+  -- 007: sync_cases updated every counsellor without a WHERE clause;
+  Supabase's safeupdate blocks that via the API.
+  create or replace function sync_cases() returns int
+  language plpgsql security definer set search_path = public as $$
+  declare n int := 0; c record;
+  begin
+    if auth.uid() is not null and coalesce(my_role(), '') not in ('counsellor',
+  'admin') then
+      raise exception 'Only staff can recompute cases';
+    end if;
+    for c in select id from couples loop perform upsert_case(c.id); n := n + 1;
+  end loop;
+    update counsellors k set active_caseload = (select count(*) from
+  case_assignments a where a.counsellor_id = k.id and a.status = 'active')
+  where true;
+    return n;
+  end $$;
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● The fix worked. I re-ran the full test against
+  https://dana-api-589n.onrender.com and every endpoint passes. The Malaffi
+  import, which failed before, now saves the lab report: {'saved': True,
+  'report_id': 'MALAFFI-U_C3BC655D4748', 'variants': 1, 'warnings': []}.
+
+  The API is fully deployed. Every push to main redeploys it on Render.
+
+  Next I can connect the web app to the API, starting with the Malaffi fetch
+  button. That needs VITE_API_URL=https://dana-api-589n.onrender.com added in
+  Vercel.
+
+> ok what we done
+
+● DaNA is now live end to end: the web app on Vercel, the API on Render and the
+  database on Supabase.
+
+  1. Database (Supabase)
+  - Built the full data model: 19 tables for people, couples, lab reports,
+    genetic variants, cases, counsellors, bookings, consents, Sila invitations
+    and the audit log.
+  - Privacy rules on every table, so each person only sees what they're allowed
+    to.
+  - Triage scoring rates each couple from tier 1 to 4.
+  - Small groups (fewer than 5 people) are hidden in admin statistics.
+  - Sila invitation links for relatives expire after 14 days.
+  - Booking uses counsellors' real availability.
+  - Migrations 004 to 007 are all run on the live database.
+
+  2. Sign-in
+  - Google and email sign-up work for everyone.
+  - Fixed these problems:
+    - the "already registered" error, which now offers a choice
+    - a crash when an account was created twice at once
+    - slow sign-up; the app now opens first and loads data in the background
+  - New users get a sample journey to explore.
+
+  3. Web app (Vercel): https://dana-gamma-seven.vercel.app
+  - A separate app for each role: couple, counsellor and DoH admin.
+  - Teammates added the family tree and renamed the Roots pages; we merged their
+    work.
+
+  4. Backend API (Render): https://dana-api-589n.onrender.com
+  - Built with FastAPI. It checks each user's login token, so a missing or
+    forged token is refused.
+  - It reads data as that user, so the database privacy rules still apply.
+  - The Malaffi import checks a lab report before saving it: test code,
+    accredited lab, signature and gene variant format.
+  - 14 automated tests pass locally. I tested every endpoint live on Render, and
+    all pass.
+
+  5. Fixes today
+  - The Malaffi import failed on the deployed API: a database function updated
+    rows with no WHERE, which Supabase blocks. Fixed with migration 007, which
+    you ran.
+
+  Still to do
+  1. Connect the web app to the API, starting with the Malaffi fetch button.
+  2. Build the onboarding flow.
+  3. Delete the dana.*.check+… test users in Supabase Auth.
+  4. Rotate the Google client secret, because it was exposed earlier.
+
+[Image #21]
+
+> but look why it shows no found
+
+● That's expected. The API has no page at /, only at its endpoints, so FastAPI
+  answers "Not Found". The API itself is working. Try these:
+
+  - https://dana-api-589n.onrender.com/docs — the interactive page listing every
+    endpoint
+  - https://dana-api-589n.onrender.com/health — returns {"status":"ok",...}
+
+  To make the bare address less confusing, I'll make / redirect to /docs.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Bash(cd "/c/Users/Mohammed Noufal V/abhudhabi/api" && sed -i '12a from
+      fastapi.responses import RedirectResponse' app/main.py && sed -i
+      's|^@app.get("/health", tags=…)
+  ⎿  Updated ~\abhudhabi\api\app\main.py (+6 -0)
+      10  """
+      11  from fastapi import Body, Depends, FastAPI, HTTPException
+      12  from fastapi.middleware.cors import CORSMiddleware
+      13 +from fastapi.responses import RedirectResponse                 
+      14  
+      15  from . import config
+      16  from .auth import User, current_user
+     ...
+      31      return rows[0]
+      32  
+      33  
+      34 +@app.get("/", include_in_schema=False)                         
+      35 +def root():                                                    
+      36 +    return RedirectResponse("/docs")                           
+      37 +                                                               
+      38 +                                                               
+      39  @app.get("/health", tags=["system"])
+      40  def health():
+      41      return {"status": "ok", "database": bool(config.SUPABASE_UR
+          L), "ingestion": bool(config.SUPABASE_SERVICE_ROLE_KEY)}
+
+● I added a redirect so the bare address opens /docs. All 14 tests pass, and the
+  change is pushed (9d6e927).
+
+  Render will redeploy it automatically in about a minute. After that, opening
+  https://dana-api-589n.onrender.com takes you straight to the API docs instead
+  of showing "Not Found".
+
+[Image #22]
+
+> can i deploy manually?
+
+● Yes. Click Deploy latest commit.
+
+  Your screenshot shows Render is still running 3ca18e2, and your two newer
+  pushes, the SQL fix and the / redirect, haven't triggered a deploy. So
+  auto-deploy doesn't seem to be firing; the SQL fix ran in Supabase, so only
+  the redirect is missing on Render. "Deploy latest commit" picks up 9d6e927 and
+  takes about a minute.
+
+  After it says Live, open https://dana-api-589n.onrender.com, which should take
+  you to /docs.
+
+  To get auto-deploy working, open Settings for dana-api and check that
+  Auto-Deploy is set to On Commit. If it's already on, Render may not have
+  access to the repo: go to GitHub → Settings → Applications → Render and make
+  sure the DaNA repo is allowed.
+
+> N
+  Noufal's workspace
+  Projects
+  dana-api
+
+  Deploys
+
+  dep-dblfk8mgekts7389e0q0
+
+
+  Search
+  Ctrl+
+  K
+
+  New
+
+  Upgrade
+
+
+  v
+  Dashboard
+  dana-api
+  Deploys
+  Settings
+  Monitor
+  Events
+  Logs
+  Metrics
+  Manage
+  Compute
+  Environment
+  Shell
+  Previews
+  Disk
+  One-Off Jobs
+  Introducing Workflows
+  An orchestration and execution engine for long-running, distributed tasks.
+
+  Learn more
+
+
+  Changelog
+  Status
+
+  Collapse
+  Your free instance will spin down with inactivity, which can delay requests
+  by 50 seconds or more.
+  Upgrade now
+  Redirect API root to /docs
+  Status
+  Deploy succeeded|Live
+  Duration
+  57s
+  Deployed
+  Nov 4, 2026
+  at
+  2:55:54 PM
+  GMT+5:30
+
+  Trigger
+  Manually deployed by you via Dashboard
+  Source
+  9d6e927
+
+  All logs
+  Search
+  Search logs
+
+
+  Live tail
+
+
+
+  02:55:57 PM
+  ==> Downloading cache...
+  02:55:57 PM
+  ==> Cloning from https://github.com/Noufalthecoder/DaNA
+  02:56:02 PM
+  ==> Downloaded and extracted 18 MiB cache in 5s.
+  02:56:02 PM
+  ==> Checking out commit 9d6e927c0950957bf829c96e4ac611fe5e385d42 in branch
+  main
+  02:56:04 PM
+  ==> Using Python version 3.11.9 via environment variable PYTHON_VERSION
+  02:56:04 PM
+  ==> Docs on specifying a Python version:
+  https://render.com/docs/python-version
+  02:56:04 PM
+  ==> Installing Python version 3.11.9...
+  02:56:08 PM
+  ==> Using Poetry version 2.1.3 (default)
+  02:56:08 PM
+  ==> Docs on specifying a Poetry version:
+  https://render.com/docs/poetry-version
+  02:56:08 PM
+  ==> Running build command 'pip install -r requirements.txt'...
+  02:56:09 PM
+  Collecting fastapi==0.115.6 (from -r requirements.txt (line 1))
+  02:56:09 PM
+    Using cached fastapi-0.115.6-py3-none-any.whl.metadata (27 kB)
+  02:56:09 PM
+  Collecting uvicorn==0.32.1 (from uvicorn[standard]==0.32.1->-r
+  requirements.txt (line 2))
+  02:56:09 PM
+    Using cached uvicorn-0.32.1-py3-none-any.whl.metadata (6.6 kB)
+  02:56:09 PM
+  Collecting httpx==0.28.1 (from -r requirements.txt (line 3))
+  02:56:09 PM
+    Using cached httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
+  02:56:09 PM
+  Collecting PyJWT==2.10.1 (from PyJWT[crypto]==2.10.1->-r requirements.txt
+  (line 4))
+  02:56:09 PM
+    Using cached PyJWT-2.10.1-py3-none-any.whl.metadata (4.0 kB)
+  02:56:09 PM
+  Collecting pydantic==2.10.4 (from -r requirements.txt (line 5))
+  02:56:09 PM
+    Using cached pydantic-2.10.4-py3-none-any.whl.metadata (29 kB)
+  02:56:09 PM
+  Collecting python-dotenv==1.0.1 (from -r requirements.txt (line 6))
+  02:56:09 PM
+    Using cached python_dotenv-1.0.1-py3-none-any.whl.metadata (23 kB)
+  02:56:09 PM
+  Collecting pytest==8.3.4 (from -r requirements.txt (line 7))
+  02:56:09 PM
+    Using cached pytest-8.3.4-py3-none-any.w
+  ──── (142 lines hidden) ─────────────────────────────────────────────────────
+   starlette, pydantic, httpx, cryptography, fastapi
+  02:56:13 PM
+  Successfully installed PyJWT-2.10.1 annotated-types-0.8.0 anyio-4.16.0
+  certifi-2026.10.23 cffi-2.1.1 click-8.5.0 cryptography-50.0.2 fastapi-0.115.6
+  h11-0.16.0 httpcore-1.0.9 httptools-0.9.0 httpx-0.28.1 idna-3.20
+  iniconfig-2.3.1 packaging-26.3 pluggy-1.7.0 pycparser-3.12 pydantic-2.10.4
+  pydantic-core-2.27.2 pytest-8.3.4 python-dotenv-1.0.1 pyyaml-6.0.3
+  starlette-0.41.3 typing-extensions-4.16.0 uvicorn-0.32.1 uvloop-0.23.0
+  watchfiles-1.3.0 websockets-17.4
+  02:56:13 PM
+  02:56:13 PM
+  [notice] A new release of pip is available: 24.0 -> 26.3
+  02:56:13 PM
+  [notice] To update, run: pip install --upgrade pip
+  02:56:15 PM
+  ==> Uploading build...
+  02:56:19 PM
+  ==> Uploaded in 2.9s. Compression took 1.3s
+  02:56:19 PM
+  ==> Build successful 🎉
+  02:56:20 PM
+  ==> Deploying...
+  02:56:20 PM
+  ==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the
+  instance
+  02:56:32 PM
+  ==> Running 'uvicorn app.main:app --host 0.0.0.0 --port $PORT'
+  02:56:41 PM
+  INFO:     Started server process [58]
+  02:56:41 PM
+  INFO:     Waiting for application startup.
+  02:56:42 PM
+  INFO:     Application startup complete.
+  02:56:42 PM
+  INFO:     Uvicorn running on http://0.0.0.0:10000 (Press CTRL+C to quit)
+  02:56:42 PM
+  INFO:     127.0.0.1:36334 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+  02:56:51 PM
+  ==> Your service is live 🎉
+  02:56:52 PM
+  ==>
+  02:56:52 PM
+  ==> ///////////////////////////////////////////////////////////
+  Menu
+  02:56:52 PM
+  ==>
+  02:56:52 PM
+  ==> Available at your primary URL https://dana-api-589n.onrender.com
+  02:56:52 PM
+  ==>
+  02:56:52 PM
+  ==> ///////////////////////////////////////////////////////////
+  02:56:51 PM
+  INFO:     10.203.24.197:59666 - "GET /health HTTP/1.1" 200 OK
+  02:56:51 PM
+  INFO:     10.203.24.197:59680 - "GET /health HTTP/1.1" 200 OK
+  02:56:51 PM
+  INFO:     35.227.183.65:0 - "GET / HTTP/1.1" 307 Temporary Redirect
+  02:56:51 PM
+  INFO:     35.227.183.65:0 - "GET /docs HTTP/1.1" 200 OK
+  02:56:56 PM
+  INFO:     10.203.24.197:59050 - "GET /health HTTP/1.1" 200 OK
+  02:57:01 PM
+  INFO:     10.203.24.197:59064 - "GET /health HTTP/1.1" 200 OK
+  02:57:06 PM
+  INFO:     10.203.24.197:48102 - "GET /health HTTP/1.1" 200 OK
+  02:57:11 PM
+  INFO:     10.203.24.197:48118 - "GET /health HTTP/1.1" 200 OK
+  Need better ways to work with logs? Try theRender CLI, Render MCP Server, or
+  set up a log stream integration
+
+  /
+
+  Overview
+  Build Logs
+  Linked Services
+  Commits
+  Build not found
+  This build may have been deleted, or the link may be incorrect.
+  0 services selected:
+
+  Move
+
+● The manual deploy worked. Render built and started your latest commit
+  (9d6e927), and the logs show the redirect doing its job:
+
+  GET /      → 307 Temporary Redirect
+  GET /docs  → 200 OK
+
+  So https://dana-api-589n.onrender.com now opens the API docs page.
+
+  The other lines are normal:
+  - HEAD / 405 at startup is Render probing the root address with a request type
+    the redirect doesn't accept. It's harmless; Render checks /health, which
+    returns 200.
+  - GET /health every 5 seconds is Render's health check.
+  - The pip notice is just a newer installer version; you can ignore it.
+
+  Auto-deploy still didn't fire for your last two pushes, so check that setting
+  under Settings, as described in my previous message. Until it's fixed, use
+  Manual Deploy → Deploy latest commit after each push.
+
+> ok we deployed backend on render or not?
+
+● Yes, the backend is deployed on Render and working.
+
+  - Address: https://dana-api-589n.onrender.com, which opens the API docs.
+  - Status: Live, running your latest commit (9d6e927).
+  - Tested live: health check, sign-in endpoints, lab report, cases and the
+    Malaffi import all pass. Requests with a missing or forged login are
+    refused.
+
+  Two caveats:
+  1. On the free plan it sleeps after 15 minutes idle, so the first request
+     after that takes about 50 seconds.
+  2. Auto-deploy on push isn't firing yet. Until it's fixed in Settings, click
+     Manual Deploy → Deploy latest commit after each push.
+
+  The web app doesn't call the backend yet. Connecting the two is the next step
+  if you want it.
+
+> my frnd pushed his pr how i merge after solving conflicts?
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Bash(cd "/c/Users/Mohammed Noufal V/abhudhabi" && git log --oneline
+      main..origin/feature/screening | head; git merge --no-commit --no-ff
+      origin/feature/screening 2>&…)
+  ⎿  Created ~\abhudhabi\dana_system_architecture1.md (+225 -0)
+  ⎿  Updated ~\abhudhabi\web\src\Root.jsx (+54 -2)
+  ⎿  Updated ~\abhudhabi\web\src\app\Invite.jsx (+8 -1)
+  ⎿  Updated ~\abhudhabi\web\src\app\couple\Home.jsx (+74 -2)
+  ⎿  Updated ~\abhudhabi\web\src\app\couple\useCouple.js (+18 -16)
+  ⎿  … 15 more files changed
+  ⎿  (a git step in this command can move the working tree, so these may be
+     its changes, not edits) (ctrl+o to expand)
+
+● The PR is your friend's feature/screening branch. Merging it into main
+  conflicts in 6 files. I'll look at each one.
+
+  Ran 3 shell commands (ctrl+o to expand)
+
+● Main renamed the friend's Branches page to Roots and added Family Tree, but
+  the friend's branch still links to Branches. I'm pointing those links at the
+  new names while keeping both sides' work.
+
+● Bash(cd "/c/Users/Mohammed Noufal V/abhudhabi/web/src/app" && cat >
+      /c/Users/MOHAMM~1/AppData/Local/Temp/claude/df9b343ed30252b2/1dae0f0e-537a
+      -461f-adaa-6b4fbc85d98a…)
+  ⎿  Updated ~\abhudhabi\web\src\app\Invite.jsx (+47 -51)
+       1 -/* What a relative sees when they open a Sila alert link. No lo
+         -gin, no names. */                                              
+       2 -<<<<<<< HEAD                                                   
+       3 -import { useEffect, useState } from 'react';                   
+       4 -import { supabase } from './shared/supabase.js';               
+       5 -=======                                                        
+       6 -import { useState } from 'react';                              
+       7 -import { Brand } from './shared/Logo.jsx';                     
+       8 ->>>>>>> origin/feature/screening                               
+       9 -                                                               
+      10 -export default function Invite({ token }) {                    
+      11 -  const [booked, setBooked] = useState(false);                 
+      12 -  const [state, setState] = useState(token && supabase ? 'check
+         -ing' : 'demo'); // checking | valid | expired | invalid | demo 
+      13 -  useEffect(() => {                                            
+      14 -    if (!token || !supabase) return;                           
+      15 -    supabase.rpc('open_sila_invitation', { token }).then(({ dat
+         -a, error }) => setState(error ? 'invalid' : data));            
+      16 -  }, [token]);                                                 
+      17 -  const book = async () => {                                   
+      18 -    if (token && supabase && state === 'valid') await supabase.
+         -rpc('book_from_sila_invitation', { token });                   
+      19 -    setBooked(true);                                           
+      20 -  };                                                           
+      21 -  if (state === 'expired' || state === 'invalid') {            
+      22 -    return (                                                   
+      23 -      <div className="login"><div className="login-card">      
+      24 -        <div className="login-brand"><span className="dot" />Da
+         -NA <span className="ar">ةناد</span></div>                      
+      25 -        <h1>{state === 'expired' ? 'This link has expired' : 'T
+         -his link isn’t valid'}</h1>                                    
+      26 -        <p className="muted">Invitation links last 14 days. You
+         - can still book free premarital screening at any screening cent
+         -re.</p>                                                        
+      27 -      </div></div>                                             
+      28 -    );                                                         
+      29 -  }                                                            
+      30 -  return (                                                     
+      31 -    <div className="login">                                    
+      32 -      <a className="login-back" href="#/">← DaNA home</a>      
+      33 -      <div className="login-card">                             
+      34 -        <div className="login-brand" style={{ marginBottom: 22 
+         -}}>                                                            
+      35 -          <Brand size={36} withArabic={true} href="#/" />      
+      36 -        </div>                                                 
+      37 -        <h1>Someone who cares about you</h1>                   
+      38 -        <p className="muted">recommends free genetic screening 
+         -before marriage. It’s quick, private and free for UAE nationals
+         -.</p>                                                          
+      39 -        <ul className="facts">                                 
+      40 -          <li>One blood test at a nearby centre.</li>          
+     … 58 more lines (ctrl+o to expand)
+  ⎿  Updated ~\abhudhabi\web\src\app\couple\Home.jsx (+101 -118)
+        1 -import { Page, Card, Steps, Stat, Badge } from '../shared/ui.j
+          -sx';                                                          
+        2 -import { useStore } from '../shared/store.js';                
+        3 -import { useCouple } from './useCouple.js';                   
+        4 -                                                              
+        5 -export default function Home() {                              
+        6 -  const { me, partner, result, couple } = useCouple();        
+        7 -  const intakes = useStore((s) => s.screeningIntakes || {});  
+        8 -  const myIntake = intakes[me.id];                            
+        9 -  const isScreened = !!myIntake?.completed;                   
+       10 -                                                              
+       11 -  const sent = useStore((s) => s.alertsSent);                 
+       12 -<<<<<<< HEAD                                                  
+       13 -  const plan = useStore((s) => s.plans[couple.id]);           
+       14 -  const booked = useStore((s) => s.appointments[couple.id]);  
+       15 -  const step = plan ? (sent.length ? 4 : 3) : 2;              
+       16 -  const next = !plan                                          
+       17 -    ? { to: '#/app/bonds', t: 'Choose your plan together', p: 
+          -'See every option side by side, then decide as a couple.' }   
+       18 -    : !sent.length                                            
+       19 -      ? { to: '#/app/roots', t: 'Protect your family', p: 'Sen
+          -d private Sila alerts so relatives can screen early.' }       
+       20 -      : { to: '#/app/counsellor', t: 'Talk to your counsellor'
+          -, p: 'Ask anything, any time. Dr. Mariam is one tap away.' }; 
+       21 -=======                                                       
+       22 -  const plan = useStore((s) => (couple?.id ? s.plans[couple.id
+          -] : null) || s.plan);                                         
+       23 -  const booked = useStore((s) => (couple?.id ? s.appointments[
+          -couple.id] : null) || s.booked);                              
+       24 -                                                              
+       25 -  // Stepper: 0 = Screened, 1 = Results explained, 2 = Plan to
+          -gether, 3 = Protect family                                    
+       26 -  const step = !isScreened                                    
+       27 -    ? 0                                                       
+       28 -    : plan                                                    
+       29 -      ? (sent.length ? 3 : 2)                                 
+       30 -      : 2;                                                    
+       31 -                                                              
+       32 -  const next = !isScreened                                    
+       33 -    ? {                                                       
+       34 -        to: '#/app/screening',                                
+       35 -        t: 'Complete your screening intake',                  
+       36 -        p: 'Auto-fill with UAE PASS or enter medical, family p
+          -edigree & compliance details.',                               
+       37 -      }                                                       
+       38 -    : !plan                                                   
+       39 -      ? {                                                     
+       40 -          to: '#/app/bonds',                                  
+     … 179 more lines (ctrl+o to expand)
+  ⎿  Updated ~\abhudhabi\web\src\app\routes.jsx (+87 -104)
+        1 -/*                                                            
+        2 -  One menu per login. To add a page: create it in your module 
+          -folder,                                                       
+        3 -  then add one line to your role's `items` and one case to `pa
+          -ge()`.                                                        
+        4 -*/                                                            
+        5 -import Home from './couple/Home.jsx';                         
+        6 -<<<<<<< HEAD                                                  
+        7 -import FamilyTree from './couple/FamilyTree.jsx';             
+        8 -=======                                                       
+        9 -import Screening from './couple/Screening.jsx';               
+       10 -import Profile from './couple/Profile.jsx';                   
+       11 -import MedicalReport from './couple/MedicalReport.jsx';       
+       12 -import Roots from './couple/Roots.jsx';                       
+       13 ->>>>>>> origin/feature/screening                              
+       14 -import Bonds from './couple/Bonds.jsx';                       
+       15 -import Roots from './couple/Roots.jsx';                       
+       16 -import CoupleCounsellor from './couple/Counsellor.jsx';       
+       17 -import Privacy from './couple/Privacy.jsx';                   
+       18 -import Queue from './counsellor/Queue.jsx';                   
+       19 -import CaseView from './counsellor/CaseView.jsx';             
+       20 -import Schedule from './counsellor/Schedule.jsx';             
+       21 -import Overview from './admin/Overview.jsx';                  
+       22 -import Content from './admin/Content.jsx';                    
+       23 -import Audit from './admin/Audit.jsx';                        
+       24 -                                                              
+       25 -import {                                                      
+       26 -  HomeIcon,                                                   
+       27 -  RootsIcon,                                                  
+       28 -  BondsIcon,                                                  
+       29 -  BranchesIcon,                                               
+       30 -  CounsellorIcon,                                             
+       31 -  PrivacyIcon,                                                
+       32 -  ProfileIcon,                                                
+       33 -  QueueIcon,                                                  
+       34 -  ScheduleIcon,                                               
+       35 -  OverviewIcon,                                               
+       36 -  ContentIcon,                                                
+       37 -  AuditIcon,                                                  
+       38 -} from './shared/Icons.jsx';                                  
+       39 -                                                              
+       40 -export const MENUS = {                                        
+     … 151 more lines (ctrl+o to expand)
+  ⎿  Updated store.js (+94 -97)
+       1 -/*                                                             
+       2 -  Tiny demo store, saved in the browser so the demo survives a 
+         -refresh.                                                       
+       3 -  Every action is written to the audit log the DoH team sees.  
+       4 -  Owner: Platform. Swap for a real API later without changing t
+         -he pages.                                                      
+       5 -*/                                                             
+       6 -import { useSyncExternalStore } from 'react';                  
+       7 -                                                               
+       8 -const KEY = 'dana-demo-v2';                                    
+       9 -const initial = {                                              
+      10 -  session: null,                                               
+      11 -  alertsSent: [],                                              
+      12 -  consents: { sharePartner: true, shareCounsellor: true, faithC
+         -ards: true },                                                  
+      13 -  notes: {},                                                   
+      14 -  approved: [],                                                
+      15 -  plans: {},          // couple id -> chosen plan              
+      16 -  appointments: {},   // couple id -> booked slot label        
+      17 -  faith: {},                                                   
+      18 -  audit: [],                                                   
+      19 -<<<<<<< HEAD                                                   
+      20 -  family: {},          // person id -> their family_members row
+         -s                                                              
+      21 -=======                                                        
+      22 -  screeningIntakes: {},                                        
+      23 -  partnerShares: null, // live mode: can I see my partner's res
+         -ult?                                                           
+      24 ->>>>>>> origin/feature/screening                               
+      25 -  stats: null,         // live mode: DoH totals from the databa
+         -se                                                             
+      26 -  dbError: null,                                               
+      27 -  reports: {},        // person id -> validated report (live)  
+      28 -  cases: {},          // couple id -> { id, tier, counsellor } 
+         -(live)                                                         
+      29 -  referrals: {},      // couple id -> [referral]               
+      30 -  invites: [],                                                 
+      31 -  slots: [],          // live: free slots of my counsellor [{ i
+         -d, label, counsellor }]                                        
+      32 -  apptIds: {},        // couple id -> booked appointment id    
+         -    // Sila links created this session: [{ label, token }]     
+      33 -  tiers: null,        // DoH: couples per tier (small groups hi
+         -dden)                                                          
+      34 -  breakdown: null,    // DoH: couples per condition (small grou
+         -ps hidden)                                                     
+      35 -};                                                             
+      36 -                                                               
+      37 -let state = load();                                            
+      38 -const subs = new Set();                                        
+      39 -                                                               
+      40 -function load() {                                              
+     … 151 more lines (ctrl+o to expand)
+  ⎿  Updated ui.jsx (+83 -86)
+       1 -/* Shared building blocks. Owner: Platform. Use these so every 
+         -module looks the same. */                                      
+       2 -<<<<<<< HEAD                                                   
+       3 -import { useEffect, useRef } from 'react';                     
+       4 -import { X } from 'lucide-react';                              
+       5 -=======                                                        
+       6 -export { Logo, Brand } from './Logo.jsx';                      
+       7 ->>>>>>> origin/feature/screening                               
+       8 -                                                               
+       9 -export function Page({ title, sub, actions, children }) {      
+      10 -  return (                                                     
+      11 -    <div className="page">                                     
+      12 -      <header className="page-h">                              
+      13 -        <div><h1>{title}</h1>{sub && <p>{sub}</p>}</div>       
+      14 -        {actions && <div className="page-a">{actions}</div>}   
+      15 -      </header>                                                
+      16 -      {children}                                               
+      17 -    </div>                                                     
+      18 -  );                                                           
+      19 -}                                                              
+      20 -                                                               
+      21 -export function Card({ title, aside, children, className = '' }
+         -) {                                                            
+      22 -  return (                                                     
+      23 -    <section className={`card ${className}`}>                  
+      24 -      {(title || aside) && <div className="card-h"><h2>{title}<
+         -/h2>{aside}</div>}                                             
+      25 -      {children}                                               
+      26 -    </section>                                                 
+      27 -  );                                                           
+      28 -}                                                              
+      29 -                                                               
+      30 -export function Stat({ label, value, note }) {                 
+      31 -  return <div className="stat"><span>{label}</span><strong>{val
+         -ue}</strong>{note && <small>{note}</small>}</div>;             
+      32 -}                                                              
+      33 -                                                               
+      34 -const PRI = { urgent: ['●', 'Urgent', 1], high: ['▲', 'High', 2
+         -], moderate: ['■', 'Moderate', 3], routine: ['○', 'Routine', 4]
+         - };                                                            
+      35 -export function Priority({ p }) {                              
+      36 -  const [icon, label, tier] = PRI[p] || PRI.routine;           
+      37 -  return <span className={`pri pri-${p}`}><i aria-hidden="true"
+         ->{icon}</i>Tier {tier} · {label}</span>;                       
+      38 -}                                                              
+      39 -                                                               
+      40 -export function Badge({ children, tone = 'grey' }) {           
+     … 129 more lines (ctrl+o to expand)
+  ⎿  … 1 more file changed
+
+● All conflicts are resolved. Now I'll check that the app builds.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● The build passes. I'll commit the merge and push it. Pushing to main closes
+  the PR on GitHub as merged.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● I merged your friend's PR, the feature/screening branch, into main and pushed
+  it (7fe6c91). GitHub should now show the PR as merged, and Vercel will
+  redeploy the web app in about a minute.
+
+  The conflicts: they came from your friend working on an older copy of main
+  while you renamed pages. I kept both sides' work:
+
+  ┌─────────────────┬───────────────────────────────────────────────────────┐
+  │      File       │                   How I resolved it                   │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │                 │ Kept your Family Tree and Roots pages and added their │
+  │ routes.jsx      │  Screening, Profile and Medical report pages. The     │
+  │                 │ menu now uses their new icons and includes Profile.   │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │                 │ Kept their new journey steps (screening intake        │
+  │ Home.jsx        │ first). Their "Protect your family" link pointed to   │
+  │                 │ the removed Branches page; it now goes to Roots.      │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ Login.jsx       │ Kept your error-message improvements and their        │
+  │                 │ sign-in tracking line.                                │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ store.js,       │                                                       │
+  │ ui.jsx,         │ Kept both sides.                                      │
+  │ Invite.jsx      │                                                       │
+  └─────────────────┴───────────────────────────────────────────────────────┘
+
+  The build passes. The merge also added their two diagram images and an
+  architecture note at the repo root.
+
+  Check one thing on the live site. Their branch makes the login page sign the
+  user out whenever it opens. If Google sign-in stops working or bounces back to
+  login, that's the cause, and I can remove it.
+
+  How to do this yourself next time:
+  1. Run git pull, then git merge origin/<their-branch>.
+  2. Fix the files Git marks with <<<<<<<. In VS Code, use "Accept Both" and
+     then edit.
+  3. Run cd web && npm run build to check the app still builds.
+  4. Run git commit, then git push.
+
+  GitHub's "Resolve conflicts" button also works for small conflicts.
+
+● 2 background shell command tasks didn't finish before the previous session
+ended. Task ids: b58gyrbid, buhe31zcr.
+> merge pr solve conflicts and pull latest
+
+● Bash(cd "/c/Users/Mohammed Noufal V/abhudhabi" && git status -sb | head -3 &&
+      git pull -q origin main 2>&1 | tail -3; git fetch -q --all --prune && git
+      branch -r &&…)
+  ⎿  Created c:\Users\Mohammed Noufal V\abhudhabi\IMPLEMENTATION_LOG.md
+     (+132 -0)
+  ⎿  Created c:\Users\Mohammed Noufal V\abhudhabi\database\schema.sql (+299
+     -0)
+  ⎿  Created c:\Users\Mohammed Noufal V\abhudhabi\database\seed.sql (+179
+     -0)
+  ⎿  Created c:\Users\Mohammed Noufal
+     V\abhudhabi\docs\api\dana-connection-api-contract.md (+363 -0)
+  ⎿  Created c:\Users\Mohammed Noufal
+     V\abhudhabi\docs\engineering\API_REFERENCE.md (+113 -0)
+  ⎿  … 33 more files changed
+  ⎿  (a git step in this command can move the working tree, so these may be
+     its changes, not edits) (ctrl+o to expand)
+
+● Bash(cd "/c/Users/Mohammed Noufal V/abhudhabi" && git log --oneline -4 && git
+      log --oneline main..origin/feature/screening && git show --stat
+      origin/feature/screenin…)
+  ⎿  Updated ~\abhudhabi\web\src\app\couple\Home.jsx (+4 -0)
+  ⎿  Updated ~\abhudhabi\web\src\app\routes.jsx (+25 -0)
+  ⎿  Updated Icons.jsx (+6 -0)
+  ⎿  Updated store.js (+6 -0)
+  ⎿  Updated ui.jsx (+4 -0)
+  ⎿  (a git step in this command can move the working tree, so these may be
+     its changes, not edits) (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Those two are trivial: the same lines in a different order. Now the other
+  three:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Main already has everything in this commit plus the newer Connections and
+  store fixes. I'll keep main's side everywhere, add the friend's FamilyTreeIcon
+  name and remove one duplicate route line.
+
+● Bash(cd "/c/Users/Mohammed Noufal V/abhudhabi/web/src/app" && cat >
+      /c/Users/MOHAMM~1/AppData/Local/Temp/claude/df9b343ed30252b2/1dae0f0e-537a
+      -461f-adaa-6b4fbc85d98a…)
+  ⎿  Updated ~\abhudhabi\web\src\app\couple\Home.jsx (+101 -105)
+        1 -import { Page, Card, Steps, Stat, Badge } from '../shared/ui.j
+          -sx';                                                          
+        2 -import { useStore, EMPTY_OBJ, EMPTY_ARR } from '../shared/stor
+          -e.js';                                                        
+        3 -import { useCouple } from './useCouple.js';                   
+        4 -                                                              
+        5 -export default function Home() {                              
+        6 -  const { me, partner, result, couple } = useCouple();        
+        7 -  const intakes = useStore((s) => s.screeningIntakes) || EMPTY
+          -_OBJ;                                                         
+        8 -  const myIntake = intakes[me.id];                            
+        9 -  const isScreened = !!myIntake?.completed;                   
+       10 -                                                              
+       11 -<<<<<<< HEAD                                                  
+       12 -  const sent = useStore((s) => s.alertsSent) || EMPTY_ARR;    
+       13 -=======                                                       
+       14 -  const sent = useStore((s) => s.alertsSent);                 
+       15 ->>>>>>> origin/feature/screening                              
+       16 -  const plan = useStore((s) => (couple?.id ? s.plans[couple.id
+          -] : null) || s.plan);                                         
+       17 -  const booked = useStore((s) => (couple?.id ? s.appointments[
+          -couple.id] : null) || s.booked);                              
+       18 -                                                              
+       19 -  // Stepper: 0 = Screened, 1 = Results explained, 2 = Plan to
+          -gether, 3 = Protect family                                    
+       20 -  const step = !isScreened                                    
+       21 -    ? 0                                                       
+       22 -    : plan                                                    
+       23 -      ? (sent.length ? 3 : 2)                                 
+       24 -      : 2;                                                    
+       25 -                                                              
+       26 -  const next = !isScreened                                    
+       27 -    ? {                                                       
+       28 -        to: '#/app/screening',                                
+       29 -        t: 'Complete your screening intake',                  
+       30 -        p: 'Auto-fill with UAE PASS or enter medical, family p
+          -edigree & compliance details.',                               
+       31 -      }                                                       
+       32 -    : !plan                                                   
+       33 -      ? {                                                     
+       34 -          to: '#/app/bonds',                                  
+       35 -          t: 'Choose your plan together',                     
+       36 -          p: 'See every option side by side, then decide as a 
+          -couple.',                                                     
+       37 -        }                                                     
+       38 -      : !sent.length                                          
+       39 -        ? {                                                   
+       40 -            to: '#/app/roots',                                
+     … 166 more lines (ctrl+o to expand)
+  ⎿  Updated ~\abhudhabi\web\src\app\routes.jsx (+105 -129)
+        1 -/*                                                            
+        2 -  One menu per login. To add a page: create it in your module 
+          -folder,                                                       
+        3 -  then add one line to your role's `items` and one case to `pa
+          -ge()`.                                                        
+        4 -*/                                                            
+        5 -import Home from './couple/Home.jsx';                         
+        6 -<<<<<<< HEAD                                                  
+        7 -import FamilyTree from './couple/FamilyTree.jsx';             
+        8 -import Screening from './couple/Screening.jsx';               
+        9 -import Profile from './couple/Profile.jsx';                   
+       10 -import MedicalReport from './couple/MedicalReport.jsx';       
+       11 -=======                                                       
+       12 -import Screening from './couple/Screening.jsx';               
+       13 -import Profile from './couple/Profile.jsx';                   
+       14 -import MedicalReport from './couple/MedicalReport.jsx';       
+       15 -import FamilyTree from './couple/FamilyTree.jsx';             
+       16 ->>>>>>> origin/feature/screening                              
+       17 -import Bonds from './couple/Bonds.jsx';                       
+       18 -import Connections from './couple/Connections.jsx';           
+       19 -import Roots from './couple/Roots.jsx';                       
+       20 -import CoupleCounsellor from './couple/Counsellor.jsx';       
+       21 -import Privacy from './couple/Privacy.jsx';                   
+       22 -import Queue from './counsellor/Queue.jsx';                   
+       23 -import CaseView from './counsellor/CaseView.jsx';             
+       24 -import Schedule from './counsellor/Schedule.jsx';             
+       25 -import Overview from './admin/Overview.jsx';                  
+       26 -import Content from './admin/Content.jsx';                    
+       27 -import Audit from './admin/Audit.jsx';                        
+       28 -                                                              
+       29 -import {                                                      
+       30 -  HomeIcon,                                                   
+       31 -  RootsIcon,                                                  
+       32 -  BondsIcon,                                                  
+       33 -  BranchesIcon,                                               
+       34 -  FamilyTreeIcon,                                             
+       35 -  CounsellorIcon,                                             
+       36 -  PrivacyIcon,                                                
+       37 -  ProfileIcon,                                                
+       38 -  QueueIcon,                                                  
+       39 -  ScheduleIcon,                                               
+       40 -  OverviewIcon,                                               
+     … 194 more lines (ctrl+o to expand)
+  ⎿  Updated ui.jsx (+87 -91)
+       1 -/* Shared building blocks. Owner: Platform. Use these so every 
+         -module looks the same. */                                      
+       2 -import { useEffect, useRef } from 'react';                     
+       3 -import { X } from 'lucide-react';                              
+       4 -<<<<<<< HEAD                                                   
+       5 -=======                                                        
+       6 -                                                               
+       7 ->>>>>>> origin/feature/screening                               
+       8 -export { Logo, Brand } from './Logo.jsx';                      
+       9 -                                                               
+      10 -export function Page({ title, sub, actions, children }) {      
+      11 -  return (                                                     
+      12 -    <div className="page">                                     
+      13 -      <header className="page-h">                              
+      14 -        <div><h1>{title}</h1>{sub && <p>{sub}</p>}</div>       
+      15 -        {actions && <div className="page-a">{actions}</div>}   
+      16 -      </header>                                                
+      17 -      {children}                                               
+      18 -    </div>                                                     
+      19 -  );                                                           
+      20 -}                                                              
+      21 -                                                               
+      22 -export function Card({ title, aside, children, className = '' }
+         -) {                                                            
+      23 -  return (                                                     
+      24 -    <section className={`card ${className}`}>                  
+      25 -      {(title || aside) && <div className="card-h"><h2>{title}<
+         -/h2>{aside}</div>}                                             
+      26 -      {children}                                               
+      27 -    </section>                                                 
+      28 -  );                                                           
+      29 -}                                                              
+      30 -                                                               
+      31 -export function Stat({ label, value, note }) {                 
+      32 -  return <div className="stat"><span>{label}</span><strong>{val
+         -ue}</strong>{note && <small>{note}</small>}</div>;             
+      33 -}                                                              
+      34 -                                                               
+      35 -const PRI = { urgent: ['●', 'Urgent', 1], high: ['▲', 'High', 2
+         -], moderate: ['■', 'Moderate', 3], routine: ['○', 'Routine', 4]
+         - };                                                            
+      36 -export function Priority({ p }) {                              
+      37 -  const [icon, label, tier] = PRI[p] || PRI.routine;           
+      38 -  return <span className={`pri pri-${p}`}><i aria-hidden="true"
+         ->{icon}</i>Tier {tier} · {label}</span>;                       
+      39 -}                                                              
+      40 -                                                               
+     … 138 more lines (ctrl+o to expand)
+  ⎿  … 2 more files changed
+  ⎿  (timeout 3m)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● I pulled the latest main, merged the PR (feature/screening), resolved its
+  conflicts and pushed it (3197b8c). Your local copy now matches GitHub.
+
+  - Pulled: your teammates had already merged connections-module into main. It
+    adds the Connections page, bonds tabs and a fix for a loop that kept
+    re-drawing the screen.
+  - The PR: it had one new commit, your friend's own merge of an older main. It
+    conflicted in 5 files, and in each one main already had the same or newer
+    code. So I kept main's side everywhere, added the friend's FamilyTreeIcon
+    name, and removed a duplicate Family Tree route line.
+  - Build: passes. Vercel will redeploy in about a minute. GitHub should show
+    the PR as merged; if it still says open, refresh the page.
+
+  Every branch is now fully merged into main, so there's nothing left to merge.
+
+> run our localhost
+
+  Ran 4 shell commands (ctrl+o to expand)
+
+● Both servers are running on your computer:
+
+  - Web app: http://127.0.0.1:5173
+  - API: http://127.0.0.1:8000, which opens the API docs
+
+  Both are connected to the live Supabase database, so sign-ins and data are
+  real.
+
+  The local API can't run the Malaffi import: /health reports "ingestion": false
+  because the service role key isn't in api/.env. To fix that, paste the key
+  into api/.env yourself. The deployed API on Render already has it and works.
+
+  When you change code, the web app reloads by itself. If you edit the API, tell
+  me and I'll restart it.
+
+[Image #23]
+
+> in this page remove top name it shows also under so remove top one in right
+  side instead of showing signout directly sho some rounded profile if they
+  click it profile settings sign ou and name like sho thye can modify it based
+  on that  and dont show switch accout dirctly outside make it comes itsid
+  while touching that rounded logo
+
+  Ran 3 shell commands (ctrl+o to expand)
+
+● Saving a changed name needs a small database function, since accounts can't
+  currently be edited. I'll add that as migration 008, then build the profile
+  menu.
+
+● Bash(cd "/c/Users/Mohammed Noufal V/abhudhabi" && cat >
+      supabase/008_display_name.sql <<'EOF'
+      -- 008: let a signed-in user change only their own display name (profil…)
+  ⎿  Created ~\abhudhabi\supabase\008_display_name.sql (+12 -0)
+       1 +-- 008: let a signed-in user change only their own display name
+         + (profile menu).                                               
+       2 +create or replace function set_display_name(new_name text) retu
+         +rns text                                                       
+       3 +language plpgsql security definer set search_path = public as $
+         +$                                                              
+       4 +declare n text := left(btrim(coalesce(new_name, '')), 80);     
+       5 +begin                                                          
+       6 +  if auth.uid() is null then raise exception 'Not signed in'; e
+         +nd if;                                                         
+       7 +  if length(n) < 2 then raise exception 'Name is too short'; en
+         +d if;                                                          
+       8 +  update accounts set display_name = n where user_id = auth.uid
+         +();                                                            
+       9 +  return n;                                                    
+      10 +end $$;                                                        
+      11 +revoke all on function set_display_name(text) from public, anon
+         +;                                                              
+      12 +grant execute on function set_display_name(text) to authenticat
+         +ed;                                                            
+  ⎿  Updated db.js (+12 -0)
+      283    }
+      284    set(patch);
+      285  }
+      286 +                                                              
+      287 +/* Profile menu: change my display name (live: saved to my acc
+          +ount). */                                                     
+      288 +export async function setDisplayName(name) {                  
+      289 +  const clean = (name || '').trim().slice(0, 80);             
+      290 +  if (clean.length < 2) throw new Error('Use at least 2 charac
+          +ters.');                                                      
+      291 +  if (isLive()) {                                             
+      292 +    const { error } = await supabase.rpc('set_display_name', {
+          + new_name: clean });                                          
+      293 +    if (error) throw new Error(error.message);                
+      294 +  }                                                           
+      295 +  set({ session: { ...get().session, name: clean } }, 'Changed
+          + display name');                                              
+      296 +  return clean;                                               
+      297 +}                                                             
+
+● Now the profile menu component and the top bar change:
+
+● Write(ProfileMenu.jsx)
+  ⎿  Wrote 65 lines to ProfileMenu.jsx
+       1 /* Round avatar in the top bar. Click → name (editable), profile
+          settings, switch account, sign out. Owner: Platform. */
+       2 import { useEffect, useRef, useState } from 'react';
+       3 import { Avatar } from './ui.jsx';
+       4 import { setDisplayName } from './db.js';
+       5
+       6 export default function ProfileMenu({ session, onSwitch, onSignO
+         ut }) {
+       7   const [open, setOpen] = useState(false);
+       8   const [editing, setEditing] = useState(false);
+     … +57 lines (ctrl+o to expand)
+
+● Bash(cd "/c/Users/Mohammed Noufal V/abhudhabi/web/src/app" && python - <<'EOF'
+      2>/dev/null || "/c/Users/Mohammed Noufal
+      V/abhudhabi/api/.venv/Scripts/python" - <<'EO…)
+  ⎿  Updated Shell.jsx (+61 -71)
+       1 -/* App frame: sidebar menu per role + top bar. Owner: Platform.
+         - */                                                            
+       2 -import { useEffect, useState } from 'react';                   
+       3 -import { set, useStore, resetDemo, signOut as localSignOut } fr
+         -om './store.js';                                               
+       4 -import { go } from './router.js';                              
+       5 -import { Avatar } from './ui.jsx';                             
+       6 -import { Brand } from './Logo.jsx';                            
+       7 -import { signOut as supabaseSignOut } from './supabase.js';    
+       8 -import { loadAll, logAudit } from './db.js';                   
+       9 -import NotificationBell from './NotificationBell.jsx';         
+      10 -                                                               
+      11 -export default function Shell({ menu, path, children }) {      
+      12 -  const session = useStore((s) => s.session);                  
+      13 -  const dbError = useStore((s) => s.dbError);                  
+      14 -  const [open, setOpen] = useState(false);                     
+      15 -  useEffect(() => { document.documentElement.dir = 'ltr'; docum
+         -ent.documentElement.lang = 'en'; }, []);                       
+      16 -  useEffect(() => setOpen(false), [path]);                     
+      17 -                                                               
+      18 -  const logout = async () => {                                 
+      19 -    if (session?.backend) await logAudit('Signed out');        
+      20 -    localSignOut();                                            
+      21 -    try { await supabaseSignOut(); } catch {}                  
+      22 -    go('/login');                                              
+      23 -  };                                                           
+      24 -  const switchAccount = async (e) => { e.preventDefault(); awai
+         -t logout(); };                                                 
+      25 -  const active = (to) => (to === '/app' ? path === '/app' : pat
+         -h.startsWith(to));                                             
+      26 -                                                               
+      27 -  return (                                                     
+      28 -    <div className="shell">                                    
+      29 -      <aside className={`side ${open ? 'open' : ''}`}>         
+      30 -        <Brand size={32} href="#/" style={{ padding: '4px 10px 
+         -18px' }} />                                                    
+      31 -        <div className="side-role">{menu.label}</div>          
+      32 -        <nav>                                                  
+      33 -          {menu.items.map((m) => (                             
+      34 -            <a key={m.to} href={`#${m.to}`} className={active(m
+         -.to) ? 'on' : ''}>                                             
+      35 -              <span className="ic" aria-hidden="true">{m.icon}<
+         -/span>{m.label}                                                
+      36 -            </a>                                               
+      37 -          ))}                                                  
+      38 -        </nav>                                                 
+      39 -        <div className="side-foot">                            
+      40 -          {session?.backend                                    
+     … 92 more lines (ctrl+o to expand)
+  ⎿  … 1 more file changed
+
+● That command didn't run as intended, so I'll check what changed.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● It worked. Checking the result:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Bash(cd "/c/Users/Mohammed Noufal V/abhudhabi/web/src/app" && sed -i
+      's/background:#fff;border:1px solid
+      var(--line,#e5e5e0);border-radius:14px/background:var(--surf…)
+  ⎿  Updated ~\abhudhabi\web\src\app\app.css (+3 -3)
+       98  .pm{position:relative}
+       99  .pm-btn{border:0;background:none;padding:0;border-radius:50%;c
+           ursor:pointer;display:flex}
+      100  .pm-btn:focus-visible,.pm-btn[aria-expanded=true]{outline:2px 
+           solid var(--green,#0a7a3e);outline-offset:2px}
+      101 -.pm-pop{position:absolute;right:0;top:calc(100% + 10px);width:
+          -260px;max-width:calc(100vw - 32px);background:#fff;border:1px 
+          -solid var(--line,#e5e5e0);border-radius:14px;box-shadow:0 12px
+          - 32px rgba(0,0,0,.12);padding:8px;z-index:50;display:flex;flex
+          --direction:column}                                            
+      101 +.pm-pop{position:absolute;right:0;top:calc(100% + 10px);width:
+          +260px;max-width:calc(100vw - 32px);background:var(--surface,#f
+          +ff);border:1px solid var(--line,#e5e5e0);border-radius:14px;bo
+          +x-shadow:0 12px 32px rgba(0,0,0,.12);padding:8px;z-index:50;di
+          +splay:flex;flex-direction:column}                             
+      102  .pm-head{display:flex;gap:12px;align-items:flex-start;padding:
+           10px 10px 14px;border-bottom:1px solid var(--line,#e5e5e0);mar
+           gin-bottom:6px}
+      103  .pm-who{display:flex;flex-direction:column;gap:2px;min-width:0
+           }
+      104  .pm-who b{font-size:14px;overflow-wrap:anywhere}
+     ...
+      109  .pm-edit div{display:flex;gap:10px;align-items:center}
+      110  .pm-save{padding:5px 12px;border-radius:8px;border:0;backgroun
+           d:var(--green,#0a7a3e);color:#fff;font:inherit;font-size:13px;
+           cursor:pointer}
+      111  .pm-pop>a,.pm-pop>button{display:block;text-align:left;padding
+           :9px 10px;border-radius:8px;font:inherit;font-size:14px;color:
+           inherit;text-decoration:none;background:none;border:0;cursor:p
+           ointer}
+      112 -.pm-pop>a:hover,.pm-pop>button:hover{background:var(--bg2,#f3f
+          -3ef)}                                                         
+      113 -.pm-out{color:#b42318 !important}                             
+      112 +.pm-pop>a:hover,.pm-pop>button:hover{background:var(--bg,#f3f3
+          +ef)}                                                          
+      113 +.pm-out{color:var(--red,#b42318) !important}                  
+      114  .avatar-34{width:34px;height:34px;font-size:13px}
+      115  .avatar-36{width:36px;height:36px;font-size:13.5px}
+      116  .avatar-56{width:56px;height:56px;font-size:21px}
+  ⎿  (timeout 3m)
+
+● I changed the top bar as you asked. The build passes, and your localhost page
+  at http://127.0.0.1:5173 has already reloaded with it. I haven't tested it in
+  the browser myself, so please click through it.
+
+  What changed
+  - The name in the top-left is gone. The page heading "Welcome, MOHAMMED" still
+    shows it.
+  - The top-right now has only the bell and a round avatar with your initials.
+  - Clicking the avatar opens a menu:
+    - your name and role, with Edit name to change it in place
+    - Profile settings, which opens the Profile page (couple accounts only)
+    - Switch account
+    - Sign out, in red
+  - Clicking outside the menu or pressing Esc closes it.
+
+  One step for you: editing the name only saves to the database after you run
+  supabase/008_display_name.sql in the Supabase SQL Editor. Until then, a
+  signed-in user's name change will show an error. The new database function
+  lets each user change only their own name.
+
+  Files
+  - web/src/app/shared/ProfileMenu.jsx: the new menu
+  - web/src/app/shared/Shell.jsx: the top bar
+  - web/src/app/shared/db.js: setDisplayName
+  - web/src/app/app.css: menu styles
+
+  None of this is committed yet. Tell me once it looks right and I'll commit and
+  push it.
+
+> in the profile bar based on their gender or give muslim referencees 10 15
+  emojis or icons so they can choose and once they choose it appears also they
+  must be ale to chage inside profile
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● The sample people have a sex field, so I'll show the matching icons first and
+  let everyone choose any of them.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Now I'll build it: a database column, a picker component, and hooks into the
+  avatar, the menu and the Profile page.
+
+  Ran 1 shell command (ctrl+o to expand)
+● The shell couldn't parse that command, so nothing ran. I'll write the pieces
+  as files instead.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Write(AvatarPicker.jsx)
+  ⎿  Wrote 40 lines to AvatarPicker.jsx
+      1 /* Choose a profile picture. Owner: Platform. Icons matching the
+        person's sex are shown first. */
+      2 import { useState } from 'react';
+      3 import { setAvatar } from './db.js';
+      4 import { PEOPLE } from './data.js';
+      5
+      6 export const AVATARS = {
+      7   women: [['🧕', 'Woman with hijab'], ['🧕🏻', 'Woman with hijab, l
+        ight'], ['🧕🏽', 'Woman with hijab, medium'], ['🧕🏾', 'Woman with hi
+        jab, dark'], ['👩', 'Woman']],
+     … +33 lines (ctrl+o to expand)
+
+  Made 1 scratchpad edit +74 (ctrl+o to expand)
+
+● Bash("/c/Users/Mohammed Noufal V/abhudhabi/api/.venv/Scripts/python"
+      /c/Users/MOHAMM~1/AppData/Local/Temp/claude/df9b343ed30252b2/1dae0f0e-537a
+      -461f-adaa-6b4fbc85d98…)
+  ⎿  Updated ~\abhudhabi\supabase\008_display_name.sql (+13 -0)
+      10  end $$;
+      11  revoke all on function set_display_name(text) from public, anon
+          ;
+      12  grant execute on function set_display_name(text) to authenticat
+          ed;
+      13 +                                                               
+      14 +-- Profile picture: one icon chosen from a fixed list in the ap
+         +p.                                                             
+      15 +alter table accounts add column if not exists avatar text;     
+      16 +create or replace function set_avatar(new_avatar text) returns 
+         +text                                                           
+      17 +language plpgsql security definer set search_path = public as $
+         +$                                                              
+      18 +begin                                                          
+      19 +  if auth.uid() is null then raise exception 'Not signed in'; e
+         +nd if;                                                         
+      20 +  if new_avatar is not null and length(new_avatar) > 16 then ra
+         +ise exception 'Not a valid icon'; end if;                      
+      21 +  update accounts set avatar = new_avatar where user_id = auth.
+         +uid();                                                         
+      22 +  return new_avatar;                                           
+      23 +end $$;                                                        
+      24 +revoke all on function set_avatar(text) from public, anon;     
+      25 +grant execute on function set_avatar(text) to authenticated;   
+  ⎿  Updated ~\abhudhabi\web\src\app\app.css (+12 -1)
+       98  .pm{position:relative}
+       99  .pm-btn{border:0;background:none;padding:0;border-radius:50%;c
+           ursor:pointer;display:flex}
+      100  .pm-btn:focus-visible,.pm-btn[aria-expanded=true]{outline:2px 
+           solid var(--green,#0a7a3e);outline-offset:2px}
+      101 -.pm-pop{position:absolute;right:0;top:calc(100% + 10px);width:
+          -260px;max-width:calc(100vw - 32px);background:var(--surface,#f
+          -ff);border:1px solid var(--line,#e5e5e0);border-radius:14px;bo
+          -x-shadow:0 12px 32px rgba(0,0,0,.12);padding:8px;z-index:50;di
+          -splay:flex;flex-direction:column}                             
+      101 +.pm-pop{position:absolute;right:0;top:calc(100% + 10px);width:
+          +290px;max-width:calc(100vw - 32px);background:var(--surface,#f
+          +ff);border:1px solid var(--line,#e5e5e0);border-radius:14px;bo
+          +x-shadow:0 12px 32px rgba(0,0,0,.12);padding:8px;z-index:50;di
+          +splay:flex;flex-direction:column}                             
+      102  .pm-head{display:flex;gap:12px;align-items:flex-start;padding:
+           10px 10px 14px;border-bottom:1px solid var(--line,#e5e5e0);mar
+           gin-bottom:6px}
+      103  .pm-who{display:flex;flex-direction:column;gap:2px;min-width:0
+           }
+      104  .pm-who b{font-size:14px;overflow-wrap:anywhere}
+     ...
+      110  .pm-save{padding:5px 12px;border-radius:8px;border:0;backgroun
+           d:var(--green,#0a7a3e);color:#fff;font:inherit;font-size:13px;
+           cursor:pointer}
+      111  .pm-pop>a,.pm-pop>button{display:block;text-align:left;padding
+           :9px 10px;border-radius:8px;font:inherit;font-size:14px;color:
+           inherit;text-decoration:none;background:none;border:0;cursor:p
+           ointer}
+      112  .pm-pop>a:hover,.pm-pop>button:hover{background:var(--bg,#f3f3
+           ef)}
+      113 +.pm-face{border:0;background:none;padding:0;cursor:pointer;bor
+          +der-radius:50%;flex:none}                                     
+      114 +.pm-links{display:flex;gap:12px}                              
+      115 +.pm-pick{padding:4px 10px 12px;border-bottom:1px solid var(--l
+          +ine);margin-bottom:6px}                                       
+      116 +.avatar-icon{background:var(--bg) !important;line-height:1}   
+      117 +.ap{display:flex;flex-direction:column;gap:10px}              
+      118 +.ap small{font-size:12px;color:var(--ink2)}                   
+      119 +.ap-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}  
+      120 +.ap-grid button{width:38px;height:38px;border-radius:50%;borde
+          +r:1px solid var(--line);background:var(--surface);font-size:21
+          +px;line-height:1;cursor:pointer;display:flex;align-items:cente
+          +r;justify-content:center}                                     
+      121 +.ap-grid button:hover{border-color:var(--green)}              
+      122 +.ap-grid button.on{border:2px solid var(--green);background:va
+          +r(--green-l,#e8f5ee)}                                         
+      123 +.ap .link{align-self:flex-start;font-size:12px;padding:0}     
+      124  .pm-out{color:var(--red,#b42318) !important}
+      125  .avatar-34{width:34px;height:34px;font-size:13px}
+      126  .avatar-36{width:36px;height:36px;font-size:13.5px}
+  ⎿  Updated ProfileMenu.jsx (+12 -4)
+      2  import { useEffect, useRef, useState } from 'react';
+      3  import { Avatar } from './ui.jsx';
+      4  import { setDisplayName } from './db.js';
+      5 +import AvatarPicker from './AvatarPicker.jsx';                  
+      6  
+      7  export default function ProfileMenu({ session, onSwitch, onSignO
+         ut }) {
+      8    const [open, setOpen] = useState(false);
+     ...
+      10    const [name, setName] = useState(session.name || '');
+      11    const [error, setError] = useState('');
+      12    const [busy, setBusy] = useState(false);
+      13 +  const [picking, setPicking] = useState(false);               
+      14    const box = useRef(null);
+      15  
+      16    useEffect(() => {
+     ...
+      21      document.addEventListener('keydown', esc);
+      22      return () => { document.removeEventListener('mousedown', cl
+          ose); document.removeEventListener('keydown', esc); };
+      23    }, [open]);
+      22 -  useEffect(() => { if (!open) { setEditing(false); setError(''
+         -); setName(session.name || ''); } }, [open, session.name]);    
+      24 +  useEffect(() => { if (!open) { setEditing(false); setPicking(
+         +false); setError(''); setName(session.name || ''); } }, [open, 
+         +session.name]);                                                
+      25  
+      26    const save = async (e) => {
+      27      e.preventDefault();
+     ...
+      34    return (
+      35      <div className="pm" ref={box}>
+      36        <button className="pm-btn" onClick={() => setOpen(!open)}
+           aria-haspopup="menu" aria-expanded={open} aria-label="Account 
+          menu">
+      35 -        <Avatar name={session.name} size={34} />               
+      37 +        <Avatar name={session.name} size={34} icon={session.ava
+         +tar} />                                                        
+      38        </button>
+      39        {open && (
+      40          <div className="pm-pop" role="menu">
+      41            <div className="pm-head">
+      40 -            <Avatar name={session.name} size={42} />           
+      42 +            <button type="button" className="pm-face" onClick={
+         +() => setPicking(!picking)} title="Change picture" aria-label="
+         +Change picture">                                               
+      43 +              <Avatar name={session.name} size={42} icon={sessi
+         +on.avatar} />                                                  
+      44 +            </button>                                          
+      45              {editing ? (
+      46                <form onSubmit={save} className="pm-edit">
+      47                  <input autoFocus value={name} onChange={(e) => 
+          setName(e.target.value)} maxLength={80} aria-label="Your name" 
+          />
+     ...
+      55                <div className="pm-who">
+      56                  <b>{session.name}</b>
+     … 13 more lines (ctrl+o to expand)
+  ⎿  Updated supabase.js (+142 -141)
+        1 -/*                                                            
+        2 -  Supabase connection. Owner: Platform.                       
+        3 -  Keys come from web/.env.local (see web/.env.example). Withou
+          -t them the app                                                
+        4 -  runs in demo mode: only the simulated UAE PASS login works. 
+        5 -*/                                                            
+        6 -import { createClient } from '@supabase/supabase-js';         
+        7 -import { COUPLES } from './data.js';                          
+        8 -import { set, startFresh } from './store.js';                 
+        9 -import { loadAll, logAudit, hydratePeople } from './db.js';   
+       10 -                                                              
+       11 -const getEnv = (key) => {                                     
+       12 -  try {                                                       
+       13 -    if (typeof import.meta !== 'undefined' && import.meta.env 
+          -&& import.meta.env[key]) {                                    
+       14 -      return import.meta.env[key];                            
+       15 -    }                                                         
+       16 -  } catch {}                                                  
+       17 -  try {                                                       
+       18 -    if (typeof process !== 'undefined' && process.env && proce
+          -ss.env[key]) {                                                
+       19 -      return process.env[key];                                
+       20 -    }                                                         
+       21 -  } catch {}                                                  
+       22 -  return '';                                                  
+       23 -};                                                            
+       24 -                                                              
+       25 -const url = getEnv('VITE_SUPABASE_URL');                      
+       26 -const key = getEnv('VITE_SUPABASE_ANON_KEY');                 
+       27 -                                                              
+       28 -// PKCE puts the login result in ?code=, so it doesn't clash w
+          -ith our #/ routes                                             
+       29 -export const supabase = url && key ? createClient(url, key, { 
+          -auth: { flowType: 'pkce', detectSessionInUrl: true } }) : null
+          -;                                                             
+       30 -export const hasBackend = !!supabase;                         
+       31 -                                                              
+       32 -/* turn a Supabase user into the app's session (role, name, co
+          -uple) */                                                      
+       33 -export async function loadSession(user) {                     
+       34 -  let { data: acc } = await supabase.from('accounts').select('
+          -*').eq('user_id', user.id).maybeSingle();                     
+       35 -  if (!acc) {                                                 
+       36 -    // first sign-in (new user or Google): create a couple acc
+          -ount with nothing linked yet                                  
+       37 -    const name = user.user_metadata?.full_name || user.user_me
+          -tadata?.name || user.email?.split('@')[0] || 'User';          
+       38 -    const row = { user_id: user.id, role: 'couple', person_id:
+          - null, display_name: name, title: 'New member' };             
+       39 -    const { error } = await supabase.from('accounts').upsert(r
+          -ow, { onConflict: 'user_id', ignoreDuplicates: true });       
+       40 -    if (error && error.code !== '23505') throw error;         
+     … 243 more lines (ctrl+o to expand)
+  ⎿  Updated ui.jsx (+2 -1)
+      58    );
+      59  }
+      60  
+      61 -export function Avatar({ name = '', size = 36 }) {             
+      61 +export function Avatar({ name = '', size = 36, icon = null }) {
+      62 +  if (icon) return <span className={`avatar avatar-${size} avat
+         +ar-icon`} style={{ width: size, height: size, fontSize: size * 
+         +0.6 }} role="img" aria-label={name}>{icon}</span>;             
+      63    const safeName = (name || '').trim() || '?';
+      64    const initials =
+      65      safeName.replace(/^Dr\.\s*/, '').split(' ').map((w) => w[0]
+          ).filter(Boolean).slice(0, 2).join('').toUpperCase() ||
+  ⎿  … 2 more files changed
+  ⎿  (timeout 3m)
+
+● Users can now pick a profile picture, and the build passes. Your localhost
+  page has already reloaded with it; I haven't tested it in the browser myself.
+
+  The choices (18 icons)
+  - For women: 🧕 in four skin tones, 👩
+  - For men: 👳‍♂️ 👳🏽‍♂️ 🧔 🧔🏽 👨
+  - Symbols: 🌙 🕌 📿 🌴 🐪 🦅 🌹 ⭐
+
+  Your own gender group is shown first, based on the person's recorded sex, but
+  anyone can choose any icon. Use my initials instead switches back to initials.
+
+  Where to change it
+  1. Top-right menu: click the avatar, then Change picture or the big avatar in
+     the menu. Pick an icon and it appears in the top bar straight away.
+  2. Profile page: a new Profile picture card at the top, with the same choices.
+
+  Before it saves for signed-in users: run supabase/008_display_name.sql in the
+  Supabase SQL Editor. It now holds the name change and the new avatar column
+  with its save function. Until then, picking an icon shows an error for
+  signed-in users. In the offline demo it works without it.
+
+  None of this is committed yet. Tell me once it looks right and I'll commit and
+  push it.
+
+> NOT THIS TYPE OF EMOJIS I NEED CUTE ANIME EMOJIS SUITS BEST
+
+● Cute anime-style emoji images aren't available as a set I can use freely, so
+  I'll draw original chibi avatars in the app itself: big shiny eyes, blush,
+  hijab styles for women, ghutra and agal or kufi for men.
+
+● Write(Chibi.jsx)
+  ⎿  Wrote 89 lines to Chibi.jsx
+       1 /* Original chibi (cute anime-style) avatars, drawn as SVG. Owne
+         r: Platform.
+       2    Stored on the account as "c:<id>", e.g. "c:w1". */
+       3
+       4 const SKIN = { light: '#FBE0CC', mid: '#EFC4A0', tan: '#D9A27A'
+         };
+       5
+       6 export const CHIBIS = [
+       7   // women
+       8   { id: 'w1', label: 'Rose hijab', sex: 'F', bg: '#FDE7EE', skin
+     … +82 lines (~6 KB) (ctrl+o to expand)
+
+● Write(AvatarPicker.jsx)
+  ⎿  Added 17 lines, removed 17 lines
+       1 -/* Choose a profile picture. Owner: Platform. Icons matching th
+         -e person's sex are shown first. */                             
+       1 +/* Choose a profile picture. Owner: Platform. Avatars matching 
+         +the person's sex are shown first. */                           
+       2  import { useState } from 'react';
+       3  import { setAvatar } from './db.js';
+       4  import { PEOPLE } from './data.js';
+       5 +import { CHIBIS, Chibi } from './Chibi.jsx';                   
+       6  
+       6 -export const AVATARS = {                                       
+       7 -  women: [['🧕', 'Woman with hijab'], ['🧕🏻', 'Woman with hijab,
+         - light'], ['🧕🏽', 'Woman with hijab, medium'], ['🧕🏾', 'Woman wit
+         -h hijab, dark'], ['👩', 'Woman']],                             
+       8 -  men: [['👳‍♂️', 'Man with turban'], ['👳🏽‍♂️', 'Man with turban, med
+         -ium'], ['🧔', 'Man with beard'], ['🧔🏽', 'Man with beard, medium
+         -'], ['👨', 'Man']],                                            
+       9 -  symbols: [['🌙', 'Crescent moon'], ['🕌', 'Mosque'], ['📿', '
+         -Prayer beads'], ['🌴', 'Palm tree'], ['🐪', 'Camel'], ['🦅', 'F
+         -alcon'], ['🌹', 'Rose'], ['⭐', 'Star']],                      
+      10 -};                                                             
+      11 -                                                               
+       7  export default function AvatarPicker({ session, onDone }) {
+       8    const [error, setError] = useState('');
+       9    const sex = PEOPLE[session.id]?.sex;
+      15 -  const groups = [                                             
+      16 -    ...(sex === 'M' ? [['For men', AVATARS.men], ['For women', 
+         -AVATARS.women]] : [['For women', AVATARS.women], ['For men', AV
+         -ATARS.men]]),                                                  
+      17 -    ['Symbols', AVATARS.symbols],                              
+      18 -  ];                                                           
+      19 -  const pick = async (icon) => {                               
+      10 +  const women = ['For women', CHIBIS.filter((c) => c.sex === 'F
+         +')];                                                           
+      11 +  const men = ['For men', CHIBIS.filter((c) => c.sex === 'M')];
+      12 +  const groups = sex === 'M' ? [men, women] : [women, men];    
+      13 +  const pick = async (value) => {                              
+      14      setError('');
+      21 -    try { await setAvatar(icon); onDone?.(); } catch (e) { setE
+         -rror(e.message); }                                             
+      15 +    try { await setAvatar(value); onDone?.(); } catch (e) { set
+         +Error(e.message); }                                            
+      16    };
+      17    return (
+      18      <div className="ap">
+     ...
+      20          <div key={label}>
+      21            <small>{label}</small>
+      22            <div className="ap-grid">
+      29 -            {list.map(([icon, name]) => (                      
+      30 -              <button key={icon} type="button" title={name} ari
+         -a-label={name} aria-pressed={session.avatar === icon}          
+      31 -                className={session.avatar === icon ? 'on' : ''}
+         - onClick={() => pick(icon)}>{icon}</button>                    
+      32 -            ))}                                                
+      23 +            {list.map((c) => {                                 
+      24 +              const value = `c:${c.id}`;                       
+      25 +              const on = session.avatar === value;             
+      26 +              return (                                         
+      27 +                <button key={c.id} type="button" title={c.label
+         +} aria-label={c.label} aria-pressed={on}                       
+      28 +                  className={on ? 'on' : ''} onClick={() => pic
+         +k(value)}>                                                     
+      29 +                  <Chibi id={c.id} size={44} />                
+      30 +                </button>                                      
+      31 +              );                                               
+      32 +            })}                                                
+      33            </div>
+      34          </div>
+      35        ))}
+
+● Now the avatar component draws the chibi, and I'll resize the picker buttons:
+
+● Bash(cd "/c/Users/Mohammed Noufal V/abhudhabi/web/src/app" &&
+      "/c/Users/Mohammed Noufal V/abhudhabi/api/.venv/Scripts/python" -c "
+      p='shared/ui.jsx'; s=open(p,encodi…)
+  ⎿  Updated ~\abhudhabi\web\src\app\app.css (+4 -2)
+      113  .pm-face{border:0;background:none;padding:0;cursor:pointer;bor
+           der-radius:50%;flex:none}
+      114  .pm-links{display:flex;gap:12px}
+      115  .pm-pick{padding:4px 10px 12px;border-bottom:1px solid var(--l
+           ine);margin-bottom:6px}
+      116 -.avatar-icon{background:var(--bg) !important;line-height:1}   
+      116 +.avatar-icon{background:var(--bg) !important;line-height:1;pad
+          +ding:0;overflow:hidden}                                       
+      117  .ap{display:flex;flex-direction:column;gap:10px}
+      118  .ap small{font-size:12px;color:var(--ink2)}
+      119  .ap-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+      120 -.ap-grid button{width:38px;height:38px;border-radius:50%;borde
+          -r:1px solid var(--line);background:var(--surface);font-size:21
+          -px;line-height:1;cursor:pointer;display:flex;align-items:cente
+          -r;justify-content:center}                                     
+      120 +.ap-grid{gap:8px}                                             
+      121 +.ap-grid button{width:50px;height:50px;padding:0;border-radius
+          +:50%;border:2px solid transparent;background:none;cursor:point
+          +er;display:flex;align-items:center;justify-content:center;tran
+          +sition:transform .12s}                                        
+      122 +.ap-grid button:hover{transform:scale(1.08)}                  
+      123  .ap-grid button:hover{border-color:var(--green)}
+      124  .ap-grid button.on{border:2px solid var(--green);background:va
+           r(--green-l,#e8f5ee)}
+      125  .ap .link{align-self:flex-start;font-size:12px;padding:0}
+  ⎿  Updated ui.jsx (+2 -0)
+      2  import { useEffect, useRef } from 'react';
+      3  import { X } from 'lucide-react';
+      4  export { Logo, Brand } from './Logo.jsx';
+      5 +import { Chibi, isChibi } from './Chibi.jsx';                   
+      6  
+      7  export function Page({ title, sub, actions, children }) {
+      8    return (
+     ...
+      60  }
+      61  
+      62  export function Avatar({ name = '', size = 36, icon = null }) {
+      63 +  if (isChibi(icon)) return <span className={`avatar avatar-${s
+         +ize} avatar-icon`} style={{ width: size, height: size }} title=
+         +{name}><Chibi id={icon.slice(2)} size={size} title={name} /></s
+         +pan>;                                                          
+      64    if (icon) return <span className={`avatar avatar-${size} avat
+          ar-icon`} style={{ width: size, height: size, fontSize: size * 
+          0.6 }} role="img" aria-label={name}>{icon}</span>;
+      65    const safeName = (name || '').trim() || '?';
+      66    const initials =
+  ⎿  (timeout 3m)
+
+● The build passes. I'll render all 13 avatars to an image to check how they
+  look.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Wrong paths. I'll put the preview script inside the web folder temporarily:
+
+  Read 1 file, ran 1 shell command (ctrl+o to expand)
+
+● I replaced the emojis with cute anime-style chibi avatars that I drew from
+  scratch, so they're original and free to use. This is how they look:
+
+  chibi avatars (C:\Users\MOHAMM~1\AppData\Local\Temp\claude\df9b343ed30252b2\1d
+  ae0f0e-537a-461f-adaa-6b4fbc85d98a\scratchpad\chibi.png)
+
+  - Women (7): hijab in rose, lavender, mint, navy, sand and black, plus one
+    with long hair.
+  - Men (6): white ghutra with agal, red shemagh, ghutra with beard, kufi cap,
+    short hair, and short hair with beard.
+
+  They have shiny eyes, some smiling or winking, blush, and different skin
+  tones. Your own gender's set is shown first, and anyone can pick any of them.
+
+  They work in the same two places as before: the avatar menu in the top-right
+  (Change picture) and the Profile picture card on the Profile page. The chosen
+  avatar shows in the round button straight away. The build passes and localhost
+  has reloaded, so you can try it now.
+
+  Still needed:
+  1. Run supabase/008_display_name.sql in the Supabase SQL Editor, so the chosen
+     name and avatar save for signed-in users.
+  2. Tell me when you're happy with it and I'll commit and push.
+
+> <ide_selection>The user selected the lines 1 to 26 from c:\Users\Mohammed
+  Noufal V\abhudhabi\supabase\008_display_name.sql:
+  -- 008: let a signed-in user change only their own display name (profile
+  menu).
+  create or replace function set_display_name(new_name text) returns text
+  language plpgsql security definer set search_path = public as $$
+  declare n text := left(btrim(coalesce(new_name, '')), 80);
+  begin
+    if auth.uid() is null then raise exception 'Not signed in'; end if;
+    if length(n) < 2 then raise exception 'Name is too short'; end if;
+    update accounts set display_name = n where user_id = auth.uid();
+    return n;
+  end $$;
+  revoke all on function set_display_name(text) from public, anon;
+  grant execute on function set_display_name(text) to authenticated;
+
+  -- Profile picture: one icon chosen from a fixed list in the app.
+  alter table accounts add column if not exists avatar text;
+  create or replace function set_avatar(new_avatar text) returns text
+  language plpgsql security definer set search_path = public as $$
+  begin
+    if auth.uid() is null then raise exception 'Not signed in'; end if;
+    if new_avatar is not null and length(new_avatar) > 16 then raise exception
+  'Not a valid icon'; end if;
+    update accounts set avatar = new_avatar where user_id = auth.uid();
+    return new_avatar;
+  end $$;
+  revoke all on function set_avatar(text) from public, anon;
+  grant execute on function set_avatar(text) to authenticated;
+
+  This may or may not be related to the current task.</ide_selection>
+
+> push everything
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● I pushed everything to GitHub (e554c8b), and your local copy now matches main.
+  Vercel will redeploy the web app in about a minute.
+
+  The push includes:
+  - the profile menu with name editing
+  - the chibi avatars, in the top-right menu and on the Profile page
+  - migration 008_display_name.sql
+
+  If you haven't run 008_display_name.sql in the Supabase SQL Editor yet, do
+  that now; without it, signed-in users can't save their name or avatar.
+
+> i done it then what are the works or modules we have to work
+
+● With migration 008 run, name and avatar changes now save for signed-in users.
+  This is what's left, in the order I'd do it.
+
+  Priority 1: make the core journey real
+
+  ┌─────┬──────────────────────────────────┬───────────┬───────────────────┐
+  │  #  │               Work               │  Module   │        Why        │
+  ├─────┼──────────────────────────────────┼───────────┼───────────────────┤
+  │     │ Connect the web app to the API,  │           │ The backend is    │
+  │ 1   │ starting with the "Fetch from    │ Platform  │ live but nothing  │
+  │     │ Malaffi" button calling          │           │ in the app uses   │
+  │     │ /ingest/malaffi on Render        │           │ it yet            │
+  ├─────┼──────────────────────────────────┼───────────┼───────────────────┤
+  │     │ Finish the onboarding flow: sign │           │ New users         │
+  │ 2   │  up → screening intake → link to │ Couple +  │ currently get a   │
+  │     │  partner → result                │ Platform  │ sample journey,   │
+  │     │                                  │           │ not their own     │
+  ├─────┼──────────────────────────────────┼───────────┼───────────────────┤
+  │     │ Partner linking: invite your     │           │ Couples are only  │
+  │ 3   │ fiancé(e) by code or link, both  │ Couple +  │ formed from       │
+  │     │ consent, then the couple record  │ Platform  │ sample data now   │
+  │     │ is created                       │           │                   │
+  ├─────┼──────────────────────────────────┼───────────┼───────────────────┤
+  │     │ Fix Render auto-deploy, so each  │           │ 2-minute settings │
+  │ 4   │ push redeploys without the       │ Platform  │  fix              │
+  │     │ manual button                    │           │                   │
+  └─────┴──────────────────────────────────┴───────────┴───────────────────┘
+
+  Priority 2: complete each role
+
+  ┌──────────────┬──────────────────────────────────────────────────────────┐
+  │    Module    │                        Next tasks                        │
+  ├──────────────┼──────────────────────────────────────────────────────────┤
+  │              │ Arabic version (right-to-left layout); Ask DaNA, which   │
+  │ Couple app   │ answers questions only from approved content; booking    │
+  │              │ reminders                                                │
+  ├──────────────┼──────────────────────────────────────────────────────────┤
+  │ Counsellor   │ Filter cases by condition and tier; message the couple;  │
+  │ portal       │ a video-call placeholder; approving the plan and notes   │
+  │              │ from the live data                                       │
+  ├──────────────┼──────────────────────────────────────────────────────────┤
+  │ DoH          │ Carrier rates by condition (with groups under 5 hidden); │
+  │ dashboard    │  a map of screening centres; CSV export; checking that   │
+  │              │ the audit log shows real events                          │
+  ├──────────────┼──────────────────────────────────────────────────────────┤
+  │              │ Unit tests for the rules engine (genetics.js); a real    │
+  │ Platform     │ UAE PASS login adapter; SMS for Sila alerts through the  │
+  │              │ API; an error boundary and loading states                │
+  └──────────────┴──────────────────────────────────────────────────────────┘
+
+  Priority 3: before the demo and submission
+
+  1. Security clean-up: rotate the Google client secret, delete the
+     dana.*.check+… test users, and recheck the privacy rules on the new tables
+     from the connections and screening work.
+  2. Demo script: one clear path through the app, Khalid & Fatima → result →
+     plan → Sila alert → counsellor → DoH view, plus seeded demo data that
+     resets cleanly.
+  3. Docs: update TEAM.md with owners' names and the new pages (Screening,
+     Profile, Connections), and the README with the live links.
+  4. Pitch material: architecture diagram (your teammate added one), a 2–3
+     minute video, and slides.
+
+  Who does what
+
+  - Couple-app owner: onboarding, partner linking, Arabic
+  - Counsellor-portal owner: filters, messaging, plan approval
+  - DoH-dashboard owner: charts, CSV export, map
+  - Platform (you): API connection, Render auto-deploy, security clean-up, tests
+
+  I'd start with #1, connecting the web app to the API, because it turns the
+  deployed backend into something judges can see working. Shall I do that now?
+
+> Priority 1: make the core journey real
+  Work    Module  Why
+
+  1       Connect the web app to the API, starting with the "Fetch from
+  Malaffi" button calling /ingest/malaffi on Render Platform        The backend
+  is live but nothing in the app uses it yet
+  2       Finish the onboarding flow: sign up → screening intake → link to
+  partner → result       Couple + Platform       New users currently get a
+  sample journey, not their own
+  3       Partner linking: invite your fiancé(e) by code or link, both consent,
+  then the couple record is created Couple + Platform       Couples are only
+  formed from sample data now
+  4       Fix Render auto-deploy, so each push redeploys without the manual
+  button        Platform        2-minute settings fix
+  can u do it if my assistance need na tell me ill do
+
+● I'll do all four. First I'll check how the app currently handles screening,
+  couples and Malaffi.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● This is a big change, so I'll read the remaining pieces first: how the app
+  loads people and couples, how cases are computed, and the existing Welcome
+  page.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● A teammate's Connections module already handles finding a partner and sending
+  requests. I'll check whether it creates a real couple in the database, so I
+  don't build that twice.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● The Connections module stores partners mostly in the browser, with no database
+  tables from our migrations, so I'm building invite-code partner linking in
+  the database next. I'll check the privacy rules and case scoring that the new
+  flow must fit after that.
+
+  Ran 6 shell commands (ctrl+o to expand)
+
+● I'm moving users from the sample couple to real profiles, with a welcome
+  checklist and partner linking. I'm starting on the database side first.
+
+● Write(~\abhudhabi\supabase\009_onboarding.sql)
+  ⎿  Wrote 111 lines to ~\abhudhabi\supabase\009_onboarding.sql
+       1 -- 009: real onboarding. A new couple account creates its own pr
+         ofile (no sample partner),
+       2 -- fetches its result from Malaffi through the API, then links a
+          partner with an invite code.
+       3 -- Run after 008. Safe to re-run.
+       4
+       5 -- 1. my own profile -------------------------------------------
+         ------------
+       6 create or replace function start_my_profile(p_sex text) returns
+         text
+     … +105 lines (ctrl+o to expand)
+  Ran 1 shell command (ctrl+o to expand)
+
+● Now the API: after a Malaffi sync it will also save the result summary the app
+  reads and re-score only this couple's case.
+
+● Bash(cd "/c/Users/Mohammed Noufal V/abhudhabi" && "api/.venv/Scripts/python" -
+      <<'EOF'
+      p='api/app/main.py'; s=open(p,encoding='utf-8').read()…)
+  ⎿  Updated ~\abhudhabi\api\app\main.py (+5 -1)
+      105                                     "external_reference": f"Dia
+           gnosticReport/{p.report['report_id']}", "terminology_system": 
+           "LOINC",
+      106                                     "clinical_code": "51969-4",
+            "display_name": "Genetic analysis report",
+      107                                     "recorded_date": p.report["
+           report_date"], "raw_payload": bundle})
+      108 -    svc.rpc("sync_cases")                                     
+      108 +    # summary row the app reads (null gene = nothing found), t
+          +hen re-score this couple's case if linked                     
+      109 +    found = next((v["gene_symbol"] for v in p.variants if v.ge
+          +t("clinical_significance") in ("pathogenic", "likely_pathogeni
+          +c")), None)                                                   
+      110 +    svc.insert("results", {"person_id": person, "gene": found,
+          + "lab": p.report.get("laboratory_name") or "Malaffi",         
+      111 +                           "reported_on": p.report["report_dat
+          +e"], "malaffi_ref": p.report["report_id"]}, upsert_on="person_
+          +id")                                                          
+      112 +    svc.rpc("rescore_my_case", {"p_person": person})          
+      113      svc.insert("audit_log", {"actor": user.id, "actor_name": a
+           cc["display_name"], "action": "Synced and validated a Malaffi 
+           lab report",
+      114                               "resource_type": "genetic_reports
+           ", "resource_id": saved["id"]})
+      115      return {"saved": True, "report_id": p.report["report_id"],
+            "variants": len(p.variants), "warnings": p.warnings}
+  ⎿  Updated ~\abhudhabi\render.yaml (+1 -1)
+      16        - key: SUPABASE_URL
+      17          value: https://oflqmhfivyzttlivgusr.supabase.co
+      18        - key: ALLOWED_ORIGINS
+      19 -        value: https://dana-gamma-seven.vercel.app,http://local
+         -host:5173                                                      
+      19 +        value: https://dana-gamma-seven.vercel.app,http://local
+         +host:5173,http://127.0.0.1:5173                                
+      20        - key: SUPABASE_ANON_KEY
+      21          sync: false   # entered in the Render dashboard
+      22        - key: SUPABASE_SERVICE_ROLE_KEY
+
+● The API tests pass (14). Now the web app, starting with a small API client and
+  the session changes.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Write(api.js)
+  ⎿  Wrote 27 lines to api.js
+       1 /* Calls to the DaNA API (FastAPI on Render). Owner: Platform.
+       2    The user's Supabase login token is sent along, so the API act
+         s as that user. */
+       3 import { supabase } from './supabase.js';
+       4
+       5 export const API_URL = (import.meta.env.VITE_API_URL || 'https:/
+         /dana-api-589n.onrender.com').replace(/\/$/, '');
+       6
+       7 export async function api(path, { method = 'GET', body } = {}) {
+       8   const { data } = (await supabase?.auth.getSession()) || {};
+     … +19 lines (ctrl+o to expand)
+
+● Bash(cd "/c/Users/Mohammed Noufal V/abhudhabi/web/src/app" &&
+      "/c/Users/Mohammed Noufal V/abhudhabi/api/.venv/Scripts/python" - <<'EOF'
+      def ed(p, pairs, append=None)…)
+  ⎿  Updated supabase.js (+12 -6)
+      41      const again = await supabase.from('accounts').select('*').e
+          q('user_id', user.id).maybeSingle();
+      42      acc = again.data || row;
+      43    }
+      44 -  if (acc.role === 'couple' && !acc.person_id) {               
+      45 -    // temporary onboarding: give this account its own sample c
+         -ouple (see supabase/003_sample_journey.sql)                    
+      46 -    const { data: pid, error } = await supabase.rpc('start_samp
+         -le_journey');                                                  
+      47 -    if (!error && pid) acc = { ...acc, person_id: pid, title: '
+         -Partner · engaged (sample journey)' };                         
+      48 -    else if (error) console.warn('Sample journey not available:
+         -', error.message);                                             
+      49 -  }                                                            
+      44 +  // a new couple account has no health profile yet: the Welcom
+         +e page walks them through it (009_onboarding.sql)              
+      45    await hydratePeople();
+      46    const couple = acc.person_id ? COUPLES.find((c) => c.a === ac
+          c.person_id || c.b === acc.person_id) : null;
+      47    const isUae = typeof window !== 'undefined' && window.__danaV
+          ia === 'uaepass';
+     ...
+      56      email: user.email,
+      57      via: (typeof window !== 'undefined' && window.__danaVia) ||
+           user.app_metadata?.provider || 'email',
+      58      authMethod,
+      59 +    needsProfile: acc.role === 'couple' && !acc.person_id,     
+      60      backend: true,
+      61    };
+      62  }
+      63  
+      64 +/* re-read my account after onboarding steps (profile created, 
+         +partner linked) */                                             
+      65 +export async function refreshSession() {                       
+      66 +  const { data } = await supabase.auth.getUser();              
+      67 +  if (!data?.user) return null;                                
+      68 +  const prev = get().session || {};                            
+      69 +  const next = await loadSession(data.user);                   
+      70 +  set({ session: { ...next, avatar: next.avatar ?? prev.avatar 
+         +} });                                                          
+      71 +  return next;                                                 
+      72 +}                                                              
+      73 +                                                               
+      74  /* keep the app's session in step with Supabase (also handles t
+          he Google redirect) */
+      75  export function watchAuth(onReady) {
+      76    if (!supabase) { onReady(); return () => {}; }
+
+● Bash(cd "/c/Users/Mohammed Noufal V/abhudhabi/web/src/app" &&
+      "/c/Users/Mohammed Noufal V/abhudhabi/api/.venv/Scripts/python" - <<'EOF'
+      def ed(p, pairs, append=None)…)
+  ⎿  Updated db.js (+30 -0)
+       8  import { get, set } from './store.js';
+       9  import { SLOTS, PEOPLE, COUPLES, relativesFor } from './data.js
+          ';
+      10  import { fromDb, toDb } from './family.js';
+      11 +import { api } from './api.js';                                
+      12  
+      13  export const isLive = () => !!(supabase && get().session?.backe
+          nd);
+      14  
+     ...
+      198    const gene = Object.fromEntries((r.data || []).map((x) => [x
+           .person_id, x.gene]));
+      199    (p.data || []).forEach((x) => {
+      200      if (!PEOPLE[x.id]) PEOPLE[x.id] = { name: x.name, short: x
+           .short_name, sex: x.sex, carrier: gene[x.id] ?? null };
+      201 +    else if (x.id in gene) PEOPLE[x.id].carrier = gene[x.id]; 
+          +// a fresh Malaffi result replaces the old one                
+      202    });
+      203    (c.data || []).forEach((x) => {
+      204      if (!COUPLES.find((k) => k.id === x.id)) {
+     ...
+      306    }
+      307    set({ session: { ...get().session, avatar: icon } }, 'Change
+           d profile picture');
+      308  }
+      309 +                                                              
+      310 +/* ---------- onboarding (009_onboarding.sql + the API) ------
+          +---- */                                                       
+      311 +const rpc = async (fn, args) => {                             
+      312 +  const { data, error } = await supabase.rpc(fn, args);       
+      313 +  if (error) throw new Error(error.message);                  
+      314 +  return data;                                                
+      315 +};                                                            
+      316 +                                                              
+      317 +/* step 1: my own health profile (sex is needed to interpret X
+          +-linked results) */                                           
+      318 +export async function startMyProfile(sex) {                   
+      319 +  const old = get().session?.id;                              
+      320 +  const pid = await rpc('start_my_profile', { p_sex: sex });  
+      321 +  // the screening intake was saved under the login id before 
+          +the profile existed: move it across                           
+      322 +  const intakes = get().screeningIntakes || {};               
+      323 +  if (old && old !== pid && intakes[old]) set({ screeningIntak
+          +es: { ...intakes, [pid]: intakes[old] } });                   
+      324 +  return pid;                                                 
+      325 +}                                                             
+      326 +                                                              
+      327 +/* step 3: fetch my lab report from Malaffi (validated and sav
+          +ed by the API) */                                             
+      328 +export async function fetchMalaffi() {                        
+      329 +  const r = await api('/ingest/malaffi', { method: 'POST' }); 
+      330 +  await loadAll();                                            
+      331 +  return r;                                                   
+     … 5 more lines (ctrl+o to expand)
+  ⎿  Updated supabase.js (+1 -1)
+       5  */
+       6  import { createClient } from '@supabase/supabase-js';
+       7  import { COUPLES } from './data.js';
+       8 -import { set, startFresh } from './store.js';                  
+       8 +import { get, set, startFresh } from './store.js';             
+       9  import { loadAll, logAudit, hydratePeople } from './db.js';
+      10  
+      11  const getEnv = (key) => {
+
+● Now the Welcome page becomes a 4-step onboarding checklist:
+
+● Write(~\abhudhabi\web\src\app\couple\Welcome.jsx)
+  ⎿  Added 135 lines, removed 16 lines
+        1 -/* First screen for a brand-new account (email sign-up or Goog
+          -le): no results linked yet. */                                
+        2 -import { Page, Card, Steps } from '../shared/ui.jsx';         
+        3 -import { useStore } from '../shared/store.js';                
+        1 +/* Onboarding for a brand-new couple account. Owner: Couple ap
+          +p + Platform.                                                 
+        2 +   1 screening intake → 2 health profile → 3 results from Mala
+          +ffi → 4 link your partner.                                    
+        3 +   When the partner link is made, the couple's real journey (H
+          +ome) opens. */                                                
+        4 +import { useEffect, useState } from 'react';                  
+        5 +import { Page, Card, Steps, Badge } from '../shared/ui.jsx';  
+        6 +import { useStore, EMPTY_OBJ } from '../shared/store.js';     
+        7 +import { refreshSession } from '../shared/supabase.js';       
+        8 +import { startMyProfile, fetchMalaffi, createPartnerInvite, ac
+          +ceptPartnerInvite, startSampleJourney, loadAll } from '../shar
+          +ed/db.js';                                                    
+        9 +import { GENES } from '../shared/data.js';                    
+       10 +import { go } from '../shared/router.js';                     
+       11  
+       12 +export const PENDING_CODE_KEY = 'dana.partnerCode';           
+       13 +const readPending = () => { try { return sessionStorage.getIte
+          +m(PENDING_CODE_KEY) || ''; } catch { return ''; } };          
+       14 +const clearPending = () => { try { sessionStorage.removeItem(P
+          +ENDING_CODE_KEY); } catch {} };                               
+       15 +                                                              
+       16  export default function Welcome() {
+       17    const session = useStore((s) => s.session);
+       18 +  const intakes = useStore((s) => s.screeningIntakes) || EMPTY
+          +_OBJ;                                                         
+       19 +  const reports = useStore((s) => s.reports) || EMPTY_OBJ;    
+       20 +  const intake = intakes[session.id];                         
+       21 +  const hasProfile = !session.needsProfile;                   
+       22 +  const report = hasProfile ? reports[session.id] : null;     
+       23 +                                                              
+       24 +  const [sex, setSex] = useState(intake?.personal?.gender === 
+          +'Male' ? 'M' : intake?.personal?.gender === 'Female' ? 'F' : '
+          +');                                                           
+       25 +  const [code, setCode] = useState('');                       
+       26 +  const [partnerCode, setPartnerCode] = useState(readPending()
+          +);                                                            
+       27 +  const [busy, setBusy] = useState('');                       
+       28 +  const [msg, setMsg] = useState({});                         
+       29 +  const [copied, setCopied] = useState(false);                
+       30 +                                                              
+       31 +  const run = async (key, fn) => {                            
+       32 +    setBusy(key); setMsg((m) => ({ ...m, [key]: null }));     
+       33 +    try { await fn(); } catch (e) { setMsg((m) => ({ ...m, [ke
+          +y]: { err: e.message } })); }                                 
+       34 +    setBusy('');                                              
+       35 +  };                                                          
+       36 +                                                              
+       37 +  // show my invite code as soon as I have a profile          
+       38 +  useEffect(() => {                                           
+       39 +    if (hasProfile && !code) createPartnerInvite().then(setCod
+          +e).catch(() => {});                                           
+       40 +  }, [hasProfile, code]);                                     
+       41 +                                                              
+       42 +  const step = !intake?.completed ? 0 : !hasProfile ? 1 : !rep
+          +ort ? 2 : 3;                                                  
+       43 +  const link = code ? `${window.location.origin}${window.locat
+          +ion.pathname}#/join/${code}` : '';                            
+       44 +  const share = `Assalamu alaikum! Join me on DaNA for our pre
+          +marital genetic results. Use my code ${code} or open: ${link}`
+          +;                                                             
+       45 +                                                              
+       46 +  const createProfile = () => run('profile', async () => {    
+       47 +    if (!sex) throw new Error('Choose male or female.');      
+       48 +    await startMyProfile(sex);                                
+       49 +    await refreshSession();                                   
+       50 +    loadAll();                                                
+       51 +  });                                                         
+       52 +  const getResults = () => run('malaffi', async () => {       
+       53 +    const r = await fetchMalaffi();                           
+       54 +    setMsg((m) => ({ ...m, malaffi: { ok: `Report ${r.report_i
+          +d} received and verified.` } }));                             
+       55 +  });                                                         
+       56 +  const link2 = () => run('link', async () => {               
+       57 +    await acceptPartnerInvite(partnerCode);                   
+       58 +    clearPending();                                           
+       59 +    await refreshSession();                                   
+       60 +    await loadAll();                                          
+       61 +    go('/app');                                               
+       62 +  });                                                         
+       63 +  const sample = () => run('sample', async () => {            
+       64 +    await startSampleJourney();                               
+       65 +    await refreshSession();                                   
+       66 +    await loadAll();                                          
+       67 +    go('/app');                                               
+       68 +  });                                                         
+       69 +  const copy = async () => {                                  
+       70 +    try { await navigator.clipboard.writeText(link); setCopied
+          +(true); setTimeout(() => setCopied(false), 1800); } catch {}  
+       71 +  };                                                          
+       72 +                                                              
+       73 +  const Err = ({ k }) => (msg[k]?.err ? <p className="err">{ms
+          +g[k].err}</p> : msg[k]?.ok ? <p className="ok-msg">{msg[k].ok}
+          +</p> : null);                                                 
+       74 +  const carrierGene = report?.variants?.find((v) => ['pathogen
+          +ic', 'likely_pathogenic'].includes(v.significance))?.gene;    
+       75 +                                                              
+       76    return (
+        8 -    <Page title={`Welcome, ${session.name.split(' ')[0]}`} sub
+          -={`Signed in as ${session.email || session.name}`}>           
+        9 -      <Card title="Your account is ready">                    
+       10 -        <Steps items={['Account created', 'Link your results',
+          - 'Invite your partner', 'Your journey']} current={1} />       
+       77 +    <Page title={`Welcome, ${(session.name || '').split(' ')[0
+          +]}`} sub="Four short steps to start your premarital journey to
+          +gether.">                                                     
+       78 +      <Card>                                                  
+       79 +        <Steps items={['Screening intake', 'Your profile', 'Yo
+          +ur results', 'Link your partner']} current={step} />          
+       80        </Card>
+       12 -      <div className="grid2">                                 
+       13 -        <Card title="Connect with your partner">              
+       14 -          <p className="muted">Find your partner on DaNA or se
+          -nd them an invitation link to start your premarital genetic as
+          -sessment together.</p>                                        
+       15 -          <a className="btn" href="#/app/connections">Go to Co
+          -nnections</a>                                                 
+       81 +                                                              
+       82 +      <div className="onb">                                   
+       83 +        <Card title="1 · Screening intake">                   
+       84 +          {intake?.completed                                  
+       85 +            ? <p><Badge tone="green">Done</Badge> <span classN
+          +ame="muted">Submitted {new Date(intake.submittedAt).toLocaleDa
+          +teString()}</span></p>                                        
+       86 +            : <p className="muted">Your medical background, fa
+          +mily history and consents. About 5 minutes.</p>}              
+       87 +          <a className={intake?.completed ? 'btn secondary' : 
+          +'btn'} href="#/app/screening">{intake?.completed ? 'Review int
+          +ake' : 'Start intake'}</a>                                    
+       88          </Card>
+       17 -        <Card title="Premarital screening">                   
+       18 -          <p className="muted">Complete your screening intake 
+          -assessment or find an accredited screening centre near you.</p
+          ->                                                             
+       19 -          <div className="btn-row">                           
+       20 -            <a className="btn secondary" href="#/app/screening
+          -">Screening Intake</a>                                        
+       21 -            <a className="btn" href="#/invite">Find a Centre</
+          -a>                                                            
+       22 -          </div>                                              
+       89 +                                                              
+       90 +        <Card title="2 · Your health profile">                
+       91 +          {hasProfile ? <p><Badge tone="green">Done</Badge> <s
+          +pan className="muted">Profile created</span></p> : (<>        
+       92 +            <p className="muted">Some conditions pass differen
+          +tly to sons and daughters, so we need this to read your result
+          + correctly.</p>                                               
+       93 +            <div className="seg" role="radiogroup" aria-label=
+          +"Sex">                                                        
+       94 +              {[['F', 'Female'], ['M', 'Male']].map(([v, l]) =
+          +> (                                                           
+       95 +                <button key={v} type="button" role="radio" ari
+          +a-checked={sex === v} className={sex === v ? 'on' : ''} onClic
+          +k={() => setSex(v)}>{l}</button>                              
+       96 +              ))}                                             
+       97 +            </div>                                            
+       98 +            <button className="btn" onClick={createProfile} di
+          +sabled={busy === 'profile'}>{busy === 'profile' ? 'Creating…' 
+          +: 'Create my profile'}</button>                               
+       99 +            <Err k="profile" />                               
+      100 +          </>)}                                               
+      101          </Card>
+      102 +                                                              
+      103 +        <Card title="3 · Your results from Malaffi">          
+      104 +          {!hasProfile ? <p className="muted">Create your prof
+          +ile first.</p> : report ? (<>                                 
+      105 +            <p><Badge tone="green">Verified</Badge> <span clas
+          +sName="muted">{report.lab || 'Accredited lab'} · {report.date}
+          +</span></p>                                                   
+      106 +            <p>{carrierGene ? <>You carry a change in <b>{carr
+          +ierGene}</b> ({GENES[carrierGene]?.condition || 'see your repo
+          +rt'}). This is common and does not affect your own health. Wha
+          +t matters is your partner's result.</> : 'No changes found in 
+          +the genes we screen for.'}</p>                                
+      107 +            <a href="#/app/report">View my medical report →</a
+          +>                                                             
+      108 +          </>) : (<>                                          
+      109 +            <p className="muted">We fetch your premarital lab 
+          +report from Malaffi, check it is signed by an accredited lab, 
+          +and save it securely.</p>                                     
+      110 +            <button className="btn" onClick={getResults} disab
+          +led={busy === 'malaffi'}>{busy === 'malaffi' ? 'Fetching… (up 
+          +to a minute)' : 'Fetch my results from Malaffi'}</button>     
+      111 +            <p className="fine">Demo: Malaffi is simulated wit
+          +h a synthetic report.</p>                                     
+      112 +          </>)}                                               
+      113 +          <Err k="malaffi" />                                 
+      114 +        </Card>                                               
+      115 +                                                              
+      116 +        <Card title="4 · Link your partner">                  
+      117 +          {!hasProfile ? <p className="muted">Create your prof
+          +ile first.</p> : (<>                                          
+      118 +            <p className="muted">Send your code to your fiancé
+          +(e). When they enter it, you are linked and see your result as
+          + a couple. Entering a code is your consent to link.</p>       
+      119 +            <div className="code-box">                        
+      120 +              <small>Your code</small>                        
+      121 +              <b>{code || '······'}</b>                       
+      122 +              <div className="btn-row">                       
+      123 +                <button className="btn secondary" onClick={cop
+          +y} disabled={!code}>{copied ? 'Copied ✓' : 'Copy link'}</butto
+          +n>                                                            
+      124 +                <a className="btn secondary" href={`https://wa
+          +.me/?text=${encodeURIComponent(share)}`} target="_blank" rel="
+          +noreferrer" aria-disabled={!code}>WhatsApp</a>                
+      125 +              </div>                                          
+      126 +              <small className="muted">Valid for 7 days.</smal
+          +l>                                                            
+      127 +            </div>                                            
+      128 +            <form className="code-in" onSubmit={(e) => { e.pre
+          +ventDefault(); link2(); }}>                                   
+      129 +              <label htmlFor="pcode">Have your partner's code?
+          +</label>                                                      
+      130 +              <div>                                           
+      131 +                <input id="pcode" value={partnerCode} onChange
+          +={(e) => setPartnerCode(e.target.value.toUpperCase())} placeho
+          +lder="e.g. K7M2QX" maxLength={8} autoComplete="off" />        
+      132 +                <button className="btn" disabled={busy === 'li
+          +nk' || partnerCode.trim().length < 6}>{busy === 'link' ? 'Link
+          +ing…' : 'Link'}</button>                                      
+      133 +              </div>                                          
+      134 +            </form>                                           
+      135 +            <Err k="link" />                                  
+      136 +          </>)}                                               
+      137 +        </Card>                                               
+      138        </div>
+      139 +                                                              
+      140 +      <p className="fine onb-sample">                         
+      141 +        Just exploring? <button className="link" onClick={samp
+          +le} disabled={!!busy}>Try DaNA with a sample partner</button> 
+          +(you can't undo this for this account).                       
+      142 +      </p>                                                    
+      143 +      <Err k="sample" />                                      
+      144      </Page>
+      145    );
+      146  }
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Now the routing: a #/join/CODE link, and the checklist stays until the partner
+  is linked.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Bash(cd "/c/Users/Mohammed Noufal V/abhudhabi/web/src" && "/c/Users/Mohammed
+      Noufal V/abhudhabi/api/.venv/Scripts/python" - <<'EOF'
+      def ed(p, pairs):…)
+  ⎿  Updated ~\abhudhabi\web\src\app\app.css (+16 -0)
+      1688  .exists .muted{font-size:13px}
+      1689  .exists-a{display:grid;grid-template-columns:auto 1fr;gap:8px
+            ;margin-top:6px}
+      1690  .exists-a .method{padding:10px}
+      1691 +                                                             
+      1692 +/* onboarding (Welcome) */                                   
+      1693 +.onb{display:grid;grid-template-columns:repeat(auto-fit,minma
+           +x(280px,1fr));gap:16px;margin-top:16px}                      
+      1694 +.onb .card p{margin:0 0 12px}                                
+      1695 +.seg{display:inline-flex;border:1px solid var(--line);border-
+           +radius:10px;overflow:hidden;margin-bottom:12px}              
+      1696 +.seg button{border:0;background:var(--surface);padding:8px 18
+           +px;font:inherit;font-size:14px;cursor:pointer;color:var(--ink
+           +)}                                                           
+      1697 +.seg button+button{border-left:1px solid var(--line)}        
+      1698 +.seg button.on{background:var(--green);color:#fff}           
+      1699 +.code-box{display:flex;flex-direction:column;gap:6px;align-it
+           +ems:flex-start;background:var(--bg);border-radius:12px;paddin
+           +g:12px 14px;margin-bottom:14px}                              
+      1700 +.code-box b{font-size:26px;letter-spacing:.18em;font-family:u
+           +i-monospace,Menlo,Consolas,monospace}                        
+      1701 +.code-box small{font-size:12px;color:var(--ink2)}            
+      1702 +.code-in label{display:block;font-size:13px;font-weight:600;m
+           +argin-bottom:6px}                                            
+      1703 +.code-in div{display:flex;gap:8px}                           
+      1704 +.code-in input{flex:1;min-width:0;padding:9px 12px;border:1px
+           + solid var(--line);border-radius:10px;font:inherit;font-size:
+           +16px;letter-spacing:.12em;text-transform:uppercase}          
+      1705 +.onb-sample{margin-top:18px}                                 
+      1706 +.onb-sample .link{padding:0;font-size:inherit}               
+  ⎿  … 2 more files changed
+  ⎿  (timeout 3m)
+
+● The build passes. The new SQL has to be run in Supabase before I can test
+  against the live database, so first I'll check it on the local Postgres I used
+  earlier.
+
+  Listed 1 directory, ran 3 shell commands (ctrl+o to expand)
+
+● Postgres is running. I'll build a fresh test database with the full schema and
+  every migration, then exercise the new onboarding as two pretend users.
+
+  Ran 3 shell commands (ctrl+o to expand)
+
+● All migrations apply cleanly, 009 included. Now the full journey for two
+  users, Sara and Omar:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Every check passes in the test database, and the sender's checklist will now
+  poll every 15 seconds so they see the link without reloading.
+
+● Update(~\abhudhabi\web\src\app\couple\Welcome.jsx)
+  ⎿  Added 10 lines
+      39      if (hasProfile && !code) createPartnerInvite().then(setCode
+          ).catch(() => {});
+      40    }, [hasProfile, code]);
+      41  
+      42 +  // the partner may enter my code on their phone: check now an
+         +d then, then open our journey                                  
+      43 +  useEffect(() => {                                            
+      44 +    if (!hasProfile) return;                                   
+      45 +    const t = setInterval(async () => {                        
+      46 +      const s = await refreshSession().catch(() => null);      
+      47 +      if (s?.couple) { clearInterval(t); await loadAll(); go('/
+         +app'); }                                                       
+      48 +    }, 15000);                                                 
+      49 +    return () => clearInterval(t);                             
+      50 +  }, [hasProfile]);                                            
+      51 +                                                               
+      52    const step = !intake?.completed ? 0 : !hasProfile ? 1 : !repo
+          rt ? 2 : 3;
+      53    const link = code ? `${window.location.origin}${window.locati
+          on.pathname}#/join/${code}` : '';
+      54    const share = `Assalamu alaikum! Join me on DaNA for our prem
+          arital genetic results. Use my code ${code} or open: ${link}`;
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Background command "Start local Postgres and list DBs" completed (exit code 0)
+
+● The build passes. Committing and pushing:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● I built and pushed all four Priority 1 items (91a79f5). Nothing has been
+  tested on the live site yet, because it needs three quick steps from you
+  first.
+
+  What I built
+
+  1. Web app ↔ API: the web app now calls the Render API to fetch results from
+     Malaffi. The API checks the report, saves it and re-scores the couple's
+     case.
+  2. Onboarding: new users no longer get a fake sample couple. They get a 4-step
+     checklist:
+     a. Screening intake
+     b. Your profile (choose female or male)
+     c. Fetch my results from Malaffi
+     d. Link your partner
+
+     A "Try DaNA with a sample partner" link is still there for judges who just
+     want to explore.
+  3. Partner linking: each person gets a 6-character code, with Copy link and
+     WhatsApp buttons. The partner enters the code or opens the #/join/CODE
+     link, which counts as their consent. The database then creates the real
+     couple and its case and assigns a counsellor. The person who sent the code
+     is moved into the couple journey within about 15 seconds.
+  4. Render settings: also allowed 127.0.0.1:5173 to call the API, so localhost
+     can reach it.
+
+  I tested the new SQL on a local copy of the database. Wrong, own, already-used
+  and lowercase codes are all handled, and two carriers of the same gene become
+  tier 2 with a counsellor assigned.
+
+  What I need from you, in this order
+
+  1. Run supabase/009_onboarding.sql in the Supabase SQL Editor. Do this first:
+     Vercel is already deploying the new web app, and new sign-ups fail at
+     "Create my profile" until it's run.
+  2. On Render: click Manual Deploy → Deploy latest commit, so the API has the
+     new results saving.
+  3. Fix Render auto-deploy, which is Priority 1 #4 and only you can do:
+     - On Render: dana-api → Settings → Build & Deploy → set Auto-Deploy to On
+       Commit.
+     - If it's already on: on GitHub, open your profile → Settings →
+       Applications → Render → Configure, and make sure the DaNA repo is
+       allowed.
+     - Also open the DaNA Blueprint on Render and click Manual sync, so the new
+       allowed address takes effect.
+
+  When those are done, say so and I'll run the full journey live with two test
+  accounts: sign up → intake → profile → Malaffi → link partner → couple result.
+
+  Still open: a user without a partner who opens Bonds or Roots from the menu
+  still sees the demo couple (Khalid and Fatima). That's existing behaviour in
+  the couple pages, which belong to your teammate. I can make those pages say
+  "Link your partner first" if you want.
+
+> <ide_selection>The user selected the lines 1 to 112 from c:\Users\Mohammed
+  Noufal V\abhudhabi\supabase\009_onboarding.sql:
+  -- 009: real onboarding. A new couple account creates its own profile (no
+  sample partner),
+  -- fetches its result from Malaffi through the API, then links a partner with
+  an invite code.
+  -- Run after 008. Safe to re-run.
+
+  -- 1. my own profile -------------------------------------------------------
+  create or replace function start_my_profile(p_sex text) returns text
+  language plpgsql security definer set search_path = public as $$
+  declare
+    acc accounts;
+    me  text := 'u_' || left(replace(auth.uid()::text, '-', ''), 12);
+  begin
+    select * into acc from accounts where user_id = auth.uid();
+    if not found then raise exception 'No account for this login'; end if;
+    if acc.person_id is not null then return acc.person_id; end if;
+    if acc.role <> 'couple' then raise exception 'Only couple accounts have a
+  health profile'; end if;
+    if p_sex not in ('M', 'F') then raise exception 'Choose male or female';
+  end if;
+
+    insert into people (id, name, short_name, sex) values
+      (me, acc.display_name, split_part(acc.display_name, ' ', 1), p_sex)
+    on conflict (id) do update set sex = excluded.sex;
+    -- defaults the person can change on the Privacy page
+    insert into consents (person_id, kind, granted)
+    select me, k, true from unnest(array['share_partner', 'share_counsellor'])
+  k
+    on conflict (person_id, kind) do nothing;
+    update accounts set person_id = me, title = 'Profile created' where user_id
+  = auth.uid();
+    insert into audit_log (actor, actor_name, action, resource_type,
+  resource_id)
+    values (auth.uid(), acc.display_name, 'Created a health profile', 'people',
+  me);
+    return me;
+  end $$;
+  revoke all on function start_my_profile(text) from public, anon;
+  grant execute on function start_my_profile(text) to authenticated;
+
+  -- 2. partner invite codes -------------------------------------------------
+  create table if not exists partner_invites (
+    code        text primary key,
+    from_person text not null references people (id) on delete cascade,
+    created_at  timestamptz not null default now(),
+    expires_at  timestamptz not null default now() + interval '7 days',
+    accepted_by text references people (id),
+    accepted_at timestamptz
+  );
+  alter table partner_invites enable row level security;
+  drop policy if exists invites_own on partner_invites;
+  create policy invites_own on partner_invites for select to authenticated
+    using (from_person = my_person() or accepted_by = my_person());
+
+  -- my current invite code (reused while it is still valid)
+  create or replace function create_partner_invite() returns text
+  language plpgsql security definer set search_path = public as $$
+  declare me text := my_person(); c text;
+  begin
+    if me is null then raise exception 'Create your profile first'; end if;
+    if my_couple() is not null then raise exception 'You are already linked to
+  a partner'; end if;
+    select code into c from partner_invites
+     where from_person = me and accepted_by is null and expires_at > now()
+     order by created_at desc limit 1;
+    if c is not null then return c; end if;
+    loop
+      -- 6 characters, no look-alikes (0/O, 1/I)
+      c := (select string_agg(substr('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 1 +
+  floor(random() * 32)::int, 1), '')
+            from generate_series(1, 6));
+      exit when not exists (select 1 from partner_invites where code = c);
+    end loop;
+    insert into partner_invites (code, from_person) values (c, me);
+    return c;
+  end $$;
+
+  -- the partner enters the code: this is their consent to link; the couple and
+  its case are created
+  create or replace function accept_partner_invite(p_code text) returns text
+  language plpgsql security definer set search_path = public as $$
+  declare
+    me  text := my_person();
+    inv partner_invites;
+    cid text;
+  begin
+    if me is null then raise exception 'Create your profile first'; end if;
+    if my_couple() is not null then raise exception 'You are already linked to
+  a partner'; end if;
+    select * into inv from partner_invites where code = upper(btrim(p_code))
+  for update;
+    if not found then raise exception 'That code was not found. Check it and
+  try again.'; end if;
+    if inv.from_person = me then raise exception 'That is your own code. Send
+  it to your partner.'; end if;
+    if inv.accepted_by is not null then raise exception 'That code has already
+  been used'; end if;
+    if inv.expires_at < now() then raise exception 'That code has expired. Ask
+  your partner for a new one.'; end if;
+    if exists (select 1 from couples where inv.from_person in (partner_a,
+  partner_b)) then
+      raise exception 'Your partner is already linked to someone else';
+    end if;
+
+    cid := 'k_' || left(md5(inv.from_person || me), 12);
+    insert into couples (id, partner_a, partner_b, stage, screened_on)
+    values (cid, inv.from_person, me, 'engaged', current_date);
+    update partner_invites set accepted_by = me, accepted_at = now() where code
+  = inv.code;
+    update accounts set title = 'Partner · engaged' where person_id in
+  (inv.from_person, me);
+    perform upsert_case(cid);
+    update counsellors k set active_caseload = (select count(*) from
+  case_assignments a
+      where a.counsellor_id = k.id and a.status = 'active') where true;
+    insert into audit_log (actor, actor_name, action, resource_type,
+  resource_id)
+    values (auth.uid(), (select display_name from accounts where user_id =
+  auth.uid()),
+            'Linked with a partner (invite accepted)', 'couples', cid);
+    return cid;
+  end $$;
+  revoke all on function create_partner_invite(), accept_partner_invite(text)
+  from public, anon;
+  grant execute on function create_partner_invite(),
+  accept_partner_invite(text) to authenticated;
+
+  -- 3. a couple member's case is re-scored when their result arrives (called
+  by the API) ----
+  create or replace function rescore_my_case(p_person text) returns void
+  language plpgsql security definer set search_path = public as $$
+  declare cid text;
+  begin
+    select id into cid from couples where p_person in (partner_a, partner_b);
+    if cid is not null then perform upsert_case(cid); end if;
+  end $$;
+  revoke all on function rescore_my_case(text) from public, anon,
+  authenticated;
+
+
+  This may or may not be related to the current task.</ide_selection>
+  ⎿  [Image #24]
+
+> okk?
+
+● Auto-Deploy is already set to On Commit, so that setting is fine. I'll check
+  whether your latest push triggered a deploy and whether 009 has been run.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Migration 009 is applied and anonymous access is correctly refused. Next I'll
+  run the full user journey live through the Render API with two new test
+  accounts.
+  Ran 1 shell command (ctrl+o to expand)
+
+● Yes, that setting is correct, and it's working: Render deployed your last push
+  on its own. Migration 009 is also in. I ran the whole journey live with two
+  new test accounts, Sara and Omar, and every step worked:
+
+  ┌─────────────────────────────────────┬────────────────────────────────────┐
+  │                Step                 │               Result               │
+  ├─────────────────────────────────────┼────────────────────────────────────┤
+  │ Create profile                      │ ✅ both created                    │
+  ├─────────────────────────────────────┼────────────────────────────────────┤
+  │ Fetch results from Malaffi (through │ ✅ both reports verified and saved │
+  │  the Render API)                    │                                    │
+  ├─────────────────────────────────────┼────────────────────────────────────┤
+  │ Sara creates an invite code         │ ✅ TYZR8S                          │
+  ├─────────────────────────────────────┼────────────────────────────────────┤
+  │ Sara enters her own code            │ ✅ refused: "That is your own      │
+  │                                     │ code…"                             │
+  ├─────────────────────────────────────┼────────────────────────────────────┤
+  │ Omar enters it in lowercase         │ ✅ linked, couple created          │
+  ├─────────────────────────────────────┼────────────────────────────────────┤
+  │ Omar sees both results              │ ✅ both carry HBB                  │
+  ├─────────────────────────────────────┼────────────────────────────────────┤
+  │ Couple case                         │ ✅ tier 2 (high), assigned to Dr.  │
+  │                                     │ Mariam Al Hosani                   │
+  └─────────────────────────────────────┴────────────────────────────────────┘
+
+  The result-saving step only exists in the new API code, so its success also
+  shows that Render auto-deployed it.
+
+  So all four Priority 1 items are done and live. Try it yourself:
+  1. Sign up on https://dana-gamma-seven.vercel.app with a new email.
+  2. Do the intake, create your profile, fetch your results.
+  3. Copy your link and open it in another browser or a private window with a
+     second account.
+
+  Every Malaffi report is currently the same synthetic HBB result, so every
+  linked couple comes out tier 2. If you want varied demo outcomes (one gene, no
+  gene, different genes), I can make the simulated report differ per person.
+
+  The test logins I created start with dana.onb.check+; you can delete them in
+  Supabase Auth along with the older dana.*.check+ ones.
+
+> where the link ?
+
+● The invite link is on the Welcome checklist, in card 4 · Link your partner:
+
+  Your code
+    K7M2QX
+  [Copy link]  [WhatsApp]
+
+  - Copy link copies a link like
+    https://dana-gamma-seven.vercel.app/#/join/K7M2QX.
+  - WhatsApp opens WhatsApp with the message and link ready to send.
+
+  The checklist only appears for a new account that has no partner yet. Your own
+  account (MOHAMMED) already has the old sample couple, so it opens straight on
+  Home and you won't see the card there.
+
+  To see it:
+  1. Open a private or incognito window and go to
+     https://dana-gamma-seven.vercel.app
+  2. Choose Create an account and sign up with another email, such as a
+     yourname+test1@gmail.com alias of your Gmail.
+  3. The app opens the Screening intake. Finish it, or click Exit to Dashboard.
+  4. You land on the Welcome checklist. Pick Female or Male in card 2 and click
+     Create my profile.
+  5. Card 4 now shows your code with Copy link and WhatsApp.
+
+  Open the copied link in another browser with a second new account. After that
+  account creates its profile, the partner code is already filled in, so it just
+  clicks Link.
+
+  If you want an "Invite partner" link in the side menu too, I can add one.
+
+> i didnt see any loink like that?
+
+● I'll check what the live site is actually serving.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● The live site has the new code. So something in the routing must be sending
+  you elsewhere. I'll check what Root does for a new user.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● The routing looks right, so I'll sign up as a brand-new user in a real
+  headless browser and screenshot what appears.
+
+  Made 1 scratchpad edit +29, ran 3 shell commands (ctrl+o to expand)
+
+● My script clicked the Google button by mistake. I'll look at the sign-up form
+  and target it properly.
+
+  Read 1 file, ran 2 shell commands (ctrl+o to expand)
+
+● The checklist works for a new user, and card 4 shows "Create your profile
+  first." The code and link only appear after step 2. I'll click through that
+  step to confirm the link shows.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● The edit didn't apply. I'll change the script directly:
+
+  Made 1 scratchpad edit +5 -1, read 1 file, ran 1 shell command (ctrl+o to expand)

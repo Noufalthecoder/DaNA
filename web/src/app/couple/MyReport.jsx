@@ -84,7 +84,7 @@ export default function MyReport() {
           <div className="rp-title"><h1>{t.title}</h1><p>{t.subtitle}</p></div>
         </header>
         <dl className="rp-meta">
-          <div><dt>{t.reportNo}</dt><dd>{danaIdFor(session.id)}-{rep?.id || '—'}</dd></div>
+          <div><dt>{t.reportNo}</dt><dd>{danaIdFor(session.id)}-{(rep?.date || issued.toISOString()).slice(0, 10).replace(/-/g, '')}</dd></div>
           <div><dt>{t.issued}</dt><dd>{fmt(issued, lang)}</dd></div>
           <div><dt>{t.validUntil}</dt><dd>{fmt(valid, lang)}</dd></div>
           <div><dt>{t.language}</dt><dd>{LANGS[lang].name}</dd></div>

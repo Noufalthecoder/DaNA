@@ -20,7 +20,7 @@ from .auth import User, current_user
 from .benchmark import EvaluateRequest, LabEntry, evaluate_couple, labs_from_records
 from .db import as_service, as_user
 from .fhir import parse_bundle
-from .sample_bundle import malaffi_bundle
+from .sample_bundle import malaffi_bundle, synthetic_blood
 
 app = FastAPI(title="DaNA API", version="0.1.0",
               description="Family genetic companion. Synthetic data only; Malaffi and UAE PASS are simulated.")
@@ -99,6 +99,7 @@ def ingest_malaffi(bundle: dict | None = Body(None), user: User = Depends(curren
     if consent and not consent[0]["granted"]:
         raise HTTPException(403, "Consent to process results is withdrawn")
 
+    simulated = bundle is None
     bundle = bundle or malaffi_bundle(report_id=f"MALAFFI-{person.upper()}")
     p = parse_bundle(bundle)
     if not p.valid:
@@ -118,6 +119,15 @@ def ingest_malaffi(bundle: dict | None = Body(None), user: User = Depends(curren
     svc.insert("results", {"person_id": person, "gene": found, "lab": p.report.get("laboratory_name") or "Malaffi",
                            "reported_on": p.report["report_date"], "malaffi_ref": p.report["report_id"]}, upsert_on="person_id")
     svc.rpc("rescore_my_case", {"p_person": person})
+    if simulated:
+        # the simulated Malaffi record also holds the premarital blood tests (a real record does too)
+        try:
+            sex = (svc.select("people", id=f"eq.{person}", select="sex") or [{}])[0].get("sex", "M")
+            svc.insert("lab_results", {"person_id": person, "source": "malaffi", "lab_name": p.report.get("laboratory_name"),
+                                       "report_ref": p.report["report_id"], "collected_on": p.report["report_date"],
+                                       **synthetic_blood(sex, found)})
+        except Exception:  # blood results are a bonus for the demo; never fail the genetic sync over them
+            pass
     svc.insert("audit_log", {"actor": user.id, "actor_name": acc["display_name"], "action": "Synced and validated a Malaffi lab report",
                              "resource_type": "genetic_reports", "resource_id": saved["id"]})
     return {"saved": True, "report_id": p.report["report_id"], "variants": len(p.variants), "warnings": p.warnings}
