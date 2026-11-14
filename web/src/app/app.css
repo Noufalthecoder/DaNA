@@ -1929,3 +1929,29 @@ body.in-app{background:#F6F7F5}
 .rs-soft{text-decoration:none;display:inline-flex;align-items:center;padding:11px 16px;font-size:14px}
 .mc-demo{display:flex;flex-direction:column;gap:6px;margin:14px 0 6px;font-size:13.5px;color:var(--ink2)}
 .mc-demo select{padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:500 14px var(--body);background:#fff;color:var(--ink);max-width:420px}
+
+/* ===== Bonds v2 ===== */
+.bd-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.bd-empty{text-align:center;padding:40px 24px}
+.bd-empty p{color:var(--ink2);max-width:52ch;margin:0 auto 18px}
+.bd-odds{display:grid;gap:12px;margin-bottom:14px}
+.bd-odds-4{grid-template-columns:repeat(4,1fr)}
+.bd-odds-2{grid-template-columns:repeat(2,minmax(0,220px))}
+.bd-odd{display:flex;flex-direction:column;align-items:center;gap:4px;border:1px solid var(--line);border-radius:14px;padding:16px 8px;text-align:center;color:var(--ink)}
+.bd-odd b{font:800 18px var(--head)}
+.bd-odd span{font-size:13px;color:var(--ink2)}
+.bd-cond{background:var(--bg);border-radius:12px;padding:12px 14px;margin:12px 0 0;color:var(--ink2);line-height:1.6}
+.bd-lead{margin:-4px 0 14px;max-width:70ch}
+.bd-options{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+.bd-opt{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:8px;background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:20px;transition:border-color .15s,box-shadow .15s}
+.bd-opt:hover{border-color:#B9D9C6}
+.bd-opt:focus-visible{outline:3px solid var(--green);outline-offset:2px}
+.bd-opt.on{border:2px solid var(--green);box-shadow:0 10px 30px -18px rgba(0,132,61,.6)}
+.bd-when{align-self:flex-start;font:700 11.5px var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--green);background:var(--green-l);border-radius:999px;padding:4px 10px}
+.bd-opt h3{font:700 18px var(--head);margin:4px 0 0}
+.bd-opt p{margin:0;color:var(--ink2);line-height:1.55;font-size:14.5px}
+.bd-opt dl{margin:4px 0 0;font-size:13.5px;display:grid;gap:2px}
+.bd-opt dt{font-weight:700;color:var(--ink)}
+.bd-opt dd{margin:0 0 6px;color:var(--ink2)}
+.bd-pick{margin-top:auto;font:600 14px var(--body);color:var(--green)}
+@media (max-width:900px){.bd-options{grid-template-columns:1fr}.bd-odds-4{grid-template-columns:repeat(2,1fr)}}
