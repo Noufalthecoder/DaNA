@@ -9,6 +9,8 @@
   - never tell anyone whom to marry or what to choose
   Numbers come from the rules engine (genetics.js); this file only explains them.
 */
+import { PANEL } from './data.js';
+
 export const EXPLAIN_VERSION = 'explain-v2';
 export const EXPLAIN_STATUS = 'Draft for genetics-professional review';
 
@@ -202,7 +204,7 @@ export function personalHeadline(status, gene) {
   const c = gene ? CONDITIONS[gene] : null;
   const cond = c?.name || 'this condition';
   return {
-    clear: { tone: 'green', title: 'No changes found in the genes we checked', text: 'You are not a carrier of any condition on the 570-gene premarital panel.' },
+    clear: { tone: 'green', title: 'No changes found in the genes we checked', text: `You are not a carrier of any condition on the ${PANEL.labGenes}-gene premarital panel.` },
     carrier: { tone: 'amber', title: `You are healthy: a carrier of ${cond}`, text: 'Carriers are healthy. It only matters for children if your partner carries a change in the same gene.' },
     xl_female: { tone: 'amber', title: `You are healthy: a carrier of ${cond}`, text: 'This change is on the X chromosome. Women who carry it are usually healthy; it can matter for sons.' },
     xl_male: { tone: 'amber', title: `You may have ${cond}`, text: `Men with this change usually have ${cond} themselves. ${c?.care || ''} Your counsellor will confirm it and explain what it means.` },

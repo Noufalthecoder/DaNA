@@ -3,7 +3,8 @@ from datetime import date
 
 
 def malaffi_bundle(report_id: str, gene: str = "HBB", hgvs_c: str = "c.20A>T", hgvs_p: str | None = "p.Glu7Val",
-                   significance: str = "LA6668-3", zygosity: str = "LA6706-1", issued: str | None = None) -> dict:
+                   significance: str = "LA6668-3", zygosity: str = "LA6706-1", issued: str | None = None,
+                   panel_genes: int = 570) -> dict:
     issued = issued or date.today().isoformat()
     components = [
         {"code": {"coding": [{"system": "http://loinc.org", "code": "48018-6"}]},
@@ -27,7 +28,7 @@ def malaffi_bundle(report_id: str, gene: str = "HBB", hgvs_c: str = "c.20A>T", h
             {"resource": {"resourceType": "DiagnosticReport", "id": report_id, "status": "final", "issued": issued,
                           "code": {"coding": [{"system": "http://loinc.org", "code": "51969-4"}]},
                           "performer": [{"reference": "Organization/lab1"}], "result": [{"reference": "Observation/v1"}],
-                          "conclusion": "570-gene premarital carrier panel"}},
+                          "conclusion": f"{panel_genes}-gene premarital carrier panel"}},
             {"resource": {"resourceType": "Provenance", "id": "prov1", "target": [{"reference": f"DiagnosticReport/{report_id}"}],
                           "signature": [{"sigFormat": "application/jose", "data": "c2ltdWxhdGVkLXNpZ25hdHVyZQ=="}]}},
         ],
@@ -59,9 +60,9 @@ SIG = {"pathogenic": "LA6668-3", "likely_pathogenic": "LA26332-9", "vus": "LA263
 ZYG = {"heterozygous": "LA6706-1", "homozygous": "LA6705-3", "hemizygous": "LA6707-9"}
 
 
-def scenario_bundle(report_id: str, variants: list, issued: str | None = None) -> dict:
+def scenario_bundle(report_id: str, variants: list, issued: str | None = None, panel_genes: int = 570) -> dict:
     """A Malaffi bundle with any number of variants (none = nothing found), one Observation each."""
-    b = malaffi_bundle(report_id, issued=issued)
+    b = malaffi_bundle(report_id, issued=issued, panel_genes=panel_genes)
     lab, _obs, report, prov = b["entry"]
     obs_entries, refs = [], []
     for i, v in enumerate(variants, 1):

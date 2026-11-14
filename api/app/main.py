@@ -21,7 +21,7 @@ from .benchmark import EvaluateRequest, LabEntry, evaluate_couple, labs_from_rec
 from .db import as_service, as_user
 from .fhir import parse_bundle
 from .sample_bundle import malaffi_bundle, synthetic_blood, scenario_bundle
-from . import scenarios
+from . import scenarios, panel as gene_panel
 
 app = FastAPI(title="DaNA API", version="0.1.0",
               description="Family genetic companion. Synthetic data only; Malaffi and UAE PASS are simulated.")
@@ -75,8 +75,8 @@ def cases(user: User = Depends(current_user)):
 
 @app.post("/ingest/validate", tags=["results"])
 def validate(bundle: dict = Body(...), user: User = Depends(current_user)):
-    """Check a FHIR Bundle without saving anything."""
-    p = parse_bundle(bundle)
+    """Check a FHIR Bundle against the active gene panel, without saving anything."""
+    p = parse_bundle(bundle, gene_panel.load(as_user(user.token))[0])
     return {"valid": p.valid, "errors": p.errors, "warnings": p.warnings, "report": p.report, "variants": p.variants}
 
 
@@ -102,11 +102,12 @@ def ingest_malaffi(bundle: dict | None = Body(None), scenario: str | None = None
 
     simulated = bundle is None
     svc = as_service()   # server-only write, after the checks above
+    genes, lab_panel = gene_panel.load(svc)   # the active, configurable panel (025)
     sex = (svc.select("people", id=f"eq.{person}", select="sex") or [{}])[0].get("sex", "M")
     case = scenarios.pick(person, scenario) if simulated else None
     if simulated:  # one of 10 different simulated records: stable per person, or the one the demo chose
-        bundle = scenario_bundle(f"MALAFFI-{person.upper()}", scenarios.variants(case, sex))
-    p = parse_bundle(bundle)
+        bundle = scenario_bundle(f"MALAFFI-{person.upper()}", scenarios.variants(case, sex), panel_genes=lab_panel)
+    p = parse_bundle(bundle, genes)
     if not p.valid:
         raise HTTPException(422, {"message": "Report failed validation", "errors": p.errors})
 
@@ -129,7 +130,7 @@ def ingest_malaffi(bundle: dict | None = Body(None), scenario: str | None = None
         try:
             svc.insert("lab_results", {"person_id": person, "source": "malaffi", "lab_name": p.report.get("laboratory_name"),
                                        "report_ref": p.report["report_id"], "collected_on": p.report["report_date"],
-                                       **scenarios.blood(case, sex)})
+                                       **scenarios.blood(case, sex, lab_panel)})
             blood = True
         except Exception as e:  # blood results are a bonus for the demo; never fail the genetic sync over them
             blood = f"not saved: {str(e)[:160]}"
@@ -274,6 +275,54 @@ def restore_benchmark(sex: Sex, restore: BenchmarkRestore, user: User = Depends(
     _require_role(user, "admin")
     return as_user(user.token).rpc("restore_risk_benchmark", {
         "p_sex": sex, "p_version": restore.version, "p_reason": restore.reason, "p_expected_version": restore.expected_version})
+
+
+# ---------- gene panel: configurable and source-backed (025) ----------
+class GeneChanges(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    condition: str | None = Field(None, min_length=3, max_length=120)
+    inheritance: Literal["AR", "XL"] | None = None
+    hgnc_id: str | None = Field(None, pattern=r"^HGNC:\d+$")
+    ncbi_gene_id: str | None = Field(None, pattern=r"^\d+$")
+    transcript: str | None = Field(None, pattern=r"^N[MR]_\d+\.\d+$")
+    active: bool | None = None
+    source: str | None = Field(None, min_length=5, max_length=300)
+    source_url: str | None = Field(None, pattern=r"^https://")
+    review_status: Literal["needs_review", "verified", "retired"] | None = None
+
+
+class GeneEdit(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_version: int = Field(ge=0, description="0 adds a new gene; otherwise the version you edited")
+    reason: str = Field(min_length=10, max_length=500)
+    changes: GeneChanges
+
+
+@app.get("/panel", tags=["benchmarks"])
+def panel(user: User = Depends(current_user)):
+    """The whole gene panel (active and retired) with sources and review status, plus the lab panel size."""
+    return as_user(user.token).rpc("panel_info")
+
+
+@app.get("/panel/{symbol}/snapshots", tags=["benchmarks"])
+def panel_history(symbol: str, user: User = Depends(current_user)):
+    """Change history of one gene, newest first."""
+    _require_role(user, "admin", "counsellor")
+    return as_user(user.token).select("gene_panel_snapshots", symbol=f"eq.{symbol.upper()}", order="version.desc",
+                                      select="version,action,changes,reason,actor_name,created_at")
+
+
+@app.patch("/panel/{symbol}", tags=["benchmarks"])
+def edit_gene(symbol: str, edit: GeneEdit, user: User = Depends(current_user)):
+    """Add (expected_version 0) or change a gene (admin). Every change is versioned and audited."""
+    _require_role(user, "admin")
+    changes = edit.changes.model_dump(exclude_unset=True)
+    if not changes:
+        raise HTTPException(422, "Nothing to change")
+    row = as_user(user.token).rpc("update_panel_gene", {
+        "p_symbol": symbol, "p_changes": changes, "p_reason": edit.reason, "p_expected_version": edit.expected_version})
+    gene_panel.clear_cache()
+    return row
 
 
 # ---------- blood results and the couple cross-check ----------

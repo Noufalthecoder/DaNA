@@ -6,10 +6,10 @@ import { useEffect, useState } from 'react';
 import { useStore, EMPTY_OBJ } from '../shared/store.js';
 import { supabase } from '../shared/supabase.js';
 import { logAudit } from '../shared/db.js';
-import { PEOPLE, GENES } from '../shared/data.js';
+import { PEOPLE, GENES, PANEL } from '../shared/data.js';
 import { danaIdFor } from '../shared/connectionsService.js';
 import { personalStatus, isRealReport } from '../shared/journey.js';
-import { T, LANGS, COND, headline, REPORT_VERSION } from '../shared/reportText.js';
+import { T, LANGS, COND, headline, withPanel, REPORT_VERSION } from '../shared/reportText.js';
 import { Brand } from '../shared/Logo.jsx';
 
 const SICKLE = { en: 'Sickle cell trait', ar: 'سمة الخلايا المنجلية', ur: 'سکل سیل ٹریٹ' };
@@ -20,12 +20,12 @@ export default function MyReport() {
   const reports = useStore((s) => s.reports) || EMPTY_OBJ;
   const [lang, setLang] = useState(session?.details?.preferred_language || 'en');
   const [lab, setLab] = useState(null);
-  const t = T[lang];
+  const t = withPanel(T[lang], PANEL.labGenes);
   const me = PEOPLE[session.id] || {};
   const rep = isRealReport(reports[session.id]) ? reports[session.id] : null;
   const d = session.details || {};
   const status = personalStatus(me.sex, me.carrier, GENES[me.carrier]?.inheritance);
-  const [hTitle, hText] = headline(lang, status, me.carrier);
+  const [hTitle, hText] = withPanel(headline(lang, status, me.carrier), PANEL.labGenes);
 
   const demoLab = useStore((s) => s.demoLab?.[session.id]);
   useEffect(() => {

@@ -4,6 +4,7 @@ import { Badge, Dialog } from '../shared/ui.jsx';
 import { useStore } from '../shared/store.js';
 import { isLive } from '../shared/db.js';
 import { api } from '../shared/api.js';
+import GenePanel from './GenePanel.jsx';
 import { FIELDS, GROUPS, MARKERS, crossFieldProblem, display, labelFor } from './benchmarkFields.js';
 
 const SEXES = { M: 'Male', F: 'Female' };
@@ -177,7 +178,8 @@ export default function Benchmarks() {
     if (!quiet) setError('');
     try {
       const [current, M, F] = await Promise.all([api('/benchmarks'), api('/benchmarks/M/snapshots'), api('/benchmarks/F/snapshots')]);
-      setData({ M: current.male, F: current.female, history: { M, F } });
+      const panel = await api('/panel').catch(() => null); // null until migration 025 runs
+      setData({ M: current.male, F: current.female, history: { M, F }, panel });
     } catch (err) {
       if (!quiet) setError(err.message); // background refresh: keep showing the last good values
     }
@@ -245,6 +247,7 @@ export default function Benchmarks() {
       </div>
       <HistoryTable sex={view} snapshots={data.history[view]} current={data[view].version} canEdit={canEdit} onRestore={setRestoring} />
       {!canEdit && <p className="bench-muted">Only the programme admin can change benchmarks.</p>}
+      {data.panel && <GenePanel panel={data.panel} canEdit={canEdit} onSaved={() => load()} />}
 
       {editing && <EditDialog sex={editing} row={data[editing]} onSaved={saved} onClose={() => setEditing(null)} />}
       {restoring && <RestoreDialog sex={view} snapshot={restoring} current={data[view].version} onSaved={saved} onClose={() => setRestoring(null)} />}

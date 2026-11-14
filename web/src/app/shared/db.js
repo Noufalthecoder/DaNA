@@ -7,7 +7,7 @@ import { SCENARIOS, pickScenario, scenarioBlood } from './scenarios.js';
 */
 import { supabase } from './supabase.js';
 import { get, set } from './store.js';
-import { SLOTS, PEOPLE, COUPLES, relativesFor, generateDanaId } from './data.js';
+import { SLOTS, PEOPLE, COUPLES, GENES, PANEL, relativesFor, generateDanaId } from './data.js';
 import { fromDb, toDb } from './family.js';
 import { api } from './api.js';
 
@@ -267,7 +267,19 @@ export function decideCard(card, status) {
 }
 
 /* ---------- people and couples stored only in the database (e.g. sample journeys) ---------- */
+export async function hydratePanel() {
+  // the configurable gene panel (025): active genes and the lab panel size. Keeps the built-in list if not migrated.
+  const { data, error } = await supabase.rpc('panel_info');
+  if (error || !data?.genes?.length) return;
+  for (const g of data.genes) {
+    if (g.active && g.review_status !== 'retired') GENES[g.symbol] = { condition: g.condition, inheritance: g.inheritance, source: g.source, review: g.review_status };
+    else delete GENES[g.symbol];
+  }
+  if (data.lab_panel_genes) PANEL.labGenes = data.lab_panel_genes;
+}
+
 export async function hydratePeople() {
+  hydratePanel().catch(() => {});
   const [p, c, r] = await Promise.all([
     supabase.from('people').select('id, name, short_name, sex'),
     supabase.from('couples').select('*'),

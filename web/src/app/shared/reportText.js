@@ -148,3 +148,12 @@ export function headline(lang, status, gene) {
   };
   return H[lang][status];
 }
+
+/* the lab panel size is configurable (025): swap the default 570 for the current value everywhere */
+export function withPanel(x, n) {
+  if (!n || n === 570) return x;
+  if (typeof x === 'string') return x.replace(/570/g, String(n));
+  if (Array.isArray(x)) return x.map((y) => withPanel(y, n));
+  if (x && typeof x === 'object') return Object.fromEntries(Object.entries(x).map(([k, v]) => [k, withPanel(v, n)]));
+  return x;
+}

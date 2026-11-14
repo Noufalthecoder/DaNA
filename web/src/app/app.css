@@ -1955,3 +1955,15 @@ body.in-app{background:#F6F7F5}
 .bd-opt dd{margin:0 0 6px;color:var(--ink2)}
 .bd-pick{margin-top:auto;font:600 14px var(--body);color:var(--green)}
 @media (max-width:900px){.bd-options{grid-template-columns:1fr}.bd-odds-4{grid-template-columns:repeat(2,1fr)}}
+
+/* ===== Gene panel (settings) ===== */
+.gp{margin-top:28px}
+.gp-table td small{display:block;color:var(--ink3);font-size:12px}
+.gp-table a{color:var(--green);font-weight:600;text-decoration:none}
+.gp-table a:hover{text-decoration:underline}
+.gp-form{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.gp-form label{display:flex;flex-direction:column;gap:5px;font:600 13px var(--body);color:var(--ink2)}
+.gp-form input,.gp-form select,.gp-form textarea{padding:9px 11px;border:1px solid var(--line);border-radius:10px;font:500 14px var(--body);color:var(--ink);background:#fff}
+.gp-form .gp-wide{grid-column:1/-1}
+.gp-form .gp-check{grid-column:1/-1;flex-direction:row;align-items:center;gap:8px}
+@media (max-width:640px){.gp-form{grid-template-columns:1fr}}

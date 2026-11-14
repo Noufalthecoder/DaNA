@@ -56,8 +56,8 @@ def variants(key: str, sex: str) -> list:
     return SCENARIOS[key][1](sex)
 
 
-def blood(key: str, sex: str) -> dict:
+def blood(key: str, sex: str, panel_genes: int = 570) -> dict:
     row = {**NORMAL["F" if sex == "F" else "M"], "hb_variant": "none",
            "hiv": "non_reactive", "hbsag": "non_reactive", "anti_hcv": "non_reactive", "syphilis": "non_reactive",
-           "panel_genes": 570, **SCENARIOS[key][2](sex)}
+           "panel_genes": panel_genes, **SCENARIOS[key][2](sex)}
     return row
