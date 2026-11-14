@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '../shared/supabase.js';
 import { Page, Card, Priority, Badge } from '../shared/ui.jsx';
 import { COUPLES, PEOPLE, GENES, REFERRAL_DESTINATIONS } from '../shared/data.js';
 import { assess, TIER_PRIORITY } from '../shared/genetics.js';
@@ -14,6 +15,8 @@ export default function CaseView({ id }) {
   const liveCase = useStore((s) => s.cases[id]);
   const refs = useStore((s) => s.referrals[id]) || [];
   const [draft, setDraft] = useState('');
+  // the couple can see this visit on their Privacy page (027)
+  useEffect(() => { if (couple && supabase) supabase.rpc('log_case_view', { p_couple: id }).then(() => {}, () => {}); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [ref, setRef] = useState({ destination: REFERRAL_DESTINATIONS[0], priority: 'routine', reason: '' });
   if (!couple) return <Page title="Case not found"><a href="#/app">← Back to queue</a></Page>;
 

@@ -1,184 +1,165 @@
-import { Page, Card, Badge, Steps } from '../shared/ui.jsx';
-import { set, useStore } from '../shared/store.js';
+/* Bonds: the couple's combined result and their options, side by side. Owner: Couple app.
+   Everything follows the couple's actual result (genetics.js): the condition, the chances and
+   which options make sense. Plan choices match the database values (plans_choice_check). */
+import { Page, Badge } from '../shared/ui.jsx';
+import { useStore, EMPTY_OBJ } from '../shared/store.js';
 import { choosePlan } from '../shared/db.js';
+import { CONDITIONS, guide } from '../shared/explain.js';
+import { isRealReport } from '../shared/journey.js';
 import { useCouple } from './useCouple.js';
-import { IconPartner, IconArrowRight } from '../shared/Icons.jsx';
 
-const OPTIONS = [
-  {
-    id: 'IVF with embryo testing (PGT-M)',
-    d: 'Embryos are tested before pregnancy via PGT-M so only unaffected ones are implanted.',
-    tags: ['Before pregnancy', 'Counsellor-led', 'UAE Accredited Clinics'],
+const OPTIONS = {
+  'IVF with embryo testing': {
+    title: 'IVF with embryo testing (PGT-M)',
+    when: 'Before pregnancy',
+    text: 'Embryos are made by IVF and tested. Only embryos that will not have the condition are placed in the womb.',
+    good: 'Starts every pregnancy knowing the result.',
+    think: 'Takes time and several clinic visits; ask about coverage.',
   },
-  {
-    id: 'Prenatal diagnostic testing',
-    d: 'Natural conception followed by CVS or amniocentesis early in pregnancy to confirm fetal status.',
-    tags: ['During pregnancy', 'Early confirmation'],
+  'Prenatal testing': {
+    title: 'Testing during pregnancy',
+    when: 'Early pregnancy',
+    text: 'You conceive naturally. Around weeks 11–16 a test (CVS or amniocentesis) shows whether the baby has the condition.',
+    good: 'Natural conception, early answer.',
+    think: 'Decisions come during the pregnancy; a counsellor supports you.',
   },
-  {
-    id: 'Proceed fully informed',
-    d: 'Conceive naturally with dedicated paediatric and haematology support from day one.',
-    tags: ['Your choice, respected', 'Clinical follow-up'],
+  'Proceed fully informed': {
+    title: 'Go ahead, fully informed',
+    when: 'Any time',
+    text: 'You conceive naturally with no extra tests, and the care team is ready from day one.',
+    good: 'No procedures; specialist care is planned in advance.',
+    think: 'You learn the result at or after birth.',
   },
-];
+};
 
-const TIMELINE = [
-  'Premarital Screening Done',
-  'Partner Connected',
-  'Joint Assessment Complete',
-  'Counsellor Consultation',
-  'Family Plan Established',
-];
+/* figures for one pregnancy, per result type */
+const ODDS = {
+  plan: [['clear', 'Does not carry it', '1 in 4'], ['carrier', 'Healthy carrier', '1 in 4'], ['carrier', 'Healthy carrier', '1 in 4'], ['affected', 'Has the condition', '1 in 4']],
+  xlinked: [['clear', 'Son: does not have it', '1 in 2 sons'], ['affected', 'Son: has the condition', '1 in 2 sons'], ['clear', 'Daughter: does not carry it', '1 in 2 daughters'], ['carrier', 'Daughter: healthy carrier', '1 in 2 daughters']],
+  carrier: [['clear', 'Does not carry it', '1 in 2'], ['carrier', 'Healthy carrier', '1 in 2']],
+};
+
+function Kid({ kind }) {
+  const fill = kind === 'affected' ? 'var(--amber)' : kind === 'carrier' ? 'url(#bd-half)' : 'none';
+  return (
+    <svg viewBox="0 0 40 56" width="40" height="56" aria-hidden="true" className={`kid kid-${kind}`}>
+      <defs><linearGradient id="bd-half" x1="0" x2="1"><stop offset="50%" stopColor="var(--green)" /><stop offset="50%" stopColor="transparent" /></linearGradient></defs>
+      <circle cx="20" cy="12" r="9" fill={fill} stroke="currentColor" strokeWidth="2.5" />
+      <path d="M6 54 Q6 26 20 26 Q34 26 34 54 Z" fill={fill} stroke="currentColor" strokeWidth="2.5" />
+    </svg>
+  );
+}
 
 export default function Bonds() {
-  const { result, partner, me, couple, isConnected } = useCouple();
+  const { result, partner, me, couple, isConnected, session } = useCouple();
+  const reports = useStore((s) => s.reports) || EMPTY_OBJ;
+  const live = !!session?.backend;
   const coupleId = couple?.id;
-  const planFromStore = useStore((s) => (coupleId && s.plans ? s.plans[coupleId] : s.plan));
-  const plan = planFromStore || null;
+  const plan = useStore((s) => (coupleId ? s.plans?.[coupleId] : null)) || null;
   const approved = useStore((s) => (coupleId && Array.isArray(s.approved) ? s.approved.includes(coupleId) : false));
-  const booked = useStore((s) => s.booked);
+  const counsellor = useStore((s) => (coupleId ? s.cases?.[coupleId]?.counsellor : null));
+  const bothResults = !live || (isRealReport(reports[me.id]) && isRealReport(reports[partner.id]));
 
-  const choose = (id) => {
-    if (id !== plan) {
-      if (coupleId && typeof choosePlan === 'function') {
-        try { choosePlan(coupleId, id); } catch {}
-      }
-      set({ plan: id }, `Couple chose reproductive plan: ${id}`);
-    }
-  };
+  if (!isConnected || !couple) {
+    return (
+      <Page title="Bonds" sub="Your combined result and your options, as a couple">
+        <section className="rs-card bd-empty">
+          <h3>Link your partner first</h3>
+          <p>Your combined result needs both of you. Ask your partner for their DaNA ID and connect.</p>
+          <a className="btn" href="#/app/connections">Go to Connections</a>
+        </section>
+      </Page>
+    );
+  }
+  if (!bothResults) {
+    return (
+      <Page title="Bonds" sub={`${me.short} & ${partner.short}`}>
+        <section className="rs-card bd-empty">
+          <h3>Waiting for both results</h3>
+          <p>{isRealReport(reports[me.id]) ? `${partner.short} has not fetched their result yet.` : 'Fetch your result from Malaffi on Home first.'} Your combined result appears here as soon as both are in.</p>
+          <a className="btn" href="#/app">Go to Home</a>
+        </section>
+      </Page>
+    );
+  }
 
-  // Calculate current step in timeline
-  const currentStep = !isConnected ? 1 : !plan ? 2 : !booked ? 3 : 4;
+  const g = guide({ stage: 'couple', type: result.type, gene: result.gene, partnerName: partner.short, partnerIsCarrier: !!partner.carrier && !me.carrier });
+  const cond = result.gene ? CONDITIONS[result.gene] : null;
+  const odds = ODDS[result.type];
+  const needsPlan = result.type === 'plan' || result.type === 'xlinked';
+
+  const choose = (id) => { if (id !== plan) choosePlan(coupleId, id); };
 
   return (
-    <Page
-      title="Bonds · الروابط"
-      sub={
-        isConnected
-          ? `Premarital partner assessment for ${me?.short || 'You'} & ${partner?.short || 'Partner'}. Compatible, with a plan.`
-          : 'Connect with your premarital partner to evaluate combined reproductive genetic risks.'
-      }
-    >
-      {/* Shared Couple Journey Timeline */}
-      <Card title="Shared Journey Timeline">
-        <Steps items={TIMELINE} current={currentStep} />
-      </Card>
+    <Page title="Bonds" sub={`Your combined result · ${me.short} & ${partner.short}`}>
+      <section className={`rs-hero rs-${g.tone}`}>
+        <span className="rs-eyebrow">Your combined result</span>
+        <h2>{g.title}</h2>
+        <p>{g.line}</p>
+        <div className="bd-tags">
+          <Badge tone={result.type === 'clear' || result.type === 'carrier' ? 'green' : result.type === 'uncertain' ? 'grey' : 'amber'}>{result.label}</Badge>
+          {cond && <Badge>{cond.name}</Badge>}
+        </div>
+      </section>
 
-      {isConnected && result ? (
+      {odds && (
+        <section className="rs-card">
+          <h3>{result.type === 'xlinked' ? 'For each pregnancy: sons and daughters differ' : 'For each pregnancy'}</h3>
+          <div className={`bd-odds bd-odds-${odds.length}`}>
+            {odds.map(([k, label, chance], i) => (
+              <div key={i} className="bd-odd"><Kid kind={k} /><b>{chance}</b><span>{label}</span></div>
+            ))}
+          </div>
+          <p className="muted">
+            {result.type === 'plan' && '3 out of 4 children are healthy. Each pregnancy has the same chances, whatever happened before.'}
+            {result.type === 'xlinked' && 'Daughters are usually healthy. Each pregnancy has the same chances.'}
+            {result.type === 'carrier' && `A child cannot get ${cond?.name || 'the condition'} from you, because only one of you carries it.`}
+          </p>
+          {cond && <p className="bd-cond"><b>About {cond.name}:</b> {cond.what} {cond.care}</p>}
+        </section>
+      )}
+
+      {needsPlan ? (
         <>
-          {/* Condition-Specific Genetic Assessment */}
-          <Card
-            title="Condition-Specific Genetic Assessment"
-            aside={<Badge tone={result.priority === 'high' || result.priority === 'urgent' ? 'amber' : 'green'}>{result.label}</Badge>}
-          >
-            <p className="lead-in">
-              {result.type === 'plan' ? (
-                <>
-                  Both you and {partner?.short || 'Partner'} carry one copy of the <b>{result.gene}</b> gene variant linked to <b>{result.condition}</b> (Autosomal Recessive).
-                </>
-              ) : result.type === 'xlinked' ? (
-                <>
-                  X-linked variant detected for <b>{result.gene}</b> ({result.condition}). Risk applies specifically to male offspring.
-                </>
-              ) : result.type === 'carrier' ? (
-                <>
-                  One partner carries a variant in <b>{result.gene}</b> ({result.condition}). The reproductive risk is equivalent to general population baseline.
-                </>
-              ) : (
-                <>
-                  No shared variants were detected between you and {partner?.short || 'Partner'} across the screened Abu Dhabi panel.
-                </>
-              )}
-            </p>
-
-            <div className="odds">
-              {[
-                ['Unaffected (25%)', 'clear'],
-                ['Carrier, healthy (25%)', 'carrier'],
-                ['Carrier, healthy (25%)', 'carrier'],
-                ['Affected (25%)', 'affected'],
-              ].map(([t, c], i) => (
-                <div key={i} className={`odd ${c}`}>
-                  <span />
-                  {t}
-                </div>
-              ))}
-            </div>
-
-            <div className="assessment-explanation-box">
-              <h4>Mendelian Inheritance Breakdown:</h4>
-              <ul className="facts">
-                <li><b>75% chance in each pregnancy</b> of having a healthy child (unaffected or healthy carrier).</li>
-                <li><b>25% chance in each pregnancy</b> of the child inheriting both copies and having {result.condition || 'the condition'}.</li>
-                <li><b>Independent probabilities:</b> Each pregnancy has the exact same odds, regardless of previous outcomes.</li>
-                <li><b>DaNA never says &ldquo;do not marry&rdquo;:</b> You are <em>compatible, with a plan</em>.</li>
-              </ul>
-            </div>
-          </Card>
-
-          {/* Reproductive Options */}
           <h2 className="sec-h">Your options, side by side</h2>
-          <div className="options">
-            {OPTIONS.map((o) => (
-              <button
-                key={o.id}
-                className={`option ${plan === o.id ? 'on' : ''}`}
-                onClick={() => choose(o.id)}
-              >
-                <h3>{o.id}</h3>
-                <p>{o.d}</p>
-                <div>
-                  {o.tags.map((t) => (
-                    <Badge key={t}>{t}</Badge>
-                  ))}
-                </div>
-                <span className="pick">
-                  {plan === o.id
-                    ? (approved ? '✓ Our plan · approved by your counsellor' : '✓ Our plan · waiting for your counsellor')
-                    : 'Choose this option'}
-                </span>
+          <p className="muted bd-lead">All three are safe, accepted choices. There is no right answer, and no deadline. Choose together, then talk it through with your counsellor.</p>
+          <div className="bd-options">
+            {Object.entries(OPTIONS).map(([id, o]) => (
+              <button key={id} type="button" className={`bd-opt ${plan === id ? 'on' : ''}`} onClick={() => choose(id)} aria-pressed={plan === id}>
+                <span className="bd-when">{o.when}</span>
+                <h3>{o.title}</h3>
+                <p>{o.text}</p>
+                <dl><dt>Good to know</dt><dd>{o.good}</dd><dt>Think about</dt><dd>{o.think}</dd></dl>
+                <span className="bd-pick">{plan === id ? (approved ? '✓ Your plan · counsellor approved' : '✓ Your plan · counsellor will review') : 'Choose this'}</span>
               </button>
             ))}
           </div>
-
-          {/* Counsellor Guidance */}
-          <Card title="Counselling & Next Steps">
-            <div className="booked">
-              <div>
-                <p>
-                  <b>Discuss this assessment with Dr. Mariam Al Hosani:</b> Ask questions about PGT-M, prenatal testing, or UAE healthcare coverage for your selected plan.
-                </p>
-                <small className="muted">
-                  {booked ? `Your session is booked for ${booked}.` : 'Clinical appointments are free for UAE couples.'}
-                </small>
-              </div>
-              <a className="btn" href="#/app/counsellor">
-                {booked ? 'Manage Appointment →' : 'Book Counsellor Session →'}
-              </a>
-            </div>
-          </Card>
         </>
       ) : (
-        <Card title="Connect Partner to Begin Joint Assessment">
-          <div className="conn-empty-state">
-            <div className="conn-privacy-shield">
-              <IconPartner size={24} />
-            </div>
-            <h3>No Partner Connected Yet</h3>
-            <p className="muted">
-              Joint genetic compatibility assessment requires connecting with your partner. Search their username or unique DaNA ID in Connections to start.
-            </p>
-            <a className="btn" href="#/app/connections">
-              <span>Go to Connections Hub</span>
-              <IconArrowRight size={14} />
-            </a>
+        <section className="rs-next">
+          <div>
+            <span className="rs-eyebrow">What to do</span>
+            <h3>{g.next.title}</h3>
+            <p>{result.type === 'uncertain' ? g.next.text : 'No extra tests or plans are needed for your future children. You can still talk to a counsellor any time.'}</p>
           </div>
-        </Card>
+          <div className="rs-next-act">
+            <a className="btn" href={result.type === 'uncertain' ? '#/app/counsellor' : '#/app/my-report'}>{result.type === 'uncertain' ? 'Talk to a counsellor' : 'Download my report'}</a>
+          </div>
+        </section>
       )}
 
-      <p className="disclaimer">
-        DaNA provides deterministic clinical genetics education; it does not replace individualized clinical counselling. All plans are reviewed with licensed genetic counsellors.
-      </p>
+      {needsPlan && (
+        <section className="rs-next">
+          <div>
+            <span className="rs-eyebrow">Next</span>
+            <h3>Talk it through with {counsellor || 'a counsellor'}</h3>
+            <p>Free and private. Ask anything: how each option works, costs and coverage, what feels right for you.</p>
+          </div>
+          <div className="rs-next-act"><a className="btn" href="#/app/counsellor">Book a session</a></div>
+        </section>
+      )}
+
+      <p className="rs-foot">Every choice is yours. DaNA explains; it never tells anyone whom to marry or what to decide.</p>
     </Page>
   );
 }

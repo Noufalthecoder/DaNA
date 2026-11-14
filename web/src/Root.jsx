@@ -139,13 +139,8 @@ export default function Root() {
       );
     }
 
-    // Unscreened couple users must complete screening before viewing the dashboard
-    if (isCouple && !isScreened) {
-      if (path !== '/app/screening' && path !== '/app/report' && path !== '/app/my-report' && path !== '/app/result') {
-        go('/app/screening');
-        return null;
-      }
-    }
+    // No forced redirect to the intake: Home shows the journey and its one next step
+    // (profile -> consent & results -> details -> result). Agreed product decision.
 
     // Full standalone layout for individual medical report
     if (isCouple && path === '/app/my-report') {

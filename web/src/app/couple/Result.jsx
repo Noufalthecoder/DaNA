@@ -4,10 +4,11 @@ import { useEffect, useRef } from 'react';
 import { Page, Card, Badge } from '../shared/ui.jsx';
 import { useStore, EMPTY_OBJ } from '../shared/store.js';
 import { logAudit } from '../shared/db.js';
-import { explain, explainIndividual, personalHeadline, EXPLAIN_VERSION, EXPLAIN_STATUS } from '../shared/explain.js';
+import { explain, explainIndividual, guide, CONDITIONS, EXPLAIN_VERSION, EXPLAIN_STATUS } from '../shared/explain.js';
 import { GENES } from '../shared/data.js';
 import { set } from '../shared/store.js';
 import { useCouple } from './useCouple.js';
+import Quiz from '../shared/Quiz.jsx';
 import { isLinked, isRealReport, personalStatus } from '../shared/journey.js';
 
 /* one child figure: outline = does not carry, half = healthy carrier, full = has the condition */
@@ -45,37 +46,24 @@ function Chances({ o }) {
   );
 }
 
-const Section = ({ n, title, children }) => (
-  <Card title={<span className="xp-h"><span className="xp-n">{n}</span>{title}</span>}>{children}</Card>
-);
 
 export default function Result() {
-  const { me, partner, result, isConnected } = useCouple();
+  const { me, partner, result, isConnected, couple } = useCouple();
   const live = useStore((s) => !!s.session?.backend);
   const reports = useStore((s) => s.reports) || EMPTY_OBJ;
   // individual first: before linking (Connections) only MY result is explained, never someone else's
   const session = useStore((s) => s.session);
+  const fresh = !!session?.fresh;
   const linked = live ? (isConnected && isLinked(session)) : true;
-  const mine = live ? isRealReport(reports[me.id]) : true;
+  const mine = live || fresh ? isRealReport(reports[me.id]) : true;
   const theirs = live ? isRealReport(reports[partner.id]) : true;
   const stage = !mine ? 'no-result' : !linked ? 'individual' : !theirs ? 'partner-waiting' : 'couple';
   const waiting = stage !== 'couple';
   const status = personalStatus(me.sex, me.carrier, GENES[me.carrier]?.inheritance);
-  const head = personalHeadline(status, me.carrier);
   useEffect(() => {
     if (stage === 'no-result') return;
     set((s) => (s.resultSeen?.[me.id] ? {} : { resultSeen: { ...(s.resultSeen || {}), [me.id]: true } }));
   }, [stage, me.id]);
-  const Headline = () => (
-    <div className={`xp-head xp-head-${head.tone}`}>
-      <div>
-        <span className="eyebrow">Your result</span>
-        <h2>{head.title}</h2>
-        <p>{head.text}</p>
-      </div>
-      <a className="btn" href="#/app/my-report">Download my report</a>
-    </div>
-  );
   const x = explain(result, { meCarrier: !!me.carrier, partnerCarrier: !!partner.carrier, partnerName: partner.short });
 
   // audit: the person viewed their explanation (once per visit) - also feeds comprehension metrics later
@@ -83,7 +71,7 @@ export default function Result() {
   useEffect(() => {
     if (logged.current || waiting) return;
     logged.current = true;
-    logAudit(`Viewed result explanation (${EXPLAIN_VERSION}, ${result.type})`).catch(() => {});
+    logAudit(`Viewed the couple result (${EXPLAIN_VERSION}, ${result.type})`, { resourceType: 'couples', resourceId: couple?.id }).catch(() => {});
   }, [waiting, result.type]);
 
   const loggedMine = useRef(false);
@@ -105,97 +93,83 @@ export default function Result() {
     );
   }
 
-  if (stage === 'individual' || stage === 'partner-waiting') {
-    const xi = explainIndividual({ gene: me.carrier });
-    let k = 0;
-    return (
-      <Page title="Your result, explained" sub={`For ${me.short} · your own screening result`}>
-        <Headline />
-        <div className="xp-top"><span className="xp-tag">Education · not medical advice</span></div>
-        <Section n={++k} title="About you">
-          <h3 className="xp-t">{xi.you.title}</h3>
-          {xi.you.body.map((t) => <p key={t}>{t}</p>)}
-          {xi.condition && (
-            <div className="xp-cond"><b>{xi.condition.name}</b><p>{xi.condition.what}</p><p>{xi.condition.care}</p></div>
-          )}
-        </Section>
-        <Section n={++k} title={xi.partner.title}>
-          {xi.partner.body.map((t) => <p key={t}>{t}</p>)}
-          {stage === 'individual'
-            ? <div className="btn-row"><a className="btn" href="#/app/connections">Link your partner</a></div>
-            : <p><Badge tone="grey">Linked with {partner.short}</Badge> <span className="muted">Waiting for {partner.short}'s result. Your couple explanation appears here when it arrives.</span></p>}
-        </Section>
-        <Section n={++k} title={xi.notDiagnosis.title}>
-          {xi.notDiagnosis.body.map((t) => <p key={t}>{t}</p>)}
-        </Section>
-        <Section n={++k} title="What this test can and cannot tell you">
-          <ul className="xp-list">{xi.limits.map((t) => <li key={t}>{t}</li>)}</ul>
-        </Section>
-        <p className="fine">Wording {EXPLAIN_VERSION} · {EXPLAIN_STATUS}</p>
-      </Page>
-    );
-  }
+  const g = guide({
+    stage, status, type: result.type, gene: stage === 'couple' ? (result.gene || me.carrier) : me.carrier,
+    partnerName: partner.short, partnerIsCarrier: !!partner.carrier && !me.carrier,
+  }) || guide({ stage: 'individual', status, gene: me.carrier, partnerName: partner.short });
+  const cond = x.condition || (me.carrier && CONDITIONS[me.carrier]);
+  const limits = stage === 'couple' ? x.limits : explainIndividual({ gene: me.carrier }).limits;
+  const next = g.next;
 
-  let n = 0;
   return (
-    <Page title="Your result, explained" sub={`For ${me.short} and ${partner.short} · ${result.condition || 'premarital screening'}`}>
-      <Headline />
-      <div className="xp-top">
-        <span className="xp-tag">Couple result:</span>
-        <Badge tone={result.type === 'clear' ? 'green' : result.type === 'uncertain' ? 'grey' : 'amber'}>{result.label}</Badge>
-        <span className="xp-tag">Education · not medical advice</span>
-      </div>
+    <Page title="Your result" sub={stage === 'couple' ? `For ${me.short} and ${partner.short}` : `For ${me.short}`}>
+      <section className={`rs-hero rs-${g.tone}`}>
+        <span className="rs-eyebrow">{g.eyebrow}</span>
+        <h2>{g.title}</h2>
+        <p>{g.line}</p>
+        <ul className="rs-facts">
+          {g.facts.map((f) => <li key={f}><span aria-hidden="true">✓</span>{f}</li>)}
+        </ul>
+      </section>
 
-      <Section n={++n} title="About you">
-        <h3 className="xp-t">{x.you.title}</h3>
-        {x.you.body.map((t) => <p key={t}>{t}</p>)}
-      </Section>
+      {stage === 'couple' && status === 'xl_male' && (() => {
+        const own = guide({ stage: 'individual', status, gene: me.carrier });
+        return (
+          <section className="rs-card rs-own">
+            <span className="rs-eyebrow">About your own result</span>
+            <h3>{own.title}</h3>
+            <p>{own.line}</p>
+            <div className="btn-row"><a className="btn" href="#/app/counsellor">{own.next.label}</a></div>
+          </section>
+        );
+      })()}
 
-      {x.couple && (
-        <Section n={++n} title="About you as a couple">
-          <h3 className="xp-t">{x.couple.title}</h3>
-          {x.couple.body.map((t) => <p key={t}>{t}</p>)}
-          {x.condition && (
-            <div className="xp-cond">
-              <b>{x.condition.name}</b>
-              <p>{x.condition.what}</p>
-              <p>{x.condition.care}</p>
-            </div>
-          )}
-        </Section>
-      )}
-
-      {x.outcomes && (
-        <Section n={++n} title="What it could mean for a child">
+      {stage === 'couple' && x.outcomes && (
+        <section className="rs-card">
+          <h3>What it means for a child</h3>
           <Chances o={x.outcomes} />
           <div className="xp-legend" aria-label="Key">
             <span><Child kind="clear" />Does not carry it</span>
             <span><Child kind="carrier" />Healthy carrier</span>
             <span><Child kind="affected" />Has the condition</span>
           </div>
-        </Section>
+        </section>
       )}
 
-      <Section n={++n} title={x.notDiagnosis.title}>
-        {x.notDiagnosis.body.map((t) => <p key={t}>{t}</p>)}
-      </Section>
+      <section className="rs-next">
+        <div>
+          <span className="rs-eyebrow">What to do</span>
+          <h3>{next.title}</h3>
+          <p>{next.text}</p>
+        </div>
+        <div className="rs-next-act">
+          {next.href && <a className="btn" href={next.href}>{next.label}</a>}
+          {next.href !== '#/app/my-report' && <a className="btn-soft rs-soft" href="#/app/my-report">Download my report</a>}
+        </div>
+      </section>
 
-      <Section n={++n} title="What this test can and cannot tell you">
-        <ul className="xp-list">{x.limits.map((t) => <li key={t}>{t}</li>)}</ul>
-      </Section>
+      <section className="rs-card">
+        <h3>Questions people often ask</h3>
+        <div className="rs-faq">
+          {g.worries.map(([q, a], i) => (
+            <details key={q} open={i === 0}>
+              <summary>{q}</summary>
+              <p>{a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
 
-      {x.options.length > 0 && (
-        <Section n={++n} title="What you can do next">
-          <ul className="xp-list">{x.options.map((t) => <li key={t}>{t}</li>)}</ul>
-          <p className="xp-choice">Every choice is yours. DaNA explains; it never tells anyone whom to marry or what to decide.</p>
-          <div className="btn-row">
-            <a className="btn" href="#/app/counsellor">Talk to a counsellor</a>
-            <a className="btn secondary" href="#/app/bonds">See the options side by side</a>
-          </div>
-        </Section>
-      )}
+      <Quiz stage={stage} status={status} type={stage === 'couple' ? result.type : null} />
 
-      <p className="fine">Wording {EXPLAIN_VERSION} · {EXPLAIN_STATUS} · numbers from rules engine {result.version}</p>
+      <details className="rs-more">
+        <summary>More details about this test</summary>
+        {cond && <div className="rs-cond"><b>About {cond.name}</b><p>{cond.what}</p><p>{cond.care}</p></div>}
+        <ul>{limits.map((t) => <li key={t}>{t}</li>)}</ul>
+      </details>
+
+      <p className="rs-foot">Every choice is yours. DaNA explains; it never tells anyone whom to marry or what to decide.</p>
+      <p className="fine">Education, not medical advice · Wording {EXPLAIN_VERSION} · {EXPLAIN_STATUS}{stage === 'couple' ? ` · rules ${result.version}` : ''}</p>
     </Page>
   );
 }

@@ -146,18 +146,16 @@ export default function Login() {
           couple: acc.couple || (acc.id === 'khalid' || acc.id === 'fatima' ? 'c1' : null),
           authMethod: 'uae_pass',
           via: 'uaepass',
+          ...(acc.role === 'couple' ? { fresh: true, needsProfile: true, sexConfirmed: false, details: null, intakeDone: false } : {}),
         },
+        // a fresh journey every time: nothing fetched, seen or chosen yet
+        ...(acc.role === 'couple' ? { reports: {}, resultSeen: {}, demoLab: {}, plans: {}, alertsSent: [] } : {}),
         screeningIntakes: feedIntake,
-        alertsSent: isAlreadyCompleted ? (s.alertsSent || []) : [],
-        plan: isAlreadyCompleted ? s.plan : null,
-        booked: isAlreadyCompleted ? s.booked : null,
+        plan: null,
+        booked: null,
       }, `Signed in via UAE PASS as ${ROLE[acc.role]}`);
 
-      if (acc.role === 'couple' && !isAlreadyCompleted) {
-        go('/app/screening');
-      } else {
-        go('/app');
-      }
+      go('/app'); // Home shows the journey and the one next step
     }, 900);
   };
 

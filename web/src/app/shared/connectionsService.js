@@ -222,14 +222,8 @@ export function searchUsers(requesterId, query = '') {
       const email = (p.email || '').toLowerCase();
 
       // Match by username, person_id, unique DaNA ID, display name, or email
-      return (
-        username === q ||
-        id.toLowerCase() === q ||
-        danaId === q ||
-        name === q ||
-        short === q ||
-        email === q
-      );
+      // DaNA ID only: names and emails never find anyone (stops strangers sending requests)
+      return danaId === q;
     })
     .map(([id, p]) => {
       const isConnected = isUserConnected(requesterId, id);
@@ -281,8 +275,11 @@ export async function searchUsersAsync(requesterId, query = '') {
     return [];
   }
 
-  const cleanQ = raw.replace(/^@/, '').trim();
-  const upperQ = cleanQ.toUpperCase();
+  let cleanQ = raw.replace(/\s+/g, '').toUpperCase();
+  if (/^[0-9A-F]{6}$/.test(cleanQ)) cleanQ = `DANA-${cleanQ}`;
+  const isLive = !!(supabase && get().session?.backend);
+  if (!(isLive ? /^DANA-[0-9A-F]{6}$/ : /^DANA-[0-9A-Z]{4,6}$/).test(cleanQ)) return []; // DaNA ID only
+  const upperQ = cleanQ;
   const lowerQ = cleanQ.toLowerCase();
 
   // Resolve target username whether user entered a username (e.g. fatima) or unique DaNA ID (e.g. DANA-8822)
@@ -306,6 +303,16 @@ export async function searchUsersAsync(requesterId, query = '') {
   if (supabase && state.session?.backend) {
     const { data, error } = await supabase.rpc('find_partner', { q: cleanQ });
     if (error) throw new Error(error.message);
+    const miss = (data || []).find((r) => r.status && r.status !== 'ok');
+    if (miss) {
+      throw new Error({
+        not_found: `No DaNA account has the ID ${cleanQ}. Check it with your partner.`,
+        self: 'That is your own DaNA ID. Send it to your partner, and ask for theirs.',
+        same_sex: 'That DaNA ID belongs to someone of the same sex. Premarital screening links a woman and a man.',
+        no_sex: 'One of you has not finished step 1 (choosing female or male). Finish it on Home first.',
+        linked: 'That person is already linked to a partner.',
+      }[miss.status] || 'No match for that DaNA ID.');
+    }
     return (data || []).filter((r) => !blockedIds.has(r.person_id)).map((r) => {
       PEOPLE[r.person_id] ||= { name: r.display_name, short: r.display_name.split(' ')[0], sex: r.sex };
       return {
@@ -458,6 +465,28 @@ export async function syncConnectionsFromSupabase(userId, userAuthId = null) {
       .select('id, partner_a, partner_b, stage, pregnant_weeks')
       .or(clauses.join(','));
 
+    if (!error && Array.isArray(data) && get().session?.backend) {
+      const real = data.filter((row) => ![row.partner_a, row.partner_b].some((x) => String(x).startsWith('p_')));
+      const connections = real.map((row) => {
+        const other = row.partner_a === userId || row.partner_a === userAuthId ? row.partner_b : row.partner_a;
+        const prev = (get().connections || []).find((c) => c.id === row.id);
+        return { id: row.id, userA: userId, userB: other, status: 'ACTIVE', connectedAt: prev?.connectedAt || new Date().toISOString() };
+      });
+      const { data: blocks } = await supabase.rpc('my_blocks');
+      const blockedUsers = (blocks || []).map((b) => {
+        PEOPLE[b.person_id] ||= { name: b.display_name, short: (b.display_name || '').split(' ')[0], danaId: b.dana_id };
+        return { id: `blk_${b.person_id}`, user: userId, blocked: b.person_id, createdAt: b.blocked_at };
+      });
+      const before = (get().connections || []).map((c) => c.id).sort().join();
+      set({ connections, blockedUsers });
+      if (before !== connections.map((c) => c.id).sort().join()) {
+        // linked or unlinked from the other side: refresh the journey and couple data too
+        const [{ refreshSession }, { loadAll }] = await Promise.all([import('./supabase.js'), import('./db.js')]);
+        await refreshSession().catch(() => {});
+        loadAll();
+      }
+      return;
+    }
     if (!error && Array.isArray(data) && data.length > 0) {
       const state = get();
       const all = state.connections || [];
@@ -685,6 +714,12 @@ export function generateGmailInviteUrl({ senderName, senderDanaId, recipientEmai
 
 export function sendConnectionRequest(senderId, receiverId, note = '', meta = {}) {
   initConnectionsStore();
+  // Live: the server checks everything and applies limits (021 send_connection_request)
+  const live = get().session;
+  if (supabase && live?.backend) {
+    return supabase.rpc('send_connection_request', { p_to: receiverId, p_note: (note || '').trim() || null })
+      .then(({ data, error }) => { if (error) throw new Error(error.message); return data; });
+  }
   if (senderId === receiverId) {
     throw new Error('You cannot send a connection request to yourself.');
   }
@@ -1024,6 +1059,18 @@ export function cancelConnectionRequest(requestId, actingUserId) {
 
 export function removeConnection(connectionId, actingUserId) {
   initConnectionsStore();
+  const liveS = get().session;
+  if (supabase && liveS?.backend) {
+    return supabase.rpc('unlink_partner').then(async ({ error }) => {
+      if (error) throw new Error(error.message);
+      await syncConnectionsFromSupabase(liveS.id, liveS.userId);
+      // the journey, couple result and Home follow the new state at once
+      const [{ refreshSession }, { loadAll }] = await Promise.all([import('./supabase.js'), import('./db.js')]);
+      await refreshSession().catch(() => {});
+      loadAll();
+      return true;
+    });
+  }
   const state = get();
   const connections = state.connections || [];
   const conn = connections.find((c) => c.id === connectionId);
@@ -1071,6 +1118,18 @@ export function blockUser(actingUserId, targetUserId) {
   initConnectionsStore();
   if (actingUserId === targetUserId) {
     throw new Error('You cannot block yourself.');
+  }
+  const liveS = get().session;
+  if (supabase && liveS?.backend) {
+    return supabase.rpc('block_person', { p: targetUserId }).then(async ({ error }) => {
+      if (error) throw new Error(error.message);
+      await syncConnectionsFromSupabase(liveS.id, liveS.userId);
+      // the journey, couple result and Home follow the new state at once
+      const [{ refreshSession }, { loadAll }] = await Promise.all([import('./supabase.js'), import('./db.js')]);
+      await refreshSession().catch(() => {});
+      loadAll();
+      return true;
+    });
   }
 
   const state = get();
@@ -1124,6 +1183,18 @@ export function blockUser(actingUserId, targetUserId) {
 
 export function unblockUser(actingUserId, targetUserId) {
   initConnectionsStore();
+  const liveS = get().session;
+  if (supabase && liveS?.backend) {
+    return supabase.rpc('unblock_person', { p: targetUserId }).then(async ({ error }) => {
+      if (error) throw new Error(error.message);
+      await syncConnectionsFromSupabase(liveS.id, liveS.userId);
+      // the journey, couple result and Home follow the new state at once
+      const [{ refreshSession }, { loadAll }] = await Promise.all([import('./supabase.js'), import('./db.js')]);
+      await refreshSession().catch(() => {});
+      loadAll();
+      return true;
+    });
+  }
   const state = get();
   const blocked = (state.blockedUsers || []).filter(
     (b) => !(b.user === actingUserId && b.blocked === targetUserId)

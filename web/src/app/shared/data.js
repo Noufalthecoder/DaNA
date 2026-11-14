@@ -11,6 +11,9 @@ export const GENES = {
   G6PD: { condition: 'G6PD deficiency', inheritance: 'XL' },
 };
 
+/* lab panel size; replaced from the database (025 panel_info) after sign-in */
+export const PANEL = { labGenes: 570 };
+
 /* Real accounts are never listed here: the database provides them (privacy rules apply). */
 export const SUPABASE_ACCOUNTS = [];
 

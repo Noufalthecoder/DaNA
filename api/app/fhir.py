@@ -61,7 +61,9 @@ def _component(obs: dict, loinc: str) -> dict | None:
     return None
 
 
-def parse_bundle(bundle: dict) -> Parsed:
+def parse_bundle(bundle: dict, panel: dict | None = None) -> Parsed:
+    """panel: {symbol: (condition, inheritance, ncbi)} from the database; defaults to the built-in panel."""
+    genes = panel if panel is not None else GENES
     out = Parsed()
     if bundle.get("resourceType") != "Bundle":
         out.errors.append("Expected a FHIR Bundle")
@@ -119,7 +121,7 @@ def parse_bundle(bundle: dict) -> Parsed:
         sig = SIGNIFICANCE_CODES.get(_code((_component(obs, SIGNIFICANCE) or {}).get("valueCodeableConcept")))
         transcript = ((_component(obs, TRANSCRIPT) or {}).get("valueCodeableConcept") or {}).get("text")
         where = f"variant in {gene or '?'}"
-        if gene not in GENES:
+        if gene not in genes:
             out.errors.append(f"{where}: gene not on the interpretable panel")
             continue
         if not hgvs_c or not HGVS_C.match(hgvs_c):
@@ -132,7 +134,7 @@ def parse_bundle(bundle: dict) -> Parsed:
             out.errors.append(f"{where}: clinical significance missing or not a LOINC LA code")
         if sig == "vus":
             out.warnings.append(f"{where}: variant of uncertain significance, needs counsellor review")
-        condition, inheritance, ncbi = GENES[gene]
+        condition, inheritance, ncbi = genes[gene]
         if zyg == "hemizygous" and inheritance != "XL":
             out.errors.append(f"{where}: hemizygous is only possible for X-linked genes")
         out.variants.append({

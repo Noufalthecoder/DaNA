@@ -19,7 +19,8 @@ export default function Home() {
   const reports = useStore((s) => s.reports) || EMPTY_OBJ;
   const mine = reports[me.id];
   const theirs = reports[partner.id];
-  const waiting = live && (!mine || !theirs);
+  const fresh = useStore((s) => !!s.session?.fresh);
+  const waiting = (live && (!mine || !theirs)) || (fresh && !mine);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [showBookModal, setShowBookModal] = useState(false);
@@ -283,19 +284,10 @@ export default function Home() {
         </Card>
       </div>
 
-      <div className="stats four">
-        <Stat
-          label="Health Profile"
-          value={isScreened ? 'Verified' : 'Pending'}
-          note={isScreened ? (myIntake?.mode === 'uae_pass' ? 'UAE PASS verified · Profile' : 'Manual entry · Profile') : 'Action required'}
-        />
-        <Stat label="Your plan" value={plan ? plan.split(':')[0] : 'Not chosen'} />
-        <Stat label="Relatives invited" value={sent.length} note="anonymously" />
-        <Stat
-          label="Counsellor"
-          value={activeAppt ? (activeAppt.confirmed ? 'Confirmed' : 'Pending') : 'Available'}
-          note={activeAppt ? `${formatDateLabel(activeAppt.date)} · ${activeAppt.time}` : 'Dr. Mariam'}
-        />
+      <div className="tiles">
+        <a className="tile" href="#/app/bonds"><small>Your plan</small><b>{plan ? plan.split(':')[0] : 'Not chosen yet'}</b><span>{plan ? 'Change any time' : 'Take your time →'}</span></a>
+        <a className="tile" href="#/app/roots"><small>Relatives invited</small><b>{sent.length}</b><span>Anonymous alerts →</span></a>
+        <a className="tile" href="#/app/my-report"><small>Your report</small><b>Ready</b><span>English · العربية · اردو →</span></a>
       </div>
       {/* ─── Book Consultation Quick Modal ─── */}
       {showBookModal && (

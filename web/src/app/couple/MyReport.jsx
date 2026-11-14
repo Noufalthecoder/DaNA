@@ -6,12 +6,13 @@ import { useEffect, useState } from 'react';
 import { useStore, EMPTY_OBJ } from '../shared/store.js';
 import { supabase } from '../shared/supabase.js';
 import { logAudit } from '../shared/db.js';
-import { PEOPLE, GENES } from '../shared/data.js';
+import { PEOPLE, GENES, PANEL } from '../shared/data.js';
 import { danaIdFor } from '../shared/connectionsService.js';
 import { personalStatus, isRealReport } from '../shared/journey.js';
-import { T, LANGS, COND, headline, REPORT_VERSION } from '../shared/reportText.js';
+import { T, LANGS, COND, headline, withPanel, REPORT_VERSION } from '../shared/reportText.js';
 import { Brand } from '../shared/Logo.jsx';
 
+const SICKLE = { en: 'Sickle cell trait', ar: 'سمة الخلايا المنجلية', ur: 'سکل سیل ٹریٹ' };
 const fmt = (d, lang) => (d ? new Date(d).toLocaleDateString(lang === 'en' ? 'en-GB' : lang === 'ar' ? 'ar-AE' : 'ur-PK', { day: 'numeric', month: 'long', year: 'numeric' }) : '—');
 
 export default function MyReport() {
@@ -19,19 +20,21 @@ export default function MyReport() {
   const reports = useStore((s) => s.reports) || EMPTY_OBJ;
   const [lang, setLang] = useState(session?.details?.preferred_language || 'en');
   const [lab, setLab] = useState(null);
-  const t = T[lang];
+  const t = withPanel(T[lang], PANEL.labGenes);
   const me = PEOPLE[session.id] || {};
   const rep = isRealReport(reports[session.id]) ? reports[session.id] : null;
   const d = session.details || {};
   const status = personalStatus(me.sex, me.carrier, GENES[me.carrier]?.inheritance);
-  const [hTitle, hText] = headline(lang, status, me.carrier);
+  const [hTitle, hText] = withPanel(headline(lang, status, me.carrier), PANEL.labGenes);
 
+  const demoLab = useStore((s) => s.demoLab?.[session.id]);
   useEffect(() => {
-    if (!session?.backend || !supabase) return;
+    if (!session?.backend) { setLab(demoLab || null); return; }
+    if (!supabase) return;
     supabase.from('lab_results').select('*').eq('person_id', session.id)
       .order('collected_on', { ascending: false }).limit(1)
       .then(({ data }) => setLab(data?.[0] || null));
-  }, [session?.backend, session?.id]);
+  }, [session?.backend, session?.id, demoLab]);
   useEffect(() => { logAudit(`Viewed premarital report (${REPORT_VERSION}, ${lang})`).catch(() => {}); }, [lang]);
 
   const issued = new Date();
@@ -45,7 +48,7 @@ export default function MyReport() {
     : status === 'clear' ? 'normal' : status === 'xl_male' ? 'affected' : 'carrier';
   const genResult = !rep ? t.notInRecord
     : relevant.length === 0 ? t.noVariant
-    : relevant.map((v) => `${t.variantOf} ${v.gene} (${COND[v.gene]?.[lang] || v.gene}) · ${v.hgvs_c || ''}`).join('; ');
+    : relevant.map((v) => `${t.variantOf} ${v.gene} (${v.hgvs_p === 'p.Glu7Val' ? SICKLE[lang] : COND[v.gene]?.[lang] || v.gene}) · ${v.hgvs_c || ''}`).join('; ');
 
   const blood = (v, map) => (v == null ? [t.notInRecord, 'na'] : map(v));
   const reac = (v) => (v === 'reactive' ? [t.reactive, 'attention'] : [t.nonReactive, 'normal']);
@@ -53,8 +56,11 @@ export default function MyReport() {
   const rows = [
     [t.genetic, src, genResult, genStatus],
     [t.hb, 'Malaffi', ...blood(lab?.hb, (v) => [`${v} g/dL`, v < (female ? 12 : 13) ? 'attention' : 'normal'])],
+    [t.mcv, 'Malaffi', ...blood(lab?.mcv, (v) => [`${v} fL`, v < 80 ? 'attention' : 'normal'])],
+    [t.ferritin, 'Malaffi', ...blood(lab?.ferritin, (v) => [`${v} µg/L`, v < 15 ? 'attention' : 'normal'])],
     [t.hba2, 'Malaffi', ...blood(lab?.hba2, (v) => [`${v} %`, v >= 3.5 ? 'carrier' : 'normal'])],
     [t.hbVariant, 'Malaffi', ...blood(lab?.hb_variant, (v) => (v === 'none' ? [t.none, 'normal'] : [v, 'carrier']))],
+    [t.g6pd, 'Malaffi', ...blood(lab?.g6pd_pct, (v) => [`${v} %`, v < 30 ? 'affected' : v < 80 ? 'carrier' : 'normal'])],
     [t.hiv, 'Malaffi', ...blood(lab?.hiv, reac)],
     [t.hbsag, 'Malaffi', ...blood(lab?.hbsag, reac)],
     [t.hcv, 'Malaffi', ...blood(lab?.anti_hcv, reac)],
@@ -84,7 +90,7 @@ export default function MyReport() {
           <div className="rp-title"><h1>{t.title}</h1><p>{t.subtitle}</p></div>
         </header>
         <dl className="rp-meta">
-          <div><dt>{t.reportNo}</dt><dd>{danaIdFor(session.id)}-{rep?.id || '—'}</dd></div>
+          <div><dt>{t.reportNo}</dt><dd>{danaIdFor(session.id)}-{(rep?.date || issued.toISOString()).slice(0, 10).replace(/-/g, '')}</dd></div>
           <div><dt>{t.issued}</dt><dd>{fmt(issued, lang)}</dd></div>
           <div><dt>{t.validUntil}</dt><dd>{fmt(valid, lang)}</dd></div>
           <div><dt>{t.language}</dt><dd>{LANGS[lang].name}</dd></div>

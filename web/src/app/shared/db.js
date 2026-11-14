@@ -1,3 +1,4 @@
+import { SCENARIOS, pickScenario, scenarioBlood } from './scenarios.js';
 /*
   Data layer. Owner: Platform.
   Every screen saves through these functions. When the user is signed in to
@@ -6,7 +7,7 @@
 */
 import { supabase } from './supabase.js';
 import { get, set } from './store.js';
-import { SLOTS, PEOPLE, COUPLES, relativesFor, generateDanaId } from './data.js';
+import { SLOTS, PEOPLE, COUPLES, GENES, PANEL, relativesFor, generateDanaId } from './data.js';
 import { fromDb, toDb } from './family.js';
 import { api } from './api.js';
 
@@ -507,7 +508,19 @@ export function decideCard(card, status) {
 }
 
 /* ---------- people and couples stored only in the database (e.g. sample journeys) ---------- */
+export async function hydratePanel() {
+  // the configurable gene panel (025): active genes and the lab panel size. Keeps the built-in list if not migrated.
+  const { data, error } = await supabase.rpc('panel_info');
+  if (error || !data?.genes?.length) return;
+  for (const g of data.genes) {
+    if (g.active && g.review_status !== 'retired') GENES[g.symbol] = { condition: g.condition, inheritance: g.inheritance, source: g.source, review: g.review_status };
+    else delete GENES[g.symbol];
+  }
+  if (data.lab_panel_genes) PANEL.labGenes = data.lab_panel_genes;
+}
+
 export async function hydratePeople() {
+  hydratePanel().catch(() => {});
   const [p, c, r] = await Promise.all([
     supabase.from('people').select('id, name, short_name, sex'),
     supabase.from('couples').select('*'),
@@ -563,6 +576,11 @@ async function doLoad() {
     date: r.report_date, verified: r.validation_status === 'verified',
     variants: (r.genetic_variants || []).map((v) => ({ gene: v.gene_symbol, hgvs_c: v.hgvs_c, hgvs_p: v.hgvs_p, zygosity: v.zygosity, significance: v.clinical_significance, source: v.significance_source })),
   }]));
+  // uncertain findings (VUS) are not in the results summary table: take them from the reports themselves
+  for (const [pid, rep] of Object.entries(patch.reports)) {
+    if (!PEOPLE[pid] || String(rep.id).startsWith('SAMPLE-')) continue;
+    PEOPLE[pid].vus = rep.variants.find((v) => v.significance === 'vus')?.gene || undefined;
+  }
   patch.cases = Object.fromEntries((cases.data || []).map((c) => [c.couple_id, {
     id: c.id, tier: c.triage_tier, counsellor: c.case_assignments?.[0]?.counsellors?.name || null,
   }]));
@@ -669,6 +687,7 @@ const rpc = async (fn, args) => {
 
 /* step 1: my own health profile (sex is needed to interpret X-linked results) */
 export async function startMyProfile(sex) {
+  if (!isLive()) return demoProfile(sex);
   const old = get().session?.id;
   const pid = await rpc('start_my_profile', { p_sex: sex });
   // the screening intake was saved under the login id before the profile existed: move it across
@@ -678,8 +697,9 @@ export async function startMyProfile(sex) {
 }
 
 /* step 3: fetch my lab report from Malaffi (validated and saved by the API) */
-export async function fetchMalaffi() {
-  const r = await api('/ingest/malaffi', { method: 'POST' });
+export async function fetchMalaffi(scenario) {
+  if (!isLive()) return demoFetch(scenario);
+  const r = await api(`/ingest/malaffi${scenario ? `?scenario=${encodeURIComponent(scenario)}` : ''}`, { method: 'POST' });
   await loadAll();
   return r;
 }
@@ -687,9 +707,15 @@ export async function fetchMalaffi() {
 export const createPartnerInvite = () => rpc('create_partner_invite');
 export const acceptPartnerInvite = (code) => rpc('accept_partner_invite', { p_code: code });
 export const startSampleJourney = () => rpc('start_sample_journey');
-export const grantMalaffiConsent = (viaUaePass) => rpc('grant_malaffi_consent', { p_signed_in_with_uaepass: !!viaUaePass });
-export const saveMyDetails = (details) => rpc('save_my_details', { p: details });
+export const grantMalaffiConsent = (viaUaePass) => {
+  if (isLive()) return rpc('grant_malaffi_consent', { p_signed_in_with_uaepass: !!viaUaePass });
+  const s = get().session;
+  set({ session: { ...s, malaffiConsent: true, malaffiConsentAt: new Date().toISOString() } }, 'Gave consent to read Malaffi (demo)');
+  return Promise.resolve(true);
+};
+export const saveMyDetails = (details) => (isLive() ? rpc('save_my_details', { p: details }) : demoDetails(details));
 export async function setMySex(sex) {
+  if (!isLive()) return demoProfile(sex);
   await rpc('set_my_sex', { p_sex: sex });
   const id = get().session?.id;
   if (id && PEOPLE[id]) PEOPLE[id].sex = sex;
@@ -779,3 +805,36 @@ export async function resetDemoDataBackend(session) {
   }
 }
 
+/* ---------- offline UAE PASS demo: the same journey, saved in this browser only ---------- */
+function demoProfile(sex) {
+  const s = get().session;
+  if (PEOPLE[s.id]) PEOPLE[s.id].sex = sex;
+  set({ session: { ...s, needsProfile: false, sexConfirmed: true } }, `Confirmed profile (${sex === 'F' ? 'female' : 'male'})`);
+  return s.id;
+}
+async function demoFetch(choice) {
+  const s = get().session;
+  const me = PEOPLE[s.id] || {};
+  await new Promise((r) => setTimeout(r, 1200)); // a moment, like a real fetch
+  const today = new Date().toISOString().slice(0, 10);
+  const key = pickScenario(s.id, choice);
+  const variants = SCENARIOS[key].variants(me.sex);
+  const report = {
+    id: `MALAFFI-DEMO-${s.id.toUpperCase()}`, lab: 'Abu Dhabi Genomics Lab (simulated)', accreditation: 'CAP-0000000',
+    date: today, verified: true, scenario: SCENARIOS[key].label, variants,
+  };
+  // what the rest of the app reads: the first confirmed finding, or an uncertain one
+  if (PEOPLE[s.id]) {
+    PEOPLE[s.id].carrier = variants.find((x) => x.significance !== 'vus')?.gene || null;
+    PEOPLE[s.id].vus = variants.find((x) => x.significance === 'vus')?.gene || undefined;
+  }
+  const lab = scenarioBlood(key, me.sex);
+  set((st) => ({ reports: { ...(st.reports || {}), [s.id]: report }, demoLab: { ...(st.demoLab || {}), [s.id]: lab } }),
+    `Fetched premarital results from Malaffi (demo: ${SCENARIOS[key].label})`);
+  return { saved: true, report_id: report.id, scenario: key };
+}
+function demoDetails(details) {
+  const s = get().session;
+  set({ session: { ...s, details, intakeDone: true } }, 'Saved screening details (demo)');
+  return new Date().toISOString();
+}

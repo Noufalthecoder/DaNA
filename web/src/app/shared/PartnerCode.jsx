@@ -45,9 +45,9 @@ export default function PartnerCode() {
   if (!live || linked) return null;
   if (!hasProfile) {
     return (
-      <div className="pcode">
+      <section className="card"><div className="card-h"><h2>Link with your partner</h2></div><div className="pcode">
         <p className="muted">Create your health profile on <a href="#/app">Home</a> first. Your invite code appears here right after.</p>
-      </div>
+      </div></section>
     );
   }
 
@@ -70,6 +70,7 @@ export default function PartnerCode() {
   };
 
   return (
+    <section className="card"><div className="card-h"><h2>Link with your partner</h2></div>
     <div className="pcode">
       <p className="pcode-sex muted">
         You are registered as <b>{sex === 'F' ? 'female' : sex === 'M' ? 'male' : 'not set'}</b>, so you can link with a {sex === 'F' ? 'man' : 'woman'}. Wrong? <a href="#/app/profile">Change it on your Profile</a>.
@@ -92,6 +93,6 @@ export default function PartnerCode() {
         <small className="muted">Entering a code is your consent to link and share results with your partner.</small>
       </form>
       {err && <p className="err">{err}</p>}
-    </div>
+    </div></section>
   );
 }

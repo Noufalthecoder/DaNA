@@ -162,8 +162,9 @@ export default function Connections({ defaultTab = 'discover' }) {
         }
       } catch (err) {
         if (active) {
-          // Fallback to strict synchronous search
-          setSearchResults(searchUsers(meId, raw));
+          // live errors (rate limit, wrong format) are shown; offline falls back to the local search
+          if (session?.backend) { setSearchResults([]); notify(err.message, 'error'); }
+          else setSearchResults(searchUsers(meId, raw));
           setIsSearching(false);
           setSearchDone(true);
         }
@@ -207,10 +208,10 @@ export default function Connections({ defaultTab = 'discover' }) {
   };
 
   // Actions
-  const handleSendRequest = () => {
+  const handleSendRequest = async () => {
     if (!requestTarget) return;
     try {
-      sendConnectionRequest(meId, requestTarget.id, requestNote, {
+      await sendConnectionRequest(meId, requestTarget.id, requestNote, {
         targetEmail: requestTarget.email,
         targetName: requestTarget.name,
       });
@@ -263,12 +264,12 @@ export default function Connections({ defaultTab = 'discover' }) {
   const handleRemove = (connectionId, partnerName) => {
     setConfirmAction({
       title: 'Disconnect Partner',
-      message: `Are you sure you want to disconnect from ${partnerName}? Your combined risk profile will be unlinked.`,
+      message: `Disconnect from ${partnerName}? Your couple result and shared plans end for both of you. Your own results stay.`,
       actionLabel: 'Disconnect',
       isDanger: true,
-      onConfirm: () => {
+      onConfirm: async () => {
         try {
-          removeConnection(connectionId, meId);
+          await removeConnection(connectionId, meId);
           notify(`Disconnected from ${partnerName}.`);
         } catch (err) {
           notify(err.message, 'error');
@@ -280,12 +281,12 @@ export default function Connections({ defaultTab = 'discover' }) {
   const handleBlock = (targetId, targetName) => {
     setConfirmAction({
       title: 'Block User',
-      message: `Block ${targetName}? They will not be able to find or request to connect with you.`,
+      message: `Block ${targetName}? This also ends any link between you. Neither of you can find, request or link with the other until you unblock.`,
       actionLabel: 'Block User',
       isDanger: true,
-      onConfirm: () => {
+      onConfirm: async () => {
         try {
-          blockUser(meId, targetId);
+          await blockUser(meId, targetId);
           notify(`Blocked ${targetName}.`);
         } catch (err) {
           notify(err.message, 'error');
@@ -294,9 +295,9 @@ export default function Connections({ defaultTab = 'discover' }) {
     });
   };
 
-  const handleUnblock = (targetId, targetName) => {
+  const handleUnblock = async (targetId, targetName) => {
     try {
-      unblockUser(meId, targetId);
+      await unblockUser(meId, targetId);
       notify(`Unblocked ${targetName}.`);
     } catch (err) {
       notify(err.message, 'error');
@@ -321,8 +322,8 @@ export default function Connections({ defaultTab = 'discover' }) {
 
   return (
     <Page
-      title="Connections · الروابط والشريك"
-      sub="Connect with your premarital partner to evaluate combined reproductive genetic risks."
+      title="Connections"
+      sub="Link with your partner to see your result as a couple. Nothing is shared until you both agree."
     >
       <div className="conn-wrapper">
         {/* Toast Feedback */}
@@ -344,9 +345,7 @@ export default function Connections({ defaultTab = 'discover' }) {
         )}
 
         {/* Link by invite code: creates the real couple in the database */}
-        <Card title="Link with your partner">
-          <PartnerCode />
-        </Card>
+        <PartnerCode />
 
         {/* Your DaNA Identity Card */}
         <div className="conn-identity-card">
@@ -416,7 +415,7 @@ export default function Connections({ defaultTab = 'discover' }) {
         {tab === 'discover' && (
           <Card title="Search & Connect with Your Partner">
             <p className="lead-in">
-              Enter your partner’s exact <b>Username</b> or <b>Unique DaNA ID</b> to connect.
+              Ask your partner for their <b>DaNA ID</b> (shown at the top of their Connections page) and type it here. Names and emails cannot be searched, so strangers cannot find you.
             </p>
 
             <div className="conn-search-box">
@@ -426,7 +425,7 @@ export default function Connections({ defaultTab = 'discover' }) {
               <input
                 type="text"
                 className="conn-search-input"
-                placeholder="Partner's full name, email or DaNA ID (e.g. Fatima Al Hammadi or DANA-3F9A2C)"
+                placeholder="Partner's DaNA ID, e.g. DANA-3F9A2C"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 autoFocus
@@ -460,9 +459,9 @@ export default function Connections({ defaultTab = 'discover' }) {
                 <div className="conn-privacy-shield">
                   <IconShield size={22} />
                 </div>
-                <h3>Strict Healthcare Privacy Enforced</h3>
+                <h3>Private by design</h3>
                 <p>
-                  In compliance with UAE Federal Decree-Law No. 49 of 2023, DaNA does not display public user directories. To protect citizen privacy, you can only find your partner by entering their exact username or unique DaNA ID above.
+                  DaNA never shows a list of members. Only the exact DaNA ID your partner shares with you finds them. Searches are limited, and nobody sees anything about you until they accept.
                 </p>
               </div>
             )}
@@ -752,7 +751,7 @@ export default function Connections({ defaultTab = 'discover' }) {
               <Card title="No Active Connection">
                 <div className="conn-empty-state">
                   <p className="conn-empty-state-p muted">
-                    You have not connected with a premarital partner yet. Search for your partner by username or DaNA ID to get started.
+                    You have not connected with a premarital partner yet. Ask your partner for their DaNA ID and search for it to get started.
                   </p>
                   <button className="btn btn-sm" onClick={() => switchTab('discover')}>
                     <IconSearch size={15} />
