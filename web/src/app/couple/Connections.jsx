@@ -260,29 +260,29 @@ export default function Connections({ defaultTab = 'discover' }) {
     }
   };
 
-  const handleRemove = (connectionId, partnerName) => {
-    if (!window.confirm(`Are you sure you want to disconnect from ${partnerName}?`)) return;
+  const handleRemove = async (connectionId, partnerName) => {
+    if (!window.confirm(`Disconnect from ${partnerName}? Your couple result and shared plans end for both of you. Your own results stay.`)) return;
     try {
-      removeConnection(connectionId, meId);
+      await removeConnection(connectionId, meId);
       notify(`Disconnected from ${partnerName}.`);
     } catch (err) {
       notify(err.message, 'error');
     }
   };
 
-  const handleBlock = (targetId, targetName) => {
-    if (!window.confirm(`Block ${targetName}? They will not be able to find or request to connect with you.`)) return;
+  const handleBlock = async (targetId, targetName) => {
+    if (!window.confirm(`Block ${targetName}? This also ends any link between you. Neither of you can find, request or link with the other until you unblock.`)) return;
     try {
-      blockUser(meId, targetId);
+      await blockUser(meId, targetId);
       notify(`Blocked ${targetName}.`);
     } catch (err) {
       notify(err.message, 'error');
     }
   };
 
-  const handleUnblock = (targetId, targetName) => {
+  const handleUnblock = async (targetId, targetName) => {
     try {
-      unblockUser(meId, targetId);
+      await unblockUser(meId, targetId);
       notify(`Unblocked ${targetName}.`);
     } catch (err) {
       notify(err.message, 'error');

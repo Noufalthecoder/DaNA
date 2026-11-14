@@ -436,6 +436,28 @@ export async function syncConnectionsFromSupabase(userId, userAuthId = null) {
       .select('id, partner_a, partner_b, stage, pregnant_weeks')
       .or(clauses.join(','));
 
+    if (!error && Array.isArray(data) && get().session?.backend) {
+      const real = data.filter((row) => ![row.partner_a, row.partner_b].some((x) => String(x).startsWith('p_')));
+      const connections = real.map((row) => {
+        const other = row.partner_a === userId || row.partner_a === userAuthId ? row.partner_b : row.partner_a;
+        const prev = (get().connections || []).find((c) => c.id === row.id);
+        return { id: row.id, userA: userId, userB: other, status: 'ACTIVE', connectedAt: prev?.connectedAt || new Date().toISOString() };
+      });
+      const { data: blocks } = await supabase.rpc('my_blocks');
+      const blockedUsers = (blocks || []).map((b) => {
+        PEOPLE[b.person_id] ||= { name: b.display_name, short: (b.display_name || '').split(' ')[0], danaId: b.dana_id };
+        return { id: `blk_${b.person_id}`, user: userId, blocked: b.person_id, createdAt: b.blocked_at };
+      });
+      const before = (get().connections || []).map((c) => c.id).sort().join();
+      set({ connections, blockedUsers });
+      if (before !== connections.map((c) => c.id).sort().join()) {
+        // linked or unlinked from the other side: refresh the journey and couple data too
+        const [{ refreshSession }, { loadAll }] = await Promise.all([import('./supabase.js'), import('./db.js')]);
+        await refreshSession().catch(() => {});
+        loadAll();
+      }
+      return;
+    }
     if (!error && Array.isArray(data) && data.length > 0) {
       const state = get();
       const all = state.connections || [];
@@ -1008,6 +1030,18 @@ export function cancelConnectionRequest(requestId, actingUserId) {
 
 export function removeConnection(connectionId, actingUserId) {
   initConnectionsStore();
+  const liveS = get().session;
+  if (supabase && liveS?.backend) {
+    return supabase.rpc('unlink_partner').then(async ({ error }) => {
+      if (error) throw new Error(error.message);
+      await syncConnectionsFromSupabase(liveS.id, liveS.userId);
+      // the journey, couple result and Home follow the new state at once
+      const [{ refreshSession }, { loadAll }] = await Promise.all([import('./supabase.js'), import('./db.js')]);
+      await refreshSession().catch(() => {});
+      loadAll();
+      return true;
+    });
+  }
   const state = get();
   const connections = state.connections || [];
   const conn = connections.find((c) => c.id === connectionId);
@@ -1055,6 +1089,18 @@ export function blockUser(actingUserId, targetUserId) {
   initConnectionsStore();
   if (actingUserId === targetUserId) {
     throw new Error('You cannot block yourself.');
+  }
+  const liveS = get().session;
+  if (supabase && liveS?.backend) {
+    return supabase.rpc('block_person', { p: targetUserId }).then(async ({ error }) => {
+      if (error) throw new Error(error.message);
+      await syncConnectionsFromSupabase(liveS.id, liveS.userId);
+      // the journey, couple result and Home follow the new state at once
+      const [{ refreshSession }, { loadAll }] = await Promise.all([import('./supabase.js'), import('./db.js')]);
+      await refreshSession().catch(() => {});
+      loadAll();
+      return true;
+    });
   }
 
   const state = get();
@@ -1108,6 +1154,18 @@ export function blockUser(actingUserId, targetUserId) {
 
 export function unblockUser(actingUserId, targetUserId) {
   initConnectionsStore();
+  const liveS = get().session;
+  if (supabase && liveS?.backend) {
+    return supabase.rpc('unblock_person', { p: targetUserId }).then(async ({ error }) => {
+      if (error) throw new Error(error.message);
+      await syncConnectionsFromSupabase(liveS.id, liveS.userId);
+      // the journey, couple result and Home follow the new state at once
+      const [{ refreshSession }, { loadAll }] = await Promise.all([import('./supabase.js'), import('./db.js')]);
+      await refreshSession().catch(() => {});
+      loadAll();
+      return true;
+    });
+  }
   const state = get();
   const blocked = (state.blockedUsers || []).filter(
     (b) => !(b.user === actingUserId && b.blocked === targetUserId)
