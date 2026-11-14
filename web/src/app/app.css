@@ -1967,3 +1967,8 @@ body.in-app{background:#F6F7F5}
 .gp-form .gp-wide{grid-column:1/-1}
 .gp-form .gp-check{grid-column:1/-1;flex-direction:row;align-items:center;gap:8px}
 @media (max-width:640px){.gp-form{grid-template-columns:1fr}}
+.src-cell{display:flex;flex-direction:column;gap:4px;margin-top:2px}
+.src-cell a{color:var(--green);text-decoration:none}
+.src-cell a:hover{text-decoration:underline}
+.src-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.src-edit{display:inline-flex;align-items:center;gap:4px;font-size:12.5px}

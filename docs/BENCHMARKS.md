@@ -31,7 +31,7 @@ Edit in the app: **Settings → Benchmarks** (admin edits; counsellors read only
 | CFTR | Cystic fibrosis | AR | GeneReviews NBK1250 |
 | G6PD | G6PD deficiency | XL | OMIM 305900 |
 
-Threshold sources are listed next to each value on the Benchmarks page. Values marked "confirm" in their source note still need local (UAE) confirmation.
+Each threshold also has a source record (`benchmark_sources`, 026): citation, link, review status (Needs expert review · Confirm for UAE · Verified) and note. The admin edits it on the Benchmarks page; every edit is versioned and audited.
 
 ## Phase 2 (not built yet)
 

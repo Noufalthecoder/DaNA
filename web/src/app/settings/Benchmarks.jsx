@@ -5,6 +5,8 @@ import { useStore } from '../shared/store.js';
 import { isLive } from '../shared/db.js';
 import { api } from '../shared/api.js';
 import GenePanel from './GenePanel.jsx';
+import SourceCell from './SourceCell.jsx';
+import { supabase } from '../shared/supabase.js';
 import { FIELDS, GROUPS, MARKERS, crossFieldProblem, display, labelFor } from './benchmarkFields.js';
 
 const SEXES = { M: 'Male', F: 'Female' };
@@ -179,7 +181,9 @@ export default function Benchmarks() {
     try {
       const [current, M, F] = await Promise.all([api('/benchmarks'), api('/benchmarks/M/snapshots'), api('/benchmarks/F/snapshots')]);
       const panel = await api('/panel').catch(() => null); // null until migration 025 runs
-      setData({ M: current.male, F: current.female, history: { M, F }, panel });
+      const { data: srcRows } = await supabase.from('benchmark_sources').select('*'); // empty until 026 runs
+      const sourceRows = Object.fromEntries((srcRows || []).map((r) => [r.key, r]));
+      setData({ M: current.male, F: current.female, history: { M, F }, panel, sourceRows });
     } catch (err) {
       if (!quiet) setError(err.message); // background refresh: keep showing the last good values
     }
@@ -228,7 +232,7 @@ export default function Benchmarks() {
               <tr className="bench-group"><th colSpan={3} scope="colgroup">{group.title}</th></tr>
               {group.fields.map((f) => (
                 <tr key={f.key}>
-                  <td><b>{f.label}</b>{(data.F.sources?.[f.key] || data.M.sources?.[f.key]) && <small>{data.F.sources?.[f.key] || data.M.sources?.[f.key]}</small>}</td>
+                  <td><b>{f.label}</b><SourceCell src={data.sourceRows?.[f.key]} fallback={data.F.sources?.[f.key] || data.M.sources?.[f.key]} canEdit={canEdit} onSaved={() => load()} /></td>
                   {['M', 'F'].map((sex) => <td key={sex} className={data[sex][f.key] === null ? 'bench-muted' : 'bench-value'}>{display(f.key, data[sex][f.key])}</td>)}
                 </tr>
               ))}
