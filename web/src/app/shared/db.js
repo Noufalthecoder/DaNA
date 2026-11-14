@@ -466,7 +466,12 @@ export async function fetchMalaffi(scenario) {
 export const createPartnerInvite = () => rpc('create_partner_invite');
 export const acceptPartnerInvite = (code) => rpc('accept_partner_invite', { p_code: code });
 export const startSampleJourney = () => rpc('start_sample_journey');
-export const grantMalaffiConsent = (viaUaePass) => (isLive() ? rpc('grant_malaffi_consent', { p_signed_in_with_uaepass: !!viaUaePass }) : Promise.resolve(true));
+export const grantMalaffiConsent = (viaUaePass) => {
+  if (isLive()) return rpc('grant_malaffi_consent', { p_signed_in_with_uaepass: !!viaUaePass });
+  const s = get().session;
+  set({ session: { ...s, malaffiConsent: true, malaffiConsentAt: new Date().toISOString() } }, 'Gave consent to read Malaffi (demo)');
+  return Promise.resolve(true);
+};
 export const saveMyDetails = (details) => (isLive() ? rpc('save_my_details', { p: details }) : demoDetails(details));
 export async function setMySex(sex) {
   if (!isLive()) return demoProfile(sex);

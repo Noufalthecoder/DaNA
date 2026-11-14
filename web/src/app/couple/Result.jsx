@@ -47,7 +47,7 @@ function Chances({ o }) {
 
 
 export default function Result() {
-  const { me, partner, result, isConnected } = useCouple();
+  const { me, partner, result, isConnected, couple } = useCouple();
   const live = useStore((s) => !!s.session?.backend);
   const reports = useStore((s) => s.reports) || EMPTY_OBJ;
   // individual first: before linking (Connections) only MY result is explained, never someone else's
@@ -70,7 +70,7 @@ export default function Result() {
   useEffect(() => {
     if (logged.current || waiting) return;
     logged.current = true;
-    logAudit(`Viewed result explanation (${EXPLAIN_VERSION}, ${result.type})`).catch(() => {});
+    logAudit(`Viewed the couple result (${EXPLAIN_VERSION}, ${result.type})`, { resourceType: 'couples', resourceId: couple?.id }).catch(() => {});
   }, [waiting, result.type]);
 
   const loggedMine = useRef(false);

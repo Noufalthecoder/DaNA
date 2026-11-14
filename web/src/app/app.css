@@ -1973,3 +1973,19 @@ body.in-app{background:#F6F7F5}
 .src-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .src-edit{display:inline-flex;align-items:center;gap:4px;font-size:12.5px}
 .rs-own{border-left:4px solid var(--amber)}.rs-own p{color:var(--ink2);line-height:1.6;max-width:70ch}
+
+/* ===== Privacy ===== */
+.pv-confirm{background:#FFF7ED;border:1px solid #F3D9B1;border-radius:12px;padding:14px 16px;margin-top:8px}
+.pv-confirm p{margin:0 0 8px}
+.pv-msg{margin-top:12px;font-weight:600;color:var(--green)}
+.btn.danger{background:var(--red);border-color:var(--red)}
+.pv-seen{list-style:none;padding:0;margin:0}
+.pv-seen li{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.pv-seen li:first-child{border-top:0}
+.pv-seen li div{display:flex;flex-direction:column}
+.pv-seen li div span{color:var(--ink2);font-size:14px}
+.pv-seen time{color:var(--ink3);font-size:13px;white-space:nowrap}
+.pv-role{font:700 11.5px var(--body);text-transform:uppercase;letter-spacing:.05em;border-radius:999px;padding:4px 10px;background:var(--green-l);color:var(--green)}
+.pv-role.pv-counsellor{background:#EEF4F8;color:#2B5C7E}
+.pv-role.pv-programme{background:#F3EEF8;color:#5B3A7E}
+@media (max-width:560px){.pv-seen li{grid-template-columns:1fr}.pv-seen time{white-space:normal}}
