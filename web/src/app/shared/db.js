@@ -1,3 +1,4 @@
+import { SCENARIOS, pickScenario, scenarioBlood } from './scenarios.js';
 /*
   Data layer. Owner: Platform.
   Every screen saves through these functions. When the user is signed in to
@@ -438,9 +439,9 @@ export async function startMyProfile(sex) {
 }
 
 /* step 3: fetch my lab report from Malaffi (validated and saved by the API) */
-export async function fetchMalaffi() {
-  if (!isLive()) return demoFetch();
-  const r = await api('/ingest/malaffi', { method: 'POST' });
+export async function fetchMalaffi(scenario) {
+  if (!isLive()) return demoFetch(scenario);
+  const r = await api(`/ingest/malaffi${scenario ? `?scenario=${encodeURIComponent(scenario)}` : ''}`, { method: 'POST' });
   await loadAll();
   return r;
 }
@@ -542,34 +543,32 @@ export async function resetDemoDataBackend(session) {
 }
 
 /* ---------- offline UAE PASS demo: the same journey, saved in this browser only ---------- */
-const DEMO_VARIANT = { HBB: 'c.20A>T', GJB2: 'c.35delG', SMN1: 'c.840C>T', CFTR: 'c.1521_1523del', G6PD: 'c.563C>T' };
 function demoProfile(sex) {
   const s = get().session;
   if (PEOPLE[s.id]) PEOPLE[s.id].sex = sex;
   set({ session: { ...s, needsProfile: false, sexConfirmed: true } }, `Confirmed profile (${sex === 'F' ? 'female' : 'male'})`);
   return s.id;
 }
-async function demoFetch() {
+async function demoFetch(choice) {
   const s = get().session;
   const me = PEOPLE[s.id] || {};
   await new Promise((r) => setTimeout(r, 1200)); // a moment, like a real fetch
   const today = new Date().toISOString().slice(0, 10);
-  const gene = me.carrier || null;
+  const key = pickScenario(s.id, choice);
+  const variants = SCENARIOS[key].variants(me.sex);
   const report = {
     id: `MALAFFI-DEMO-${s.id.toUpperCase()}`, lab: 'Abu Dhabi Genomics Lab (simulated)', accreditation: 'CAP-0000000',
-    date: today, verified: true,
-    variants: gene ? [{ gene, hgvs_c: DEMO_VARIANT[gene] || 'c.?', zygosity: 'heterozygous', significance: 'pathogenic' }] : [],
+    date: today, verified: true, scenario: SCENARIOS[key].label, variants,
   };
-  const female = me.sex === 'F';
-  const hbb = gene === 'HBB';
-  const lab = {
-    hb: hbb ? (female ? 11.6 : 12.9) : (female ? 13.1 : 15.0), hba2: hbb ? 5.1 : 2.6, hb_variant: 'none',
-    hiv: 'non_reactive', hbsag: 'non_reactive', anti_hcv: 'non_reactive', syphilis: 'non_reactive',
-    ...(female ? { rubella_igg: 42, rhd: 'positive' } : {}),
-  };
+  // what the rest of the app reads: the first confirmed finding, or an uncertain one
+  if (PEOPLE[s.id]) {
+    PEOPLE[s.id].carrier = variants.find((x) => x.significance !== 'vus')?.gene || null;
+    PEOPLE[s.id].vus = variants.find((x) => x.significance === 'vus')?.gene || undefined;
+  }
+  const lab = scenarioBlood(key, me.sex);
   set((st) => ({ reports: { ...(st.reports || {}), [s.id]: report }, demoLab: { ...(st.demoLab || {}), [s.id]: lab } }),
-    'Fetched premarital results from Malaffi (demo)');
-  return { saved: true, report_id: report.id };
+    `Fetched premarital results from Malaffi (demo: ${SCENARIOS[key].label})`);
+  return { saved: true, report_id: report.id, scenario: key };
 }
 function demoDetails(details) {
   const s = get().session;

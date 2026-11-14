@@ -12,6 +12,7 @@ import { personalStatus, isRealReport } from '../shared/journey.js';
 import { T, LANGS, COND, headline, REPORT_VERSION } from '../shared/reportText.js';
 import { Brand } from '../shared/Logo.jsx';
 
+const SICKLE = { en: 'Sickle cell trait', ar: 'سمة الخلايا المنجلية', ur: 'سکل سیل ٹریٹ' };
 const fmt = (d, lang) => (d ? new Date(d).toLocaleDateString(lang === 'en' ? 'en-GB' : lang === 'ar' ? 'ar-AE' : 'ur-PK', { day: 'numeric', month: 'long', year: 'numeric' }) : '—');
 
 export default function MyReport() {
@@ -47,7 +48,7 @@ export default function MyReport() {
     : status === 'clear' ? 'normal' : status === 'xl_male' ? 'affected' : 'carrier';
   const genResult = !rep ? t.notInRecord
     : relevant.length === 0 ? t.noVariant
-    : relevant.map((v) => `${t.variantOf} ${v.gene} (${COND[v.gene]?.[lang] || v.gene}) · ${v.hgvs_c || ''}`).join('; ');
+    : relevant.map((v) => `${t.variantOf} ${v.gene} (${v.hgvs_p === 'p.Glu7Val' ? SICKLE[lang] : COND[v.gene]?.[lang] || v.gene}) · ${v.hgvs_c || ''}`).join('; ');
 
   const blood = (v, map) => (v == null ? [t.notInRecord, 'na'] : map(v));
   const reac = (v) => (v === 'reactive' ? [t.reactive, 'attention'] : [t.nonReactive, 'normal']);
@@ -55,8 +56,11 @@ export default function MyReport() {
   const rows = [
     [t.genetic, src, genResult, genStatus],
     [t.hb, 'Malaffi', ...blood(lab?.hb, (v) => [`${v} g/dL`, v < (female ? 12 : 13) ? 'attention' : 'normal'])],
+    [t.mcv, 'Malaffi', ...blood(lab?.mcv, (v) => [`${v} fL`, v < 80 ? 'attention' : 'normal'])],
+    [t.ferritin, 'Malaffi', ...blood(lab?.ferritin, (v) => [`${v} µg/L`, v < 15 ? 'attention' : 'normal'])],
     [t.hba2, 'Malaffi', ...blood(lab?.hba2, (v) => [`${v} %`, v >= 3.5 ? 'carrier' : 'normal'])],
     [t.hbVariant, 'Malaffi', ...blood(lab?.hb_variant, (v) => (v === 'none' ? [t.none, 'normal'] : [v, 'carrier']))],
+    [t.g6pd, 'Malaffi', ...blood(lab?.g6pd_pct, (v) => [`${v} %`, v < 30 ? 'affected' : v < 80 ? 'carrier' : 'normal'])],
     [t.hiv, 'Malaffi', ...blood(lab?.hiv, reac)],
     [t.hbsag, 'Malaffi', ...blood(lab?.hbsag, reac)],
     [t.hcv, 'Malaffi', ...blood(lab?.anti_hcv, reac)],

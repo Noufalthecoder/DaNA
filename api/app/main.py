@@ -20,7 +20,8 @@ from .auth import User, current_user
 from .benchmark import EvaluateRequest, LabEntry, evaluate_couple, labs_from_records
 from .db import as_service, as_user
 from .fhir import parse_bundle
-from .sample_bundle import malaffi_bundle, synthetic_blood
+from .sample_bundle import malaffi_bundle, synthetic_blood, scenario_bundle
+from . import scenarios
 
 app = FastAPI(title="DaNA API", version="0.1.0",
               description="Family genetic companion. Synthetic data only; Malaffi and UAE PASS are simulated.")
@@ -80,7 +81,7 @@ def validate(bundle: dict = Body(...), user: User = Depends(current_user)):
 
 
 @app.post("/ingest/malaffi", tags=["results"])
-def ingest_malaffi(bundle: dict | None = Body(None), user: User = Depends(current_user)):
+def ingest_malaffi(bundle: dict | None = Body(None), scenario: str | None = None, user: User = Depends(current_user)):
     """
     Simulated Malaffi sync for the signed-in person. With no body, a synthetic
     report is "fetched"; otherwise the given FHIR Bundle is used.
@@ -100,12 +101,15 @@ def ingest_malaffi(bundle: dict | None = Body(None), user: User = Depends(curren
         raise HTTPException(403, "Consent to process results is withdrawn")
 
     simulated = bundle is None
-    bundle = bundle or malaffi_bundle(report_id=f"MALAFFI-{person.upper()}")
+    svc = as_service()   # server-only write, after the checks above
+    sex = (svc.select("people", id=f"eq.{person}", select="sex") or [{}])[0].get("sex", "M")
+    case = scenarios.pick(person, scenario) if simulated else None
+    if simulated:  # one of 10 different simulated records: stable per person, or the one the demo chose
+        bundle = scenario_bundle(f"MALAFFI-{person.upper()}", scenarios.variants(case, sex))
     p = parse_bundle(bundle)
     if not p.valid:
         raise HTTPException(422, {"message": "Report failed validation", "errors": p.errors})
 
-    svc = as_service()   # server-only write, after the checks above
     saved = svc.insert("genetic_reports", {**p.report, "person_id": person}, upsert_on="report_id")[0]
     svc.delete("genetic_variants", report_id=f"eq.{saved['id']}")
     if p.variants:
@@ -123,16 +127,16 @@ def ingest_malaffi(bundle: dict | None = Body(None), user: User = Depends(curren
     if simulated:
         # the simulated Malaffi record also holds the premarital blood tests (a real record does too)
         try:
-            sex = (svc.select("people", id=f"eq.{person}", select="sex") or [{}])[0].get("sex", "M")
             svc.insert("lab_results", {"person_id": person, "source": "malaffi", "lab_name": p.report.get("laboratory_name"),
                                        "report_ref": p.report["report_id"], "collected_on": p.report["report_date"],
-                                       **synthetic_blood(sex, found)})
+                                       **scenarios.blood(case, sex)})
             blood = True
         except Exception as e:  # blood results are a bonus for the demo; never fail the genetic sync over them
             blood = f"not saved: {str(e)[:160]}"
     svc.insert("audit_log", {"actor": user.id, "actor_name": acc["display_name"], "action": "Synced and validated a Malaffi lab report",
                              "resource_type": "genetic_reports", "resource_id": saved["id"]})
-    return {"saved": True, "report_id": p.report["report_id"], "variants": len(p.variants), "warnings": p.warnings, "blood": blood}
+    return {"saved": True, "report_id": p.report["report_id"], "variants": len(p.variants), "warnings": p.warnings, "blood": blood,
+            "scenario": case and {"key": case, "label": scenarios.SCENARIOS[case][0]}}
 
 
 # ---------- risk benchmarks: 2 rows (M, F), every change snapshotted by the database ----------

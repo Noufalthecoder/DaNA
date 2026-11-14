@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useStore } from './store.js';
 import { refreshSession } from './supabase.js';
 import { grantMalaffiConsent, fetchMalaffi } from './db.js';
+import { SCENARIOS } from './scenarios.js';
 
 const SHARED = [
   ['From UAE PASS', 'Your name, Emirates ID, date of birth, sex and nationality, to make sure the record is yours.'],
@@ -21,6 +22,7 @@ export default function MalaffiConsent({ onDone }) {
   const [boxes, setBoxes] = useState({ share: false, purpose: false, withdraw: false });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [scenario, setScenario] = useState(''); // '' = automatic (each account gets its own record)
   const all = boxes.share && boxes.purpose && boxes.withdraw;
 
   const linkUaePass = async () => {
@@ -32,7 +34,7 @@ export default function MalaffiConsent({ onDone }) {
     setBusy(true); setErr('');
     try {
       await grantMalaffiConsent(viaUaePass);
-      await fetchMalaffi();
+      await fetchMalaffi(scenario || undefined);
       await refreshSession();
       onDone?.();
     } catch (e) { setErr(e.message); }
@@ -72,7 +74,14 @@ export default function MalaffiConsent({ onDone }) {
           <button type="button" className="btn" onClick={go} disabled={!linked || !all || busy}>
             {busy ? 'Fetching your results… (up to a minute)' : 'I consent: fetch my results'}
           </button>
-          <small className="muted">Demo: Malaffi is simulated with a synthetic report.</small>
+          <label className="mc-demo">
+            <span>Demo: which simulated Malaffi record?</span>
+            <select value={scenario} onChange={(e) => setScenario(e.target.value)}>
+              <option value="">Automatic (each account gets a different one)</option>
+              {Object.entries(SCENARIOS).map(([k, x]) => <option key={k} value={k}>{x.label}</option>)}
+            </select>
+          </label>
+          <small className="muted">Demo: Malaffi is simulated with synthetic records, never real patient data.</small>
         </div>
       </div>
       {err && <p className="err">{err}</p>}

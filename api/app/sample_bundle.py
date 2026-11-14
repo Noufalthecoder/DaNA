@@ -53,3 +53,25 @@ def synthetic_blood(sex: str, carrier_gene: str | None) -> dict:
     if female:
         row.update({"rubella_igg": 42.0, "rhd": "positive", "g6pd_pct": 96.0})
     return row
+
+
+SIG = {"pathogenic": "LA6668-3", "likely_pathogenic": "LA26332-9", "vus": "LA26333-7"}
+ZYG = {"heterozygous": "LA6706-1", "homozygous": "LA6705-3", "hemizygous": "LA6707-9"}
+
+
+def scenario_bundle(report_id: str, variants: list, issued: str | None = None) -> dict:
+    """A Malaffi bundle with any number of variants (none = nothing found), one Observation each."""
+    b = malaffi_bundle(report_id, issued=issued)
+    lab, _obs, report, prov = b["entry"]
+    obs_entries, refs = [], []
+    for i, v in enumerate(variants, 1):
+        o = malaffi_bundle(report_id, gene=v["gene"], hgvs_c=v["hgvs_c"], hgvs_p=v.get("hgvs_p"),
+                           significance=SIG[v["significance"]], zygosity=ZYG[v["zygosity"]])["entry"][1]
+        o["resource"]["id"] = f"v{i}"
+        for comp in o["resource"]["component"]:
+            if comp["code"]["coding"][0]["code"] == "51958-7":
+                comp["valueCodeableConcept"]["text"] = v["transcript"]
+        obs_entries.append(o)
+        refs.append({"reference": f"Observation/v{i}"})
+    report["resource"]["result"] = refs
+    return {**b, "entry": [lab, *obs_entries, report, prov]}
