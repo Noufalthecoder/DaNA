@@ -257,24 +257,65 @@ export function getCoupleCarePlan(coupleId = 'c1') {
   }
 
   // 3. "...and once the counselor ticks the session as complete in their schedule then genetic counseling"
+  const counsellorApproved = (store.approved || []).includes(coupleId) || storedPlan?.completedItems?.includes('approved_care_plan');
+  const storeRefs = store.referrals?.[coupleId] || [];
+  const hasReferrals = storeRefs.length > 0 || storedPlan?.completedItems?.includes('follow_up_referrals');
+
+  const facilityMap = {
+    'IVF / PGT-M': 'Cleveland Clinic Abu Dhabi · Fertility Center',
+    'Fetal medicine': 'Danat Al Emarat Hospital · Fetal Medicine Unit',
+    'Haematology': 'Sheikh Shakhbout Medical City (SSMC) · Adult & Paediatric Haematology',
+    'Paediatrics': 'Sheikh Khalifa Medical City (SKMC) · Paediatric Genetics',
+    'Other': 'Cleveland Clinic Abu Dhabi · Medical Genetics',
+  };
+
+  const formattedStoreRefs = storeRefs.map((r, idx) => ({
+    id: r.id || `REF-2026-${coupleId.toUpperCase()}-${String(idx + 1).padStart(3, '0')}`,
+    destination: r.destination,
+    facility: r.facility || facilityMap[r.destination] || 'Cleveland Clinic Abu Dhabi · Fertility Center',
+    priority: r.priority || 'high',
+    reason: r.reason,
+    status: r.status || 'dispatched',
+    dispatchedAt: r.dispatchedAt || r.t || new Date().toISOString(),
+    t: r.t || new Date().toISOString(),
+  }));
+
+  const mergedReferrals = (storedPlan?.referrals && storedPlan.referrals.length > 0)
+    ? storedPlan.referrals
+    : formattedStoreRefs.length > 0
+    ? formattedStoreRefs
+    : (base.referrals || []);
+
   if (sessionCompleted && connectionMade && onboardingDone) {
     items.add('appointment_booking');
     items.add('counsellor_recommendations');
     items.add('approved_care_plan');
     items.add('follow_up_referrals');
   } else {
-    items.delete('counsellor_recommendations');
-    items.delete('approved_care_plan');
-    items.delete('follow_up_referrals');
     if (onboardingDone && connectionMade) {
       items.add('appointment_booking');
     } else {
       items.delete('appointment_booking');
     }
+    if (counsellorApproved || hasReferrals) {
+      items.add('counsellor_recommendations');
+    } else {
+      items.delete('counsellor_recommendations');
+    }
+    if (counsellorApproved) {
+      items.add('approved_care_plan');
+    } else {
+      items.delete('approved_care_plan');
+    }
+    if (hasReferrals) {
+      items.add('follow_up_referrals');
+    } else {
+      items.delete('follow_up_referrals');
+    }
   }
 
   // 4. "...and depending on the user choice(after counselling) family planing"
-  if (base.familyPlanningChoice && sessionCompleted) {
+  if (base.familyPlanningChoice && (sessionCompleted || counsellorApproved || hasReferrals)) {
     items.add('chosen_conception_pathway');
     if (base.familyPlanningChoice === 'planning_to_conceive') {
       items.add('pgtm_coordination');
@@ -305,9 +346,10 @@ export function getCoupleCarePlan(coupleId = 'c1') {
 
   return {
     ...base,
+    referrals: mergedReferrals,
     completedItems: Array.from(items),
     activeStageId: activeStage,
-    counsellingCompleted: !!sessionCompleted,
+    counsellingCompleted: !!(sessionCompleted || counsellorApproved || hasReferrals),
     pregnancy: {
       ...(base.pregnancy || {}),
       isPregnant: !!pregnancyConfirmed,

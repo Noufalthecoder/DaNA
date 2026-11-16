@@ -100,16 +100,60 @@ export default function PersonalisedPlanTracker() {
 
   // Reactive plan state from store or service
   const storePlans = useStore((s) => s.carePlans);
+  const storeReferrals = useStore((s) => s.referrals);
   const plan = useMemo(() => {
-    return storePlans?.[cid] || getCoupleCarePlan(cid);
-  }, [storePlans, cid]);
+    const basePlan = storePlans?.[cid] || getCoupleCarePlan(cid);
+    const liveRefs = storeReferrals?.[cid] || [];
+    if (liveRefs.length > 0) {
+      const existingIds = new Set((basePlan.referrals || []).map((r) => r.id));
+      const merged = [
+        ...liveRefs.filter((r) => !existingIds.has(r.id)),
+        ...(basePlan.referrals || []),
+      ];
+      return {
+        ...basePlan,
+        referrals: merged.length > 0 ? merged : basePlan.referrals,
+        completedItems: Array.from(new Set([...(basePlan.completedItems || []), 'follow_up_referrals'])),
+        counsellingCompleted: true,
+      };
+    }
+    return basePlan;
+  }, [storePlans, storeReferrals, cid]);
 
   const progress = useMemo(() => computeCarePlanProgress(plan), [plan]);
 
-  // All 7 stages unlocked for complete exploration & demonstration:
-  const isStage3Confirmed = true;
-  const isPregnancyUnlocked = true;
-  const isBirthUnlocked = true;
+  // Section availability / milestone gates:
+  // 1. Stage 3 (Genetic Counselling) Confirmation:
+  // Once Stage 3 is confirmed (counselling completed, plan approved, or referrals dispatched), specialist referrals & family planning unlock.
+  const isStage3Confirmed = useMemo(() => {
+    return (
+      (plan.activeStageId || 1) >= 4 ||
+      plan.counsellingCompleted === true ||
+      (plan.referrals && plan.referrals.length > 0) ||
+      (storeReferrals?.[cid] && storeReferrals[cid].length > 0) ||
+      plan.completedItems?.includes('approved_care_plan') ||
+      plan.completedItems?.includes('follow_up_referrals') ||
+      plan.completedItems?.includes('plan_approved') ||
+      plan.completedItems?.includes('referral_coordinated')
+    );
+  }, [plan.activeStageId, plan.counsellingCompleted, plan.referrals, storeReferrals, cid, plan.completedItems]);
+
+  const isPregnancyUnlocked = useMemo(() => {
+    return (
+      (plan.activeStageId || 1) >= 5 ||
+      !!plan.pregnancy?.isPregnant ||
+      plan.familyPlanningChoice === 'pregnant' ||
+      !!plan.completedItems?.includes('pregnancy_confirmation')
+    );
+  }, [plan.activeStageId, plan.pregnancy?.isPregnant, plan.familyPlanningChoice, plan.completedItems]);
+
+  const isBirthUnlocked = useMemo(() => {
+    return (
+      (plan.activeStageId || 1) >= 6 ||
+      !!plan.childbirth?.delivered ||
+      !!plan.completedItems?.includes('birth_details')
+    );
+  }, [plan.activeStageId, plan.childbirth?.delivered, plan.completedItems]);
 
   // Section navigation state
   const [activeSection, setActiveSection] = useState('lifecycle');
@@ -137,6 +181,7 @@ export default function PersonalisedPlanTracker() {
   const [showPregnancyModal, setShowPregnancyModal] = useState(false);
   const [showBirthModal, setShowBirthModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [selectedPrintReferral, setSelectedPrintReferral] = useState(null);
 
   // Form states
   const [pregWeeks, setPregWeeks] = useState(plan.pregnancy?.weeks || 12);
@@ -824,9 +869,9 @@ export default function PersonalisedPlanTracker() {
                 {completedActions.referral_check ? <CheckCircle2 size={20} color="#16A34A" /> : <Circle size={20} color="#94A3B8" />}
               </button>
               <div style={{ flex: 1 }}>
-                <b className="cpt-action-title">3. Confirm Cleveland Clinic Abu Dhabi Referral</b>
+                <b className="cpt-action-title">3. Confirm {plan.referrals?.[0]?.facility || 'Cleveland Clinic Abu Dhabi'} Referral</b>
                 <p className="cpt-action-desc">
-                  Requisition <b>#REF-2026-HBB-041</b> dispatched to Malaffi HIE for the IVF & PGT-M Unit. Download clinical summary slip for your intake visit.
+                  Requisition <b>#{plan.referrals?.[0]?.id || 'REF-2026-HBB-041'}</b> dispatched to Malaffi HIE for {plan.referrals?.[0]?.destination || 'the IVF & PGT-M Unit'}. Download clinical summary slip for your intake visit.
                 </p>
               </div>
             </div>
@@ -918,37 +963,55 @@ export default function PersonalisedPlanTracker() {
 
           {/* Specialist Referral Card: ONLY available once Stage 3 is confirmed & completed */}
           {isStage3Confirmed ? (
-            <div className="cpt-detail-card">
-              <div className="cpt-card-top-badge">
-                <Hospital size={16} color="#2563EB" />
-                <span>Specialist Genomics Referral</span>
-                <Badge tone="blue">Dispatched</Badge>
-              </div>
+            ((plan.referrals && plan.referrals.length > 0) ? plan.referrals : [{
+              id: 'REF-2026-HBB-041',
+              facility: 'Cleveland Clinic Abu Dhabi · Fertility Center',
+              destination: 'IVF with PGT-M (Embryo Testing)',
+              priority: 'high',
+              reason: 'Both partners confirmed carriers of pathogenic HBB beta-globin gene mutations (c.20A>T & c.92+1G>A).',
+              status: 'dispatched',
+            }]).map((r, idx, arr) => (
+              <div key={r.id || idx} className="cpt-detail-card" style={{ marginTop: idx > 0 ? 14 : 0 }}>
+                <div className="cpt-card-top-badge">
+                  <Hospital size={16} color="#2563EB" />
+                  <span>Specialist Genomics Referral {arr.length > 1 ? `(${idx + 1}/${arr.length})` : ''}</span>
+                  <Badge tone={r.status === 'dispatched' || r.status === 'sent' || r.status === 'DISPATCHED' ? 'blue' : 'green'}>
+                    {r.status ? (r.status.charAt(0).toUpperCase() + r.status.slice(1).toLowerCase()) : 'Dispatched'}
+                  </Badge>
+                </div>
 
-              <h4 className="cpt-card-h4">Cleveland Clinic Abu Dhabi · Fertility Center</h4>
-              <dl className="cpt-dl">
-                <dt>Service Destination</dt>
-                <dd><b>IVF with PGT-M (Embryo Testing)</b></dd>
-                <dt>Requisition Ref</dt>
-                <dd><code>{plan.referrals?.[0]?.id || 'REF-2026-HBB-041'}</code></dd>
-                <dt>Clinical Priority</dt>
-                <dd><Badge tone="amber">High Priority (Carrier Match)</Badge></dd>
-                <dt>Clinical Indication</dt>
-                <dd>Both partners confirmed carriers of pathogenic <i>HBB</i> beta-globin gene mutations ({'c.20A>T'} &amp; {'c.92+1G>A'}).</dd>
-                <dt>HIE Integration</dt>
-                <dd>Dispatched through Malaffi · Confirmed received by facility</dd>
-              </dl>
+                <h4 className="cpt-card-h4">{r.facility || 'Cleveland Clinic Abu Dhabi · Fertility Center'}</h4>
+                <dl className="cpt-dl">
+                  <dt>Service Destination</dt>
+                  <dd><b>{r.destination || 'IVF with PGT-M (Embryo Testing)'}</b></dd>
+                  <dt>Requisition Ref</dt>
+                  <dd><code>{r.id || 'REF-2026-HBB-041'}</code></dd>
+                  <dt>Clinical Priority</dt>
+                  <dd>
+                    <Badge tone={r.priority === 'urgent' ? 'red' : r.priority === 'high' ? 'amber' : 'blue'}>
+                      {r.priority ? (r.priority.charAt(0).toUpperCase() + r.priority.slice(1) + ' Priority') : 'High Priority (Carrier Match)'}
+                    </Badge>
+                  </dd>
+                  <dt>Clinical Indication</dt>
+                  <dd>{r.reason || 'Both partners confirmed carriers of pathogenic HBB beta-globin gene mutations (c.20A>T & c.92+1G>A).'}</dd>
+                  <dt>HIE Integration</dt>
+                  <dd>Dispatched through Malaffi · Confirmed received by facility</dd>
+                </dl>
 
-              <div style={{ marginTop: 14, display: 'flex', gap: 10 }}>
-                <button
-                  type="button"
-                  className="btn-clean-sm btn-green-subtle"
-                  onClick={() => setShowPrintModal(true)}
-                >
-                  <Printer size={13} /> Print Referral Slip
-                </button>
+                <div style={{ marginTop: 14, display: 'flex', gap: 10 }}>
+                  <button
+                    type="button"
+                    className="btn-clean-sm btn-green-subtle"
+                    onClick={() => {
+                      setSelectedPrintReferral(r);
+                      setShowPrintModal(true);
+                    }}
+                  >
+                    <Printer size={13} /> Print Referral Slip
+                  </button>
+                </div>
               </div>
-            </div>
+            ))
           ) : (
             <div className="cpt-detail-card cpt-detail-card-pending">
               <div className="cpt-card-top-badge">
@@ -1446,86 +1509,101 @@ export default function PersonalisedPlanTracker() {
       )}
 
       {/* ─── Printable Summary Modal ─── */}
-      {showPrintModal && (
-        <Dialog
-          title="Clinical Referral & Care Plan Slip"
-          onClose={() => setShowPrintModal(false)}
-          wide
-          footer={
-            <>
-              <button type="button" className="btn-line" onClick={() => setShowPrintModal(false)}>
-                Close
-              </button>
-              <button type="submit" className="btn btn-green-primary" onClick={handlePrint}>
-                <Printer size={15} /> Print / Save PDF
-              </button>
-            </>
-          }
-        >
-          <div className="cpt-print-slip" id="care-plan-print">
-            <div className="cpt-slip-header">
-              <div>
-                <h3 style={{ margin: 0, fontSize: 18, color: '#00843D' }}>DaNA · برنامج الرعاية الوراثية الشاملة</h3>
-                <small style={{ color: '#64748B' }}>Department of Health Abu Dhabi · Malaffi HIE Integrated Dossier</small>
+      {showPrintModal && (() => {
+        const printRef = selectedPrintReferral || plan.referrals?.[0];
+        return (
+          <Dialog
+            title="Clinical Referral & Care Plan Slip"
+            onClose={() => {
+              setShowPrintModal(false);
+              setSelectedPrintReferral(null);
+            }}
+            wide
+            footer={
+              <>
+                <button type="button" className="btn-line" onClick={() => {
+                  setShowPrintModal(false);
+                  setSelectedPrintReferral(null);
+                }}>
+                  Close
+                </button>
+                <button type="submit" className="btn btn-green-primary" onClick={handlePrint}>
+                  <Printer size={15} /> Print / Save PDF
+                </button>
+              </>
+            }
+          >
+            <div className="cpt-print-slip" id="care-plan-print">
+              <div className="cpt-slip-header">
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 18, color: '#00843D' }}>DaNA · برنامج الرعاية الوراثية الشاملة</h3>
+                  <small style={{ color: '#64748B' }}>Department of Health Abu Dhabi · Malaffi HIE Integrated Dossier</small>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontWeight: 700, fontSize: 14 }}>Ref: {printRef?.id || 'REF-2026-HBB-041'}</span>
+                  <br />
+                  <small style={{ color: '#64748B' }}>Generated: {new Date().toLocaleDateString('en-GB')}</small>
+                </div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <span style={{ fontWeight: 700, fontSize: 14 }}>Ref: {plan.referrals?.[0]?.id || 'REF-2026-HBB-041'}</span>
-                <br />
-                <small style={{ color: '#64748B' }}>Generated: {new Date().toLocaleDateString('en-GB')}</small>
-              </div>
-            </div>
 
-            <hr style={{ border: 'none', borderTop: '1px solid #E2E8F0', margin: '14px 0' }} />
+              <hr style={{ border: 'none', borderTop: '1px solid #E2E8F0', margin: '14px 0' }} />
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, fontSize: 13 }}>
-              <div>
-                <span style={{ color: '#64748B' }}>Couple:</span><br />
-                <b>{me?.name || 'Khalid Al Mansoori'}</b> & <b>{partner?.name || 'Fatima Al Hammadi'}</b>
-              </div>
-              <div>
-                <span style={{ color: '#64748B' }}>Identified Condition & Risk:</span><br />
-                <b>{plan.condition}</b> · Tier {plan.tier}
-              </div>
-              <div>
-                <span style={{ color: '#64748B' }}>Assigned Counsellor:</span><br />
-                <b>{plan.counsellor}</b> (Licensed Clinical Geneticist)
-              </div>
-              <div>
-                <span style={{ color: '#64748B' }}>Declared Reproductive Pathway:</span><br />
-                <b>{plan.reproductivePathway?.selected || 'IVF with PGT-M'}</b> (Counsellor Approved)
-              </div>
-              <div>
-                <span style={{ color: '#64748B' }}>Destination Clinical Center:</span><br />
-                <b>{plan.referrals?.[0]?.facility || 'Cleveland Clinic Abu Dhabi'}</b>
-              </div>
-              <div>
-                <span style={{ color: '#64748B' }}>Current Journey Stage:</span><br />
-                <b>Stage {plan.activeStageId || 3}: {CARE_PLAN_STAGES.find((s) => s.id === (plan.activeStageId || 3))?.title}</b>
-              </div>
-            </div>
-
-            <h4 style={{ margin: '18px 0 8px 0', fontSize: 14, color: '#17201B' }}>7-Stage Care Roadmap Overview</h4>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, fontSize: 11.5 }}>
-              {CARE_PLAN_STAGES.map((s) => {
-                const sItems = s.items.map((i) => i.id);
-                const sDone = sItems.filter((id) => (plan.completedItems || []).includes(id)).length;
-                return (
-                  <div key={s.id} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: 8, borderRadius: 6 }}>
-                    <b>Stage {s.id}: {s.title}</b><br />
-                    <span style={{ color: sDone === s.items.length ? '#16A34A' : '#64748B' }}>
-                      {sDone === s.items.length ? '✓ Completed' : `${sDone}/${s.items.length} items`}
-                    </span>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, fontSize: 13 }}>
+                <div>
+                  <span style={{ color: '#64748B' }}>Couple:</span><br />
+                  <b>{me?.name || 'Khalid Al Mansoori'}</b> & <b>{partner?.name || 'Fatima Al Hammadi'}</b>
+                </div>
+                <div>
+                  <span style={{ color: '#64748B' }}>Identified Condition & Risk:</span><br />
+                  <b>{plan.condition}</b> · Tier {plan.tier}
+                </div>
+                <div>
+                  <span style={{ color: '#64748B' }}>Assigned Counsellor:</span><br />
+                  <b>{plan.counsellor}</b> (Licensed Clinical Geneticist)
+                </div>
+                <div>
+                  <span style={{ color: '#64748B' }}>Clinical Referral Destination:</span><br />
+                  <b>{printRef?.destination || plan.reproductivePathway?.selected || 'IVF with PGT-M'}</b>
+                </div>
+                <div>
+                  <span style={{ color: '#64748B' }}>Destination Clinical Center:</span><br />
+                  <b>{printRef?.facility || 'Cleveland Clinic Abu Dhabi'}</b>
+                </div>
+                <div>
+                  <span style={{ color: '#64748B' }}>Current Journey Stage:</span><br />
+                  <b>Stage {plan.activeStageId || 3}: {CARE_PLAN_STAGES.find((s) => s.id === (plan.activeStageId || 3))?.title}</b>
+                </div>
+                {printRef?.reason && (
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <span style={{ color: '#64748B' }}>Clinical Referral Reason & Indication:</span><br />
+                    <b>{printRef.reason}</b>
                   </div>
-                );
-              })}
-            </div>
+                )}
+              </div>
 
-            <p style={{ marginTop: 18, fontSize: 11, color: '#64748B', lineHeight: 1.5 }}>
-              * This clinical care plan is an authorized summary from the DaNA premarital genetic platform. It is valid for presentation at accredited UAE IVF centers, fetal medicine units, and maternity hospitals. All genomic records are governed under UAE Federal Decree-Law No. 49 of 2023.
-            </p>
-          </div>
-        </Dialog>
-      )}
+              <h4 style={{ margin: '18px 0 8px 0', fontSize: 14, color: '#17201B' }}>7-Stage Care Roadmap Overview</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, fontSize: 11.5 }}>
+                {CARE_PLAN_STAGES.map((s) => {
+                  const sItems = s.items.map((i) => i.id);
+                  const sDone = sItems.filter((id) => (plan.completedItems || []).includes(id)).length;
+                  return (
+                    <div key={s.id} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: 8, borderRadius: 6 }}>
+                      <b>Stage {s.id}: {s.title}</b><br />
+                      <span style={{ color: sDone === s.items.length ? '#16A34A' : '#64748B' }}>
+                        {sDone === s.items.length ? '✓ Completed' : `${sDone}/${s.items.length} items`}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p style={{ marginTop: 18, fontSize: 11, color: '#64748B', lineHeight: 1.5 }}>
+                * This clinical care plan is an authorized summary from the DaNA premarital genetic platform. It is valid for presentation at accredited UAE IVF centers, fetal medicine units, and maternity hospitals. All genomic records are governed under UAE Federal Decree-Law No. 49 of 2023.
+              </p>
+            </div>
+          </Dialog>
+        );
+      })()}
     </Page>
   );
 }
