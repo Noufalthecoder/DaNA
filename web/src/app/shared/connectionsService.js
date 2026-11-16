@@ -579,6 +579,39 @@ export async function syncRequestsFromSupabase(userId, userEmail = null, userAut
       }
     }
 
+    // Live: the server list is the truth, one entry per request id. A pair can have an old
+    // CANCELLED/REJECTED request and a new PENDING one; matching by sender+receiver used to merge them.
+    if (live && !error && Array.isArray(data)) {
+      const state = get();
+      const rows = data.map((row) => ({
+        id: row.id,
+        senderId: row.sender_id,
+        receiverId: row.incoming ? userId : row.receiver_id,
+        channel: row.channel || 'in_app',
+        recipientEmail: row.recipient_email,
+        status: row.status || 'PENDING',
+        note: row.note,
+        accepted: row.accepted,
+        acceptedAt: row.accepted_at,
+        respondedAt: row.accepted_at || row.updated_at || null,
+        createdAt: row.created_at || new Date().toISOString(),
+      }));
+      const notifs = state.notifications || [];
+      const fresh = rows.filter((r) => r.receiverId === userId && r.status === 'PENDING'
+        && !notifs.some((n) => n.requestId === r.id));
+      set({
+        connectionRequests: rows,
+        ...(fresh.length ? {
+          notifications: [...fresh.map((r) => ({
+            id: generateUuid(), requestId: r.id, userId, actorId: r.senderId, type: 'CONNECTION_REQUEST',
+            title: 'New connection request', body: `${PEOPLE[r.senderId]?.name || 'Someone'} sent you a connection request.`,
+            link: '/app/connections?tab=requests', isRead: false, createdAt: r.createdAt,
+          })), ...notifs],
+        } : {}),
+      });
+      return;
+    }
+
     if (!error && Array.isArray(data) && data.length > 0) {
       const state = get();
       const existing = state.connectionRequests || [];
