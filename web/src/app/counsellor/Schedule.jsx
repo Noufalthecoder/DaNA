@@ -467,36 +467,30 @@ export default function Schedule() {
         </div>
       </div>
 
-      {/* Pending Requests Alert Notification */}
-      {pendingRequests.length > 0 && (
-        <div className="appt-pending-notification-bar">
+      {/* Pending Requests Alert Notifications — One alert per request */}
+      {pendingRequests.map((req) => (
+        <div key={req.id} className="appt-pending-notification-bar">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span className="appt-pulsing-amber-dot" />
             <span style={{ fontSize: 13.5, fontWeight: 700, color: '#92400E' }}>
-              {pendingRequests.length} Appointment Request{pendingRequests.length > 1 ? 's' : ''} Awaiting Confirmation
-            </span>
-            <span style={{ fontSize: 13, color: '#B45309' }}>
-              — Patient awaiting clinical review and verification
+              1 Appointment Request Awaiting Confirmation
             </span>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            {pendingRequests.map((req) => (
-              <button
-                key={req.id}
-                type="button"
-                className="btn-review-request"
-                onClick={() => {
-                  setSelectedDateStr(req.date);
-                  setDrawerAppt(req);
-                  setSidePanelOpen(true);
-                }}
-              >
-                Review {req.who} ({req.date.slice(5)}) →
-              </button>
-            ))}
+          <div>
+            <button
+              type="button"
+              className="btn-review-request"
+              onClick={() => {
+                setSelectedDateStr(req.date);
+                setDrawerAppt(req);
+                setSidePanelOpen(true);
+              }}
+            >
+              Review {req.who} ({req.date.slice(5)}) →
+            </button>
           </div>
         </div>
-      )}
+      ))}
 
       {/* ─── Main Workspace: Calendar Left + Side Panel Right (Image 2) ─── */}
       <div className="appt-workspace">
