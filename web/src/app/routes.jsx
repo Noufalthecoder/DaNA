@@ -22,6 +22,7 @@ import Queue from './counsellor/Queue.jsx';
 import CaseView from './counsellor/CaseView.jsx';
 import Schedule from './counsellor/Schedule.jsx';
 import Overview from './admin/Overview.jsx';
+import Coverage from './admin/Coverage.jsx';
 import Content from './admin/Content.jsx';
 import Audit from './admin/Audit.jsx';
 import Settings from './settings/Settings.jsx';
@@ -95,6 +96,7 @@ export const MENUS = {
     label: 'DoH admin',
     items: [
       { to: '/app', label: 'Overview', icon: <OverviewIcon /> },
+      { to: '/app/coverage', label: 'Counsellors & areas', icon: <CounsellorIcon /> },
       { to: '/app/security', label: 'Security Console', icon: <PrivacyIcon /> },
       { to: '/app/content', label: 'Content review', icon: <ContentIcon /> },
       { to: '/app/audit', label: 'Audit log', icon: <AuditIcon /> },
@@ -172,7 +174,7 @@ export function page(role, path) {
     return { '/app': <Queue />, '/app/schedule': <Schedule />, '/app/settings': <Settings /> }[clean] || null;
   }
   if (role === 'admin') {
-    return securityRoutes[clean] || { '/app': <Overview />, '/app/content': <Content />, '/app/audit': <Audit />, '/app/settings': <Settings /> }[clean] || null;
+    return securityRoutes[clean] || { '/app': <Overview />, '/app/content': <Content />, '/app/audit': <Audit />, '/app/coverage': <Coverage />, '/app/settings': <Settings /> }[clean] || null;
   }
   if (role === 'content_reviewer') {
     return { '/app': <Content />, '/app/settings': <Settings /> }[clean] || null;

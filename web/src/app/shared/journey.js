@@ -4,8 +4,7 @@
 import { useStore, EMPTY_OBJ, EMPTY_ARR } from './store.js';
 
 export const STEPS = [
-  { key: 'profile',  label: 'Your profile' },
-  { key: 'malaffi',  label: 'Consent & results' },
+  // profile, UAE PASS, consent, details and Malaffi results happen in onboarding, before the app
   { key: 'result',   label: 'Result & report' },
   { key: 'together', label: 'Couple result' },
   { key: 'options',  label: 'Choose together' },
@@ -77,7 +76,7 @@ export function useJourney() {
   // verified = allowed into the app: profile, UAE PASS identity, consent, details and a real Malaffi result.
   // No shortcuts from older flows; withdrawing consent sends the person back to onboarding.
   const verified = !tracked || (
-    !session?.needsProfile && session?.sexConfirmed !== false && !!session?.uaepassLinked && !!session?.malaffiConsent
+    !session?.needsProfile && session?.sexConfirmed !== false && !!session?.uaepassLinked && !!session?.malaffiConsent && !!session?.consentScopes?.identity && !!session?.consentScopes?.results
     && !!session?.details && isRealReport(reports[session?.id]));
   return { steps, current, next, live, linked, done, verified };
 }

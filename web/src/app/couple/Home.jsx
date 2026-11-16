@@ -112,7 +112,8 @@ export default function Home() {
     <Page
       title={`Welcome, ${me.short}`}
       sub={
-        `You and ${partner.short} · ${waiting ? 'waiting for lab results' : 'premarital screening'}`
+        !journey.linked ? 'Your premarital screening · link your partner to see your couple result'
+          : `You and ${partner.short} · ${waiting ? 'waiting for lab results' : 'premarital screening'}`
       }
     >
       <Journey />
@@ -124,11 +125,17 @@ export default function Home() {
               <>
                 <Badge tone="grey">Waiting for results</Badge>
                 <p>
-                  You: <b>{mine ? 'received ✓' : 'not fetched yet'}</b> · {partner.short}: <b>{theirs ? 'received ✓' : 'not fetched yet'}</b>
+                  You: <b>{mine ? 'received ✓' : 'not fetched yet'}</b>{journey.linked && <> · {partner.short}: <b>{theirs ? 'received ✓' : 'not fetched yet'}</b></>}
                 </p>
-                {!mine
-                  ? <p className="muted">Give your consent in the journey box above to fetch your results.</p>
-                  : <p className="muted">We'll show your couple result as soon as {partner.short}'s report arrives.</p>}
+                {!journey.linked ? (
+                  <>
+                    <p className="muted">Screening is done as a couple: the chance for a child depends on both of you. Link your partner to see your couple result.</p>
+                    <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <a className="btn" href="#/app/connections">Link your partner</a>
+                      <a href="#/app/result">See my own result →</a>
+                    </div>
+                  </>
+                ) : <p className="muted">We'll show your couple result as soon as {partner.short}'s report arrives.</p>}
                 {err && <p className="err">{err}</p>}
               </>
             ) : (

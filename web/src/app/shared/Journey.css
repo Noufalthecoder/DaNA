@@ -1,13 +1,13 @@
-/* Compact 7-Stage Lifecycle Overview Styles (Matches Image 1) */
+/* Compact 7-Stage Lifecycle Overview Styles (Light theme matching DaNA design system) */
 
 .lifecycle-card {
-  background: #0B0F17;
-  color: #FFFFFF;
-  border: 1px solid #1E293B;
+  background: #FFFFFF;
+  color: var(--ink, #17201B);
+  border: 1px solid var(--line, #E2E8F0);
   border-radius: 18px;
   padding: 24px 26px;
   margin-bottom: 24px;
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
 .lifecycle-header {
@@ -22,20 +22,25 @@
 .lifecycle-title {
   font-size: 18px;
   font-weight: 700;
-  color: #FFFFFF;
+  color: var(--ink, #0F172A);
   margin: 0;
   letter-spacing: -0.01em;
 }
 
 .lifecycle-counter {
-  font-size: 13px;
-  font-weight: 500;
-  color: #94A3B8;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #475569;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
 }
 
 /* Stepper */
 .lifecycle-stepper-wrap {
-  margin-bottom: 28px;
+  margin-bottom: 26px;
   overflow-x: auto;
   padding-bottom: 4px;
 }
@@ -59,7 +64,7 @@
   left: 24px;
   right: 24px;
   height: 2px;
-  background: #1E293B;
+  background: #E2E8F0;
   z-index: 1;
 }
 
@@ -74,7 +79,7 @@
 }
 
 .lifecycle-circle-wrap {
-  background: #0B0F17;
+  background: #FFFFFF;
   padding: 0 6px;
   margin-bottom: 8px;
 }
@@ -88,15 +93,18 @@
   justify-content: center;
   font-size: 13px;
   font-weight: 700;
-  background: #1E293B;
-  color: #64748B;
+  background: #F8FAFC;
+  color: #94A3B8;
+  border: 1.5px solid #E2E8F0;
   transition: all 0.2s ease;
 }
 
 /* Step States */
 .lifecycle-step.is-done .lifecycle-circle {
-  background: #10B981;
+  background: #00843D;
   color: #FFFFFF;
+  border: 2px solid #00843D;
+  box-shadow: 0 2px 6px rgba(0, 132, 61, 0.25);
 }
 
 .lifecycle-check {
@@ -109,14 +117,14 @@
   background: #FFFFFF;
   color: #00843D;
   border: 2.5px solid #00843D;
-  box-shadow: 0 0 0 4px rgba(0, 132, 61, 0.25);
+  box-shadow: 0 0 0 4px rgba(0, 132, 61, 0.15);
   font-size: 14px;
 }
 
 .lifecycle-step.is-upcoming .lifecycle-circle {
-  background: #131A26;
-  color: #64748B;
-  border: 1px solid #1E293B;
+  background: #F8FAFC;
+  color: #94A3B8;
+  border: 1.5px solid #E2E8F0;
 }
 
 .lifecycle-label {
@@ -127,31 +135,32 @@
 }
 
 .lifecycle-step.is-done .lifecycle-label {
-  color: #94A3B8;
+  color: #334155;
+  font-weight: 600;
 }
 
 .lifecycle-step.is-current .lifecycle-label {
-  color: #10B981;
+  color: #00843D;
   font-weight: 700;
 }
 
 /* Current Stage Box */
 .lifecycle-current-box {
-  border-top: 1px solid #1E293B;
+  border-top: 1px solid #E2E8F0;
   padding-top: 20px;
 }
 
 .lifecycle-current-h3 {
   font-size: 16px;
   font-weight: 700;
-  color: #FFFFFF;
+  color: var(--ink, #0F172A);
   margin: 0 0 6px 0;
 }
 
 .lifecycle-current-p {
   font-size: 14px;
-  line-height: 1.5;
-  color: #94A3B8;
+  line-height: 1.55;
+  color: #475569;
   margin: 0 0 20px 0;
   max-width: 720px;
 }
@@ -168,23 +177,23 @@
   justify-content: center;
   gap: 8px;
   width: 100%;
-  background: #FFFFFF !important;
-  color: #0B0F17 !important;
+  background: #00843D !important;
+  color: #FFFFFF !important;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 14.5px;
   padding: 13px 24px;
   border-radius: 9999px;
   text-decoration: none;
   transition: all 0.15s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 132, 61, 0.25);
 }
 
 .lifecycle-open-btn:hover,
 .lifecycle-card a.lifecycle-open-btn:hover {
-  background: #F1F5F9 !important;
-  color: #000000 !important;
+  background: #006B31 !important;
+  color: #FFFFFF !important;
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 14px rgba(0, 132, 61, 0.35);
 }
 
 .lifecycle-btn-arr {
@@ -200,8 +209,8 @@
 .lifecycle-onboarding-inline {
   margin-top: 20px;
   padding: 16px;
-  background: #131A26;
-  border: 1px dashed #334155;
+  background: #F8FAFC;
+  border: 1px dashed #CBD5E1;
   border-radius: 12px;
 }
 
