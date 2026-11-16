@@ -39,3 +39,13 @@
 .as-verr{margin:0;padding:8px 14px 0;font-size:12.5px;color:#B26A00}
 .as-input{align-items:center}
 .as-input input{min-width:0}
+
+.as-voice{margin-top:8px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.as-play{background:#E8F3EC;border:0;border-radius:999px;padding:5px 12px;color:#00843D;font:700 12.5px var(--body);cursor:pointer}
+.as-play:hover{background:#D5EBDD}
+.as-play.on{background:#00843D;color:#fff}
+.as-langs{display:flex;gap:6px;flex-wrap:wrap}
+.as-langs button{border:1.5px solid #00843D;background:#fff;color:#00843D;border-radius:999px;padding:5px 12px;font:700 13px var(--body);cursor:pointer}
+.as-langs button:hover{background:#00843D;color:#fff}
+.as-note{color:#B26A00;font-size:12px}
+.as-msg [dir=rtl]{text-align:right;font-size:15.5px;line-height:1.7}

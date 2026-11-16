@@ -128,19 +128,19 @@ export function headline(lang, status, gene) {
   const c = (gene && COND[gene]?.[lang]) || '';
   const H = {
     en: {
-      clear: ['No risk found in the genes we checked', 'You are not a carrier of any condition on the 570-gene premarital panel.'],
+      clear: ['No changes found in the genes we checked', 'You are not a carrier of any condition on the 570-gene premarital panel.'],
       carrier: [`You are healthy: a carrier of ${c}`, 'Carriers are healthy. It matters for children only if your partner carries a change in the same gene.'],
       xl_female: [`You are healthy: a carrier of ${c}`, 'This change is on the X chromosome. Women who carry it are usually healthy; it can matter for sons.'],
       xl_male: [`You may have ${c}`, `Men with this change usually have ${c} themselves. Your counsellor will confirm it and explain what it means.`],
     },
     ar: {
-      clear: ['لم يُعثر على خطر في الجينات التي فحصناها', 'أنت لست حاملاً لأي حالة من حالات لوحة الفحص قبل الزواج (570 جيناً).'],
+      clear: ['لم يُعثر على تغيّرات في الجينات التي فحصناها', 'أنت لست حاملاً لأي حالة من حالات لوحة الفحص قبل الزواج (570 جيناً).'],
       carrier: [`أنت سليم: حامل لصفة ${c}`, 'حاملو الصفة أصحاء. ولا يهم ذلك للأطفال إلا إذا كان شريكك يحمل تغيّراً في الجين نفسه.'],
       xl_female: [`أنتِ سليمة: حاملة لصفة ${c}`, 'هذا التغيّر على الكروموسوم X. النساء الحاملات له سليمات عادةً، وقد يؤثر على الأبناء الذكور.'],
       xl_male: [`قد تكون مصاباً بـ ${c}`, `الرجال الذين لديهم هذا التغيّر يكونون عادةً مصابين بـ ${c}. سيؤكد المستشار ذلك ويشرح معناه.`],
     },
     ur: {
-      clear: ['جانچے گئے جینز میں کوئی خطرہ نہیں ملا', 'آپ شادی سے پہلے کے 570 جینز کے پینل کی کسی بیماری کے کیریئر نہیں ہیں۔'],
+      clear: ['جانچے گئے جینز میں کوئی تبدیلی نہیں ملی', 'آپ شادی سے پہلے کے 570 جینز کے پینل کی کسی بیماری کے کیریئر نہیں ہیں۔'],
       carrier: [`آپ صحت مند ہیں: ${c} کے کیریئر`, 'کیریئر صحت مند ہوتے ہیں۔ بچوں کے لیے یہ تبھی اہم ہے جب آپ کے شریکِ حیات میں بھی اسی جین میں تبدیلی ہو۔'],
       xl_female: [`آپ صحت مند ہیں: ${c} کی کیریئر`, 'یہ تبدیلی X کروموسوم پر ہے۔ اسے رکھنے والی خواتین عام طور پر صحت مند ہوتی ہیں؛ بیٹوں کے لیے اہم ہو سکتی ہے۔'],
       xl_male: [`آپ کو ${c} ہو سکتی ہے`, `اس تبدیلی والے مرد عام طور پر خود ${c} رکھتے ہیں۔ آپ کا کونسلر تصدیق کرے گا اور وضاحت کرے گا۔`],
