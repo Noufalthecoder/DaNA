@@ -223,10 +223,6 @@ export default function Counsellor() {
                 </div>
               </div>
 
-              <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: 13, color: '#64748B', display: 'block' }}>Assigned Counsellor</span>
-                <b style={{ fontSize: 14.5, color: '#0F172A' }}>{activeAppt.doctor || counsellorName}</b>
-              </div>
             </div>
 
             {/* Key details grid */}
@@ -323,17 +319,7 @@ export default function Counsellor() {
                       {copySuccess ? 'Copied' : 'Copy meeting link'}
                     </button>
 
-                    {activeAppt.confirmed === false || activeAppt.priority === 'pending' ? (
-                      <button
-                        type="button"
-                        className="patient-btn-join disabled"
-                        disabled
-                        title="Meeting link will activate once confirmed by counsellor"
-                      >
-                        <Clock size={15} />
-                        Awaiting Counsellor Acceptance
-                      </button>
-                    ) : (
+                    {activeAppt.confirmed === false || activeAppt.priority === 'pending' ? null : (
                       <a
                         href={activeAppt.meetLink || 'https://meet.google.com/dan-prem-103'}
                         target="_blank"

@@ -13,6 +13,7 @@ import { Brand } from './app/shared/Logo.jsx';
 import { watchAuth, signOut as supabaseSignOut } from './app/shared/supabase.js';
 import { loadAll } from './app/shared/db.js';
 import MyReport from './app/couple/MyReport.jsx';
+import { MyCoupleReport, CaseCoupleReport } from './app/shared/CoupleReportPage.jsx';
 import { isLinked, NEEDS_PARTNER, useJourney } from './app/shared/journey.js';
 import { isUserScreened } from './app/shared/screeningPersistence.js';
 import Onboarding from './app/onboarding/Onboarding.jsx';
@@ -171,6 +172,23 @@ export default function Root() {
       return (
         <ErrorBoundary>
           <MyReport />
+        </ErrorBoundary>
+      );
+    }
+
+    // combined couple report: standalone page so it prints cleanly (the couple's copy and the counsellor's copy)
+    if (isCouple && path === '/app/bonds/report') {
+      return (
+        <ErrorBoundary>
+          <MyCoupleReport />
+        </ErrorBoundary>
+      );
+    }
+    const caseReport = /^\/app\/case\/([^/]+)\/report$/.exec(path || '');
+    if (caseReport && (session.role === 'counsellor' || session.role === 'clinical_supervisor')) {
+      return (
+        <ErrorBoundary>
+          <CaseCoupleReport id={caseReport[1]} />
         </ErrorBoundary>
       );
     }

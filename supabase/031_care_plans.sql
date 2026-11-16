@@ -58,7 +58,7 @@ returns boolean language sql stable security definer set search_path = public as
       from couples c
       join accounts a on a.user_id = auth.uid()
      where c.id = p_couple_id
-       and (c.a = a.person_id or c.b = a.person_id)
+       and (c.partner_a = a.person_id or c.partner_b = a.person_id)
   );
 $$;
 

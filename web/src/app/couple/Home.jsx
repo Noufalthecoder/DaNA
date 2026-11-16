@@ -10,6 +10,7 @@ import { syncConsultationsFromSupabase } from '../shared/consultationService.js'
 import { isUserScreened } from '../shared/screeningPersistence.js';
 import { SLOTS } from '../shared/data.js';
 import './counsellor.css';
+import CarePath, { EscalationNote } from '../shared/CarePath.jsx';
 
 export default function Home() {
   const { me, partner, result, couple } = useCouple();
@@ -128,6 +129,7 @@ export default function Home() {
       }
     >
       <Journey />
+      {!waiting && journey.linked && <EscalationNote result={result} couple={couple} />}
 
       <div className={counsellorReady ? 'grid2' : undefined}>
         <Card title="Your couple result">
@@ -309,6 +311,8 @@ export default function Home() {
         )}
       </div>
 
+{counsellorReady && <CarePath result={result} couple={couple} booking={activeAppt} />}
+
       <div className="tiles">
         <a className="tile" href="#/app/tracker" style={{ borderColor: '#00843D', background: '#F0FDF4' }}>
           <small style={{ color: '#00843D', fontWeight: 600 }}>Personal Tracker</small>
@@ -319,6 +323,7 @@ export default function Home() {
         <a className="tile" href="#/app/roots"><small>Relatives invited</small><b>{sent.length}</b><span>Anonymous alerts →</span></a>
         <a className="tile" href="#/app/my-report"><small>Your report</small><b>Ready</b><span>English · العربية · اردو →</span></a>
       </div>
+
       {/* ─── Book Consultation Quick Modal ─── */}
       {showBookModal && (
         <div className="patient-modal-overlay" onClick={() => setShowBookModal(false)}>

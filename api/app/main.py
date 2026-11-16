@@ -12,7 +12,7 @@ from typing import Literal
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import config
@@ -21,7 +21,7 @@ from .benchmark import EvaluateRequest, LabEntry, evaluate_couple, labs_from_rec
 from .db import as_service, as_user
 from .fhir import parse_bundle
 from .sample_bundle import malaffi_bundle, synthetic_blood, scenario_bundle
-from . import scenarios, panel as gene_panel
+from . import scenarios, panel as gene_panel, tts
 
 app = FastAPI(title="DaNA API", version="0.1.0",
               description="Family genetic companion. Synthetic data only; Malaffi and UAE PASS are simulated.")
@@ -44,6 +44,28 @@ def root():
 @app.get("/health", tags=["system"])
 def health():
     return {"status": "ok", "database": bool(config.SUPABASE_URL), "ingestion": bool(config.SUPABASE_SERVICE_ROLE_KEY)}
+
+
+class SpeakRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=1200)
+    lang: Literal["ar", "ur", "en"] = "ar"
+    voice: Literal["F", "M"] = "F"
+
+
+@app.get("/tts/status", tags=["guide"])
+def tts_status():
+    return {"enabled": tts.enabled()}
+
+
+@app.post("/tts", tags=["guide"], response_class=Response,
+          responses={200: {"content": {"audio/wav": {}}}})
+def speak(req: SpeakRequest, user: User = Depends(current_user)):
+    """Read a DaNA guide answer aloud in Arabic or Urdu (Gemini voice). Signed-in users only."""
+    try:
+        audio = tts.speak(req.text, req.lang, req.voice, user.id)
+    except tts.TTSError as e:
+        raise HTTPException(e.status, str(e))
+    return Response(content=audio, media_type="audio/wav", headers={"Cache-Control": "private, max-age=86400"})
 
 
 @app.get("/me", tags=["account"])
@@ -647,3 +669,188 @@ def filter_account_statuses(user: User = Depends(current_user)):
 
 
 
+
+
+# -----------------------------------------------------------------------------
+# Places: map a person to a real location and use it (reads public.locations)
+# -----------------------------------------------------------------------------
+from datetime import datetime, timedelta, timezone
+from . import places
+
+
+def _all_places(user: User) -> list[dict]:
+    return as_user(user.token).select("locations", select="id,city,city_ascii,state_name,latitude,longitude",
+                                      country_code="eq.AE", order="state_name,city", limit="2000")
+
+
+def _place_by_id(user: User, place_id: int | None) -> dict | None:
+    if place_id is None:
+        return None
+    rows = as_user(user.token).select("locations", select="id,city,city_ascii,state_name,latitude,longitude", id=f"eq.{place_id}")
+    if not rows:
+        raise HTTPException(404, f"No location with id {place_id}")
+    return rows[0]
+
+
+class PlaceChoice(BaseModel):
+    """Pick a place by id, or by text such as 'Dubai Marina' (accepted only when it is unambiguous)."""
+    model_config = ConfigDict(extra="forbid")
+    location_id: int | None = None
+    text: str | None = Field(None, max_length=120)
+
+
+def _choose(user: User, body: PlaceChoice, required: bool) -> int | None:
+    if body.location_id is not None:
+        _place_by_id(user, body.location_id)
+        return body.location_id
+    if body.text:
+        rows = _all_places(user)
+        hit = places.best_match(body.text, rows)
+        if not hit:
+            raise HTTPException(422, {"message": f"Could not tell which place '{body.text}' means. Pick one.",
+                                      "candidates": places.resolve(body.text, rows)})
+        return hit["id"]
+    if required:
+        raise HTTPException(422, "Send location_id or text")
+    return None
+
+
+@app.get("/places", tags=["places"])
+def list_places(q: str | None = Query(None, max_length=120, description="Free text to match, e.g. 'marina'"),
+                emirate: str | None = Query(None, description="Only this emirate, e.g. 'Dubai'"),
+                user: User = Depends(current_user)):
+    """Every UAE place, grouped by emirate. With `q`, the best matches instead."""
+    rows = _all_places(user)
+    if emirate:
+        wanted = places.EMIRATE_ALIASES.get(places.normalize(emirate), emirate)
+        rows = [r for r in rows if places.emirate_of(r) == wanted]
+    if q:
+        return {"matches": places.resolve(q, rows)}
+    return {"emirates": places.group_by_emirate(rows), "total": len(rows)}
+
+
+@app.get("/places/resolve", tags=["places"])
+def resolve_place(text: str = Query(..., min_length=1, max_length=120), user: User = Depends(current_user)):
+    """Turn free text ('Dubayy', 'Ra's al Khaymah', 'marina, dubai') into a place. `best` is set only when it is certain."""
+    rows = _all_places(user)
+    return {"best": places.best_match(text, rows), "candidates": places.resolve(text, rows)}
+
+
+@app.get("/places/{place_id}", tags=["places"])
+def get_place(place_id: int, user: User = Depends(current_user)):
+    return places.public_place(_place_by_id(user, place_id))
+
+
+@app.get("/places/{place_id}/counsellors", tags=["places"])
+def counsellors_near(place_id: int, modality: Literal["any", "online", "in_person"] = "any",
+                     user: User = Depends(current_user)):
+    """
+    Verified counsellors for someone living at this place: same area, then same emirate, then by distance.
+    In-person only counts inside the place's emirate; online works anywhere.
+    """
+    db = as_user(user.token)
+    origin = _place_by_id(user, place_id)
+    ks = db.select("counsellors", select="id,name,gender,languages,location_id,offers_in_person,offers_online",
+                   status="eq.active", credentials_verified="eq.true")
+    now = datetime.now(timezone.utc)
+    window = f"(slot_start.gt.{now:%Y-%m-%dT%H:%M:%SZ},slot_start.lt.{now + timedelta(days=14):%Y-%m-%dT%H:%M:%SZ})"
+    slots = db.select("counsellor_availability", select="counsellor_id,slot_start", is_booked="eq.false", is_held="eq.false",
+                      is_emergency_buffer="eq.false", limit="5000", **{"and": window})
+    open_slots: dict[str, list[str]] = {}
+    for s in slots:
+        open_slots.setdefault(s["counsellor_id"], []).append(s["slot_start"])
+    by_id = {r["id"]: r for r in _all_places(user)}
+    return {"place": places.public_place(origin), "modality": modality,
+            "counsellors": places.rank_counsellors(origin, ks, by_id, open_slots, modality)}
+
+
+def _my_location(user: User) -> dict:
+    acc = _account(user)
+    db, role = as_user(user.token), acc["role"]
+    if role == "couple":
+        row = db.select("people", id=f"eq.{acc['person_id']}", select="location_id") if acc.get("person_id") else []
+        lid = row[0]["location_id"] if row else None
+        return {"role": role, "place": places.public_place(_place_by_id(user, lid))}
+    if role == "counsellor":
+        row = db.select("counsellors", user_id=f"eq.{user.id}", select="id,location_id,offers_in_person,offers_online")
+        if not row:
+            raise HTTPException(404, "No counsellor profile for this login")
+        k = row[0]
+        return {"role": role, "place": places.public_place(_place_by_id(user, k["location_id"])),
+                "offers_in_person": k["offers_in_person"], "offers_online": k["offers_online"]}
+    if role == "admin":
+        row = db.select("accounts", user_id=f"eq.{user.id}", select="scope_level,location_id")[0]
+        return {"role": role, "scope": row["scope_level"], "place": places.public_place(_place_by_id(user, row["location_id"]))}
+    return {"role": role, "place": None}
+
+
+@app.get("/me/location", tags=["places"])
+def my_location(user: User = Depends(current_user)):
+    """Where I am mapped: a couple member's home, a counsellor's clinic, or an admin's area."""
+    return _my_location(user)
+
+
+class MyLocation(PlaceChoice):
+    offers_in_person: bool | None = None   # counsellors only
+    offers_online: bool | None = None
+
+
+@app.put("/me/location", tags=["places"])
+def set_my_location(body: MyLocation, user: User = Depends(current_user)):
+    """
+    Map myself to a place. Couple: my home. Counsellor: my clinic (and whether I see couples in person / online).
+    Admins cannot move themselves; a nationwide admin sets admin areas (PUT /admins/{user_id}/scope).
+    """
+    acc = _account(user)
+    role, db = acc["role"], as_user(user.token)
+    if role == "admin":
+        raise HTTPException(403, "Admin areas are set by a nationwide admin (PUT /admins/{user_id}/scope)")
+    if role not in ("couple", "counsellor"):
+        raise HTTPException(403, "Only couples and counsellors have a location")
+    lid = _choose(user, body, required=role == "counsellor")
+    if role == "couple":
+        db.rpc("set_my_location", {"p_location": lid})
+    else:
+        cur = db.select("counsellors", user_id=f"eq.{user.id}", select="offers_in_person,offers_online")
+        if not cur:
+            raise HTTPException(404, "No counsellor profile for this login")
+        inp = cur[0]["offers_in_person"] if body.offers_in_person is None else body.offers_in_person
+        onl = cur[0]["offers_online"] if body.offers_online is None else body.offers_online
+        db.rpc("set_counsellor_profile", {"p_counsellor": None, "p_location": lid, "p_in_person": inp, "p_online": onl})
+    return _my_location(user)
+
+
+class AdminScope(PlaceChoice):
+    level: Literal["national", "emirate", "location"]
+
+
+@app.put("/admins/{user_id}/scope", tags=["places"])
+def set_admin_scope(user_id: str, body: AdminScope, user: User = Depends(current_user)):
+    """Give a DoH admin the whole country, one emirate or one area. Only a nationwide admin may; the database enforces it."""
+    _require_role(user, "admin")
+    lid = _choose(user, body, required=body.level != "national")
+    as_user(user.token).rpc("set_admin_scope", {"p_user": user_id, "p_level": body.level, "p_location": lid})
+    return {"user_id": user_id, "level": body.level, "place": places.public_place(_place_by_id(user, lid))}
+
+
+@app.get("/people/{person_id}/location", tags=["places"])
+def person_location(person_id: str, user: User = Depends(current_user)):
+    """A person's mapped place. The database privacy rules decide who may read it (you, your partner, counsellors)."""
+    rows = as_user(user.token).select("people", id=f"eq.{person_id}", select="id,location_id")
+    if not rows:
+        raise HTTPException(404, "Person not found, or you may not see them")
+    return {"person_id": person_id, "place": places.public_place(_place_by_id(user, rows[0]["location_id"]))}
+
+
+class ManageCounsellor(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    action: Literal["verify", "activate", "pause"]
+    reason: str | None = Field(None, max_length=200)
+
+
+@app.post("/counsellors/{counsellor_id}/manage", tags=["places"])
+def manage_counsellor(counsellor_id: str, body: ManageCounsellor, user: User = Depends(current_user)):
+    """Verify, pause or re-activate a counsellor. An admin may only manage counsellors inside their own area (the database enforces it)."""
+    _require_role(user, "admin")
+    status = as_user(user.token).rpc("manage_counsellor", {"p_counsellor": counsellor_id, "p_action": body.action, "p_reason": body.reason})
+    return {"counsellor_id": counsellor_id, "action": body.action, "status": status}

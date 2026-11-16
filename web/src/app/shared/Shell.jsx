@@ -10,6 +10,7 @@ import { signOut as supabaseSignOut } from './supabase.js';
 import { loadAll, logAudit, resetDemoDataBackend } from './db.js';
 import NotificationBell from './NotificationBell.jsx';
 import Assistant from './Assistant.jsx';
+import { LangSwitch } from './Translator.jsx';
 import { isLinked, NEEDS_PARTNER } from './journey.js';
 import { syncRequestsFromSupabase } from './connectionsService.js';
 import { syncConsultationsFromSupabase, subscribeConsultationRealtime } from './consultationService.js';
@@ -20,7 +21,6 @@ export default function Shell({ menu, path, children }) {
   const [open, setOpen] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetting, setResetting] = useState(false);
-  useEffect(() => { document.documentElement.dir = 'ltr'; document.documentElement.lang = 'en'; }, []);
   useEffect(() => setOpen(false), [path]);
 
   useEffect(() => {
@@ -90,6 +90,7 @@ export default function Shell({ menu, path, children }) {
         <header className="top">
           <button className="burger" onClick={() => setOpen(!open)} aria-label="Menu">☰</button>
           <div className="top-r">
+            <LangSwitch />
             <NotificationBell />
             <ProfileMenu session={session} onSwitch={switchAccount} onSignOut={logout} />
           </div>

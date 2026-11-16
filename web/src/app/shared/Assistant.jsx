@@ -11,6 +11,9 @@ import { PEOPLE, GENES } from './data.js';
 import { useCouple } from '../couple/useCouple.js';
 import { logAudit } from './db.js';
 import './assistant.css';
+import { useLang, getLang, tr } from './i18n.js';
+import { supabase } from './supabase.js';
+import { API_URL } from './api.js';
 
 /* friendly counsellor illustrations: Emirati dress, no real person's likeness */
 export function CounsellorFace({ sex, size = 56 }) {
@@ -258,6 +261,54 @@ async function speakEnglish(text, sex, onEnd) {
   return true;
 }
 
+/* Arabic and Urdu: a natural voice from the DaNA server (Gemini). The key stays on the server.
+   Each answer is fetched once and kept for this visit. */
+const voiceCache = new Map(); // key -> Promise<blob url>: one request per answer, shared by prepare and play
+let nowPlaying = null;
+function arabicUrduAudio(text, lang, sex) {
+  const k = `${lang}|${sex}|${text}`;
+  if (!voiceCache.has(k)) {
+    const p = fetchVoice(text, lang, sex);
+    voiceCache.set(k, p);
+    p.catch(() => voiceCache.delete(k)); // a failed try can be retried
+  }
+  return voiceCache.get(k);
+}
+/* the free server sleeps when idle: wake it as soon as the guide opens, so the first voice is quick */
+let woke = 0;
+function wakeVoiceServer() {
+  if (Date.now() - woke < 5 * 60 * 1000) return;
+  woke = Date.now();
+  fetch(`${API_URL}/tts/status`).catch(() => {});
+}
+async function fetchVoice(text, lang, sex) {
+  const { data } = (await supabase?.auth.getSession()) || {};
+  const token = data?.session?.access_token;
+  if (!token) throw new Error({ ar: 'الصوت بالعربية متاح بعد تسجيل الدخول.', ur: 'اردو آواز سائن اِن کے بعد دستیاب ہے۔' }[lang]);
+  let res;
+  try {
+    res = await fetch(`${API_URL}/tts`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, lang, voice: sex }),
+    });
+  } catch {
+    throw new Error({ ar: 'تعذّر الوصول إلى الخادم. حاول بعد دقيقة.', ur: 'سرور تک رسائی نہیں ہو سکی۔ ایک منٹ بعد کوشش کریں۔' }[lang]);
+  }
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    throw new Error(j.detail || 'Voice is not available right now.');
+  }
+  return URL.createObjectURL(await res.blob());
+}
+function stopAll() {
+  if (canSpeak) window.speechSynthesis.cancel();
+  if (nowPlaying) { nowPlaying.pause(); nowPlaying = null; }
+}
+const LISTEN = { en: '🔊 Listen', ar: '🔊 استمع', ur: '🔊 سنیں' };
+const PREPARING = { en: 'Preparing…', ar: 'جارٍ تجهيز الصوت…', ur: 'آواز تیار ہو رہی ہے…' };
+const STOP = { en: '■ Stop', ar: '■ إيقاف', ur: '■ روکیں' };
+
 export default function Assistant() {
   const session = useStore((s) => s.session);
   const topics = useTopics();
@@ -265,7 +316,9 @@ export default function Assistant() {
   const [msgs, setMsgs] = useState([]);   // dana messages: { from, en, ar, ur, link, shown, picking, playing, note }
   const [q, setQ] = useState('');
   const [listening, setListening] = useState(false);
-  const [inLang, setInLang] = useState('en-US');
+  const appLang = useLang(); // answers open in the app's language; the tabs still switch per answer
+  const [inLang, setInLang] = useState(() => ({ ar: 'ar-AE', ur: 'ur-PK' }[getLang()] || 'en-US'));
+  useEffect(() => { setInLang({ ar: 'ar-AE', ur: 'ur-PK' }[appLang] || 'en-US'); }, [appLang]);
   const [voiceErr, setVoiceErr] = useState('');
   const end = useRef(null);
   const rec = useRef(null);
@@ -274,7 +327,16 @@ export default function Assistant() {
 
   useEffect(() => { end.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs, open]);
   useEffect(() => { if (canSpeak) window.speechSynthesis.getVoices(); }, []); // loads the voice list early
-  useEffect(() => { if (!open && canSpeak) window.speechSynthesis.cancel(); }, [open]);
+  useEffect(() => { if (!open) stopAll(); else if (session?.backend) wakeVoiceServer(); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // get the Arabic/Urdu voice ready while the person reads, so Listen plays at once
+  useEffect(() => {
+    if (!session?.backend) return;
+    msgs.forEach((m) => {
+      const l = m.shown;
+      if (m.from === 'dana' && (l === 'ar' || l === 'ur') && m[l]) arabicUrduAudio(m[l], l, sex).catch(() => {});
+    });
+  }, [msgs.map((m) => `${m.shown}|${m.en}`).join('~')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const upd = (i, patch) => setMsgs((m) => m.map((x, j) => (j === i ? { ...x, ...patch } : x)));
 
@@ -282,18 +344,36 @@ export default function Assistant() {
     const tp = topic || match(topics, text);
     const a = tp ? tp.answer() : { ...A.unknown, link: ['#/app/counsellor', 'Talk to a counsellor'] };
     if (canSpeak) window.speechSynthesis.cancel();
-    setMsgs((m) => [...m, { from: 'me', en: text }, { from: 'dana', ...a, shown: 'en' }]);
+    setMsgs((m) => [...m, { from: 'me', en: text }, { from: 'dana', ...a, shown: getLang() }]);
     setQ('');
     logAudit(`Asked the DaNA guide (${tp ? tp.id : 'unmatched'})`).catch(() => {}); // the topic only, never the words typed
   };
 
-  // sound: English only for now; the text can be read in any of the three languages
+  // sound in the language shown: English from the browser's own voice, Arabic and Urdu from the DaNA server
   const play = async (i) => {
-    setMsgs((all) => all.map((x, j) => ({ ...x, playing: j === i })));
-    const ok = await speakEnglish(msgs[i].en, sex, () => upd(i, { playing: false }));
-    if (!ok) upd(i, { playing: false, note: 'Sound is not available in this browser.' });
+    stopAll();
+    const lang = msgs[i].shown || 'en';
+    setMsgs((all) => all.map((x, j) => ({ ...x, playing: false, loading: false, ...(j === i ? { note: '' } : {}) })));
+    if (lang === 'en') {
+      upd(i, { playing: true });
+      const ok = await speakEnglish(msgs[i].en, sex, () => upd(i, { playing: false }));
+      if (!ok) upd(i, { playing: false, note: 'Sound is not available in this browser.' });
+      return;
+    }
+    upd(i, { loading: true });
+    try {
+      const url = await arabicUrduAudio(msgs[i][lang] || msgs[i].en, lang, sex);
+      const audio = new Audio(url);
+      nowPlaying = audio;
+      audio.onended = () => upd(i, { playing: false });
+      audio.onerror = () => upd(i, { playing: false });
+      await audio.play();
+      upd(i, { loading: false, playing: true });
+    } catch (e) {
+      upd(i, { loading: false, playing: false, note: e.message });
+    }
   };
-  const stop = (i) => { if (canSpeak) window.speechSynthesis.cancel(); upd(i, { playing: false }); };
+  const stop = (i) => { stopAll(); upd(i, { playing: false, loading: false }); };
 
   const listen = () => {
     if (!SR) { setVoiceErr('Voice input works in Chrome, Edge and Safari.'); return; }
@@ -326,7 +406,11 @@ export default function Assistant() {
             <button className="as-x" onClick={() => setOpen(false)} aria-label="Close">×</button>
           </header>
           <div className="as-body">
-            <div className="as-msg dana">Hello {first}. I can explain your result in simple words. What would you like to know?</div>
+            <div className="as-msg dana" dir={appLang === 'en' ? 'ltr' : 'rtl'}>{{
+              en: `Hello ${first}. I can explain your result in simple words. What would you like to know?`,
+              ar: `مرحبًا ${first}. يمكنني شرح نتيجتك بكلمات بسيطة. ماذا تود أن تعرف؟`,
+              ur: `السلام علیکم ${first}۔ میں آپ کا نتیجہ آسان الفاظ میں سمجھا سکتا ہوں۔ آپ کیا جاننا چاہیں گے؟`,
+            }[appLang]}</div>
             {msgs.map((m, i) => {
               const text = m[m.shown || 'en'] || m.en;
               const dir = LANGS[m.shown || 'en']?.dir || 'ltr';
@@ -335,7 +419,7 @@ export default function Assistant() {
                   <div dir={m.from === 'dana' ? dir : 'auto'} lang={m.shown || undefined}>
                     {text.split('\n').map((l, j) => (l ? <p key={j}>{l}</p> : null))}
                   </div>
-                  {m.link && <a className="as-link" href={m.link[0]} onClick={() => setOpen(false)}>{m.link[1]} →</a>}
+                  {m.link && <a className="as-link" href={m.link[0]} onClick={() => setOpen(false)}>{tr(m.link[1], m.shown || 'en') || m.link[1]} {(m.shown || 'en') === 'en' ? '→' : '←'}</a>}
                   {m.from === 'dana' && (
                     <div className="as-voice">
                       <div className="as-langs" role="group" aria-label="Show this answer in">
@@ -343,10 +427,10 @@ export default function Assistant() {
                           <button key={k} type="button" className={(m.shown || 'en') === k ? 'on' : ''} aria-pressed={(m.shown || 'en') === k} onClick={() => upd(i, { shown: k })}>{v.name}</button>
                         ))}
                       </div>
-                      {canSpeak && (m.playing
-                        ? <button type="button" className="as-play on" onClick={() => stop(i)}>■ Stop</button>
-                        : <button type="button" className="as-play" onClick={() => play(i)}>🔊 Listen (English)</button>)}
-                      {m.note && <small className="as-note">{m.note}</small>}
+                      {(m.playing || m.loading)
+                        ? <button type="button" className="as-play on" onClick={() => stop(i)}>{m.loading ? PREPARING[m.shown || 'en'] : STOP[m.shown || 'en']}</button>
+                        : <button type="button" className="as-play" onClick={() => play(i)}>{LISTEN[m.shown || 'en']}</button>}
+                      {m.note && <small className="as-note" dir="auto">{m.note}</small>}
                     </div>
                   )}
                 </div>

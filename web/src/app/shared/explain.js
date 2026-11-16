@@ -314,6 +314,9 @@ const Q = {
   vusReview: ['A specialist reviews the uncertain finding before any risk is given.', true, 'Nobody gives you a number until it is reviewed.'],
 };
 
+/* statement text by id, for the programme metrics page */
+export const quizText = (id) => Q[id]?.[0] || id;
+
 export function quiz({ stage, status, type }) {
   const k = stage !== 'couple'
     ? (status === 'clear' ? ['zero', 'partnerMatters', 'marry'] : ['sick', 'alone', 'marry'])

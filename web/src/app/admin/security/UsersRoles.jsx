@@ -251,26 +251,7 @@ export default function UsersRoles() {
     Boolean(selectedCity);
 
   // Status toggle handler (Suspend / Reactivate)
-  // from the consultation branch: DoH admin verifies a counsellor's credentials and activates them
-  const handleVerifyCounsellor = async (user) => {
-    try {
-      if (supabase) {
-        try {
-          await supabase.from('accounts').update({ title: 'Genetic counsellor' }).eq('user_id', user.userId);
-          await supabase.from('counsellors').update({ credentials_verified: true, status: 'active' }).eq('user_id', user.userId);
-        } catch (e) {
-          console.warn('Live counsellor verify notice:', e.message);
-        }
-      }
-      setAccounts((prev) => prev.map((a) => (a.userId === user.userId ? { ...a, title: 'Genetic counsellor' } : a)));
-      const s = get();
-      if (s.session && s.session.id === user.userId) set({ session: { ...s.session, title: 'Genetic counsellor' } });
-      await logAudit(`DoH Administrator verified professional credentials for Genetic Counsellor ${user.name} (${user.userId})`);
-      setActionSuccess(`Successfully verified and credentialed ${user.name}!`);
-    } catch (err) {
-      setActionError(`Verification failed: ${err.message}`);
-    }
-  };
+  // Verifying counsellors happens in Counsellors & areas, on the real counsellor records and inside the admin's own area.
 
   const handleStatusToggle = async () => {
     if (!selectedUser) return;
@@ -935,12 +916,12 @@ export default function UsersRoles() {
                       <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
                         {acc.title?.toLowerCase().includes('pending') && (
                           <button
+                            type="button"
                             className="btn btn-sm"
-                            style={{ background: '#00843D', color: '#fff', fontWeight: 600, padding: '4px 10px', fontSize: 12 }}
-                            onClick={() => handleVerifyCounsellor(acc)}
-                            title="Verify medical credentials and activate caseload"
+                            onClick={() => { window.location.hash = '/app/coverage'; }}
+                            title="Counsellors are verified in Counsellors & areas, inside your own area"
                           >
-                            Verify counsellor
+                            Verify in Counsellors &amp; areas
                           </button>
                         )}
                         {acc.status === 'suspended' ? (

@@ -1,0 +1,44 @@
+/* language switch + right-to-left layout for Arabic and Urdu */
+.lang-sw{display:inline-flex;background:#fff;border:1px solid var(--line,#E6EAE7);border-radius:999px;padding:3px;gap:2px}
+.lang-sw button{border:0;background:none;border-radius:999px;padding:6px 12px;font:600 13px var(--body);color:var(--ink2,#56625B);cursor:pointer;line-height:1.2}
+.lang-sw button[lang=ar]{font-family:'Tajawal',var(--body);font-size:14px}
+.lang-sw button[lang=ur]{font-family:'Noto Nastaliq Urdu',var(--body);font-size:13px;line-height:1.6;padding-top:2px;padding-bottom:2px}
+.lang-sw button:hover{color:#00843D}
+.lang-sw button.on{background:#00843D;color:#fff}
+.ob-who{display:flex;align-items:center;gap:12px}
+.login-lang{position:absolute;top:18px;right:24px;z-index:2}
+[dir=rtl] .login-lang{right:auto;left:24px}
+[dir=rtl] .login-back{left:auto;right:24px}
+@media (max-width:640px){.lang-sw button{padding:5px 8px;font-size:12px}}
+
+/* fonts that read well in each script */
+html[lang=ar] body{font-family:'Tajawal','Inter',sans-serif}
+html[lang=ar] h1,html[lang=ar] h2,html[lang=ar] h3,html[lang=ar] b,html[lang=ar] strong{font-family:'Tajawal','Outfit',sans-serif}
+html[lang=ur] body{font-family:'Noto Nastaliq Urdu','Inter',sans-serif;line-height:1.9}
+html[lang=ur] h1,html[lang=ur] h2,html[lang=ur] h3{font-family:'Noto Nastaliq Urdu','Outfit',sans-serif;line-height:1.8}
+html[lang=ur] .btn,html[lang=ur] button{line-height:1.8}
+
+/* mirror the frame: menu on the right, top-bar actions on the left */
+[dir=rtl] .side{border-right:0;border-left:1px solid var(--line)}
+[dir=rtl] .top-r{margin-left:0;margin-right:auto}
+[dir=rtl] .facts li{padding-left:0;padding-right:22px}
+[dir=rtl] .facts li:before{left:auto;right:0}
+[dir=rtl] .limit{border-left:0;padding-left:0;border-right:3px solid var(--line);padding-right:10px}
+[dir=rtl] .xp-list,[dir=rtl] .mc-share,[dir=rtl] .rs-more ul,[dir=rtl] .qz-list,[dir=rtl] .mt-missed{padding-left:0;padding-right:20px}
+[dir=rtl] .qz-opt,[dir=rtl] .ik-c em{margin-left:0;margin-right:8px}
+[dir=rtl] .as-fab{right:auto;left:24px}
+[dir=rtl] .as-panel{right:auto;left:24px}
+[dir=rtl] .as-msg.dana{border-bottom-left-radius:16px;border-bottom-right-radius:4px}
+[dir=rtl] .as-msg.me{border-bottom-right-radius:16px;border-bottom-left-radius:4px}
+[dir=rtl] .jr-steps li::before{left:auto;right:-50%}
+[dir=rtl] .cp-steps li:not(:last-child)::before{left:auto;right:13px}
+[dir=rtl] .mt-bar-v{text-align:left}
+[dir=rtl] .right{text-align:left}
+[dir=rtl] th,[dir=rtl] td{text-align:right}
+@media (max-width:860px){
+  [dir=rtl] .side{left:auto;right:0;transform:translateX(100%)}
+  [dir=rtl] .side.open{transform:none}
+}
+@media (max-width:560px){[dir=rtl] .as-fab,[dir=rtl] .as-panel{left:16px}}
+/* numbers, IDs, emails and codes stay left-to-right inside right-to-left text */
+[dir=rtl] input[type=email],[dir=rtl] input[type=tel],[dir=rtl] code{direction:ltr;text-align:right}

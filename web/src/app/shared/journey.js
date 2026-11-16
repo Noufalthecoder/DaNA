@@ -17,7 +17,7 @@ const NEXT = {
   malaffi:  { t: 'Confirm your details and get your results', p: 'Your UAE PASS details are filled in for you. Choose what to share, add a few details, and we fetch your premarital results from Malaffi.', to: '#/app' },
   details:  { t: 'Add your details', p: 'A few things Malaffi does not hold: marital status, pregnancy, family history. About 2 minutes.', to: '#/app/details' },
   result:   { t: 'See your result and download your report', p: 'Your result in plain words, and a standard report in English, Arabic or Urdu.', to: '#/app/result' },
-  partner:  { t: 'Link your partner', p: 'Send an invitation, or find your partner by full name or DaNA ID.', to: '#/app/connections' },
+  partner:  { t: 'Link your partner', p: 'Send an invitation, or find your partner by their DaNA ID.', to: '#/app/connections' },
   together: { t: "Waiting for your partner's result", p: 'Your couple result appears as soon as both lab reports are in.', to: '#/app/result' },
   options:  { t: 'Look at your options together', p: 'See every option side by side and decide in your own time. Nothing is decided for you.', to: '#/app/bonds' },
   family:   { t: 'Protect your family, if you wish', p: 'Send anonymous alerts so relatives can choose to screen early.', to: '#/app/roots' },
@@ -69,7 +69,7 @@ export function useJourney() {
   let next = NEXT[at === -1 ? 'done' : steps[at].key];
   // the couple result needs a partner: until linked, the step sends you to Connections
   if (steps[at]?.key === 'together' && !linked) {
-    next = { t: 'Link your partner to see your couple result', p: 'On Connections: send an invitation, or find your partner by full name or DaNA ID.', to: '#/app/connections' };
+    next = { t: 'Link your partner to see your couple result', p: 'On Connections: send an invitation, or find your partner by their DaNA ID.', to: '#/app/connections' };
   }
   if (steps[at]?.key === 'profile' && tracked && !session?.needsProfile) {
     next = { ...next, t: 'Confirm your profile', p: 'Please confirm if you are female or male. Older accounts were saved without asking.' };

@@ -16,7 +16,7 @@ export default function Roots() {
 
   return (
     <Page
-      title="Roots · الجذور"
+      title="Roots"
       sub="Genes run in families. One private message can protect them."
       actions={
         <button className="btn" onClick={() => send(list.map((r) => r.id))}>

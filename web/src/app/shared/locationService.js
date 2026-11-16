@@ -104,3 +104,18 @@ export async function myHomeLocation() {
   const { data } = await supabase.from('people').select('location_id').eq('id', pid).maybeSingle();
   return data?.location_id ?? null;
 }
+
+/* free text -> place, via the API (understands 'Dubayy', 'Ra’s al Khaymah', 'marina, dubai') */
+export async function resolvePlace(text) {
+  const { api } = await import('./api.js');
+  return api(`/places/resolve?text=${encodeURIComponent(text)}`);
+}
+
+/* counsellors for someone at this place: same area, then same emirate, then nearest */
+export async function counsellorsNear(placeId, modality = 'any') {
+  const { api } = await import('./api.js');
+  return api(`/places/${placeId}/counsellors?modality=${modality}`);
+}
+
+/* verify / pause / activate a counsellor in the admin's own area */
+export const manageCounsellor = (id, action, reason = null) => call('manage_counsellor', { p_counsellor: id, p_action: action, p_reason: reason });

@@ -72,6 +72,7 @@ export default function Journey({ action }) {
   const needsProfile = steps[current]?.key === 'profile';
 
   return (
+
     <section className="lifecycle-card" aria-label="Your family health journey">
       {/* Header */}
       <div className="lifecycle-header">
@@ -79,6 +80,7 @@ export default function Journey({ action }) {
           <h2 className="lifecycle-title">Your family health journey</h2>
         </div>
         <span className="lifecycle-counter">Stage {activeStageId} of 7</span>
+
       </div>
 
       {/* 7-Stage Horizontal Stepper */}
