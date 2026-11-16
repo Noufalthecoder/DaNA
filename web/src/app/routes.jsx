@@ -24,6 +24,7 @@ import Overview from './admin/Overview.jsx';
 import Coverage from './admin/Coverage.jsx';
 import Content from './admin/Content.jsx';
 import Audit from './admin/Audit.jsx';
+import Metrics from './admin/Metrics.jsx';
 import Settings from './settings/Settings.jsx';
 import SecurityOverview from './admin/security/SecurityOverview.jsx';
 import UsersRoles from './admin/security/UsersRoles.jsx';
@@ -50,6 +51,7 @@ import {
   AuditIcon,
   ConnectionsIcon,
   SettingsIcon,
+  MetricsIcon,
 } from './shared/Icons.jsx';
 
 function MalaffiPage() {
@@ -93,6 +95,7 @@ export const MENUS = {
     label: 'DoH admin',
     items: [
       { to: '/app', label: 'Overview', icon: <OverviewIcon /> },
+      { to: '/app/metrics', label: 'Outcome metrics', icon: <MetricsIcon /> },
       { to: '/app/coverage', label: 'Counsellors & areas', icon: <CounsellorIcon /> },
       { to: '/app/security', label: 'Security Console', icon: <PrivacyIcon /> },
       { to: '/app/content', label: 'Content review', icon: <ContentIcon /> },
@@ -111,6 +114,7 @@ export const MENUS = {
     label: 'DoH Viewer',
     items: [
       { to: '/app', label: 'Programme Overview', icon: <OverviewIcon /> },
+      { to: '/app/metrics', label: 'Outcome metrics', icon: <MetricsIcon /> },
       { to: '/app/audit', label: 'De-identified Audit', icon: <AuditIcon /> },
     ],
   },
@@ -168,14 +172,14 @@ export function page(role, path) {
     return { '/app': <Queue />, '/app/schedule': <Schedule />, '/app/settings': <Settings /> }[clean] || null;
   }
   if (role === 'admin') {
-    return securityRoutes[clean] || { '/app': <Overview />, '/app/content': <Content />, '/app/audit': <Audit />, '/app/coverage': <Coverage />, '/app/settings': <Settings /> }[clean] || null;
+    return securityRoutes[clean] || { '/app': <Overview />, '/app/content': <Content />, '/app/audit': <Audit />, '/app/metrics': <Metrics />, '/app/coverage': <Coverage />, '/app/settings': <Settings /> }[clean] || null;
   }
   if (role === 'content_reviewer') {
     return { '/app': <Content />, '/app/settings': <Settings /> }[clean] || null;
   }
   if (role === 'doh_viewer') {
     if (clean === '/app/security' || clean === '/app/security/overview' || clean === '/app/security/audit') return securityRoutes[clean];
-    return { '/app': <Overview />, '/app/audit': <Audit /> }[clean] || null;
+    return { '/app': <Overview />, '/app/audit': <Audit />, '/app/metrics': <Metrics /> }[clean] || null;
   }
   return null;
 }
