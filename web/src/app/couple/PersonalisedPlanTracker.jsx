@@ -42,6 +42,57 @@ import {
 } from '../shared/carePlanService.js';
 import './PersonalisedPlanTracker.css';
 
+const STAGE_RELATIONSHIPS = [
+  {
+    fromId: 1,
+    fromTitle: 'Stage 1: Screening & Discovery',
+    toId: 2,
+    toTitle: 'Stage 2: Couple Assessment',
+    handover: 'Genetic Variants & Pedigrees',
+    summary: 'Both partners complete individual sequencing (570 genes). Their carrier profiles and 3-generation pedigrees directly feed the Mendelian risk algorithm to determine compatibility.',
+  },
+  {
+    fromId: 2,
+    fromTitle: 'Stage 2: Couple Assessment',
+    toId: 3,
+    toTitle: 'Stage 3: Genetic Counselling',
+    handover: 'Clinical Consultation Triage',
+    summary: 'Identifying shared recessive traits (e.g. HBB Beta-thalassaemia, 25% child risk) auto-triages the couple to accredited genetic counsellor Dr. Mariam Al Hosani.',
+  },
+  {
+    fromId: 3,
+    fromTitle: 'Stage 3: Genetic Counselling',
+    toId: 4,
+    toTitle: 'Stage 4: Family Planning',
+    handover: 'Approved Care Protocol',
+    summary: 'Counsellor approves personalized Reproductive Care Plan, enabling informed choice between IVF with PGT-M or natural conception with prenatal monitoring.',
+  },
+  {
+    fromId: 4,
+    fromTitle: 'Stage 4: Family Planning',
+    toId: 5,
+    toTitle: 'Stage 5: Pregnancy Journey',
+    handover: 'Conception & Gestational Trigger',
+    summary: 'Selecting conception route and confirming pregnancy automatically transitions the care team from preconception planning into active gestational tracking.',
+  },
+  {
+    fromId: 5,
+    fromTitle: 'Stage 5: Pregnancy Journey',
+    toId: 6,
+    toTitle: 'Stage 6: Birth Preparation',
+    handover: 'Prenatal Genomics & Hospital Alert',
+    summary: 'Prenatal diagnostic tests (CVS at 11–14w or Amniocentesis at 15–20w) verify fetal genetics and transmit delivery handover dossier to Danat Al Emarat labor ward.',
+  },
+  {
+    fromId: 6,
+    fromTitle: 'Stage 6: Birth Preparation',
+    toId: 7,
+    toTitle: 'Stage 7: Newborn Records',
+    handover: 'Delivery & Newborn Blood Spot Protocol',
+    summary: 'Childbirth activates UAE DoH National Newborn Blood Spot Screening (Day 2 heel-prick test) and registers the infant on the (+1) node in the family pedigree.',
+  },
+];
+
 export default function PersonalisedPlanTracker() {
   const { me, partner, result, couple } = useCouple();
   const session = useStore((s) => s.session);
@@ -55,49 +106,23 @@ export default function PersonalisedPlanTracker() {
 
   const progress = useMemo(() => computeCarePlanProgress(plan), [plan]);
 
-  // Section availability / milestone gates:
-  // 1. Stage 3 (Genetic Counselling) Confirmation:
-  // Once Stage 3 is confirmed (counselling completed or activeStageId >= 4), specialist referrals & family planning unlock.
-  const isStage3Confirmed = useMemo(() => {
-    return (
-      (plan.activeStageId || 1) >= 4 ||
-      plan.counsellingCompleted === true ||
-      plan.completedItems?.includes('approved_care_plan') ||
-      plan.completedItems?.includes('plan_approved') ||
-      plan.completedItems?.includes('referral_coordinated')
-    );
-  }, [plan.activeStageId, plan.completedItems, plan.counsellingCompleted]);
-
-  // 2. Section 5 (Pregnancy Journey) Unlock:
-  // Available ONLY once previous sections/stages (1-4) are completed AND pregnancy is confirmed.
-  const isPregnancyUnlocked = useMemo(() => {
-    return (
-      (plan.activeStageId || 1) >= 5 ||
-      !!plan.pregnancy?.isPregnant ||
-      plan.familyPlanningChoice === 'pregnant' ||
-      !!plan.completedItems?.includes('pregnancy_confirmation')
-    );
-  }, [plan.activeStageId, plan.pregnancy?.isPregnant, plan.familyPlanningChoice, plan.completedItems]);
-
-  // 3. Section 6 (Birth & Newborn Records) Unlock:
-  // Available ONLY once pregnancy stage advances to birth preparation (Stage 6) or delivery (Stage 7).
-  const isBirthUnlocked = useMemo(() => {
-    return (
-      (plan.activeStageId || 1) >= 6 ||
-      !!plan.childbirth?.delivered ||
-      !!plan.completedItems?.includes('birth_details')
-    );
-  }, [plan.activeStageId, plan.childbirth?.delivered, plan.completedItems]);
+  // All 7 stages unlocked for complete exploration & demonstration:
+  const isStage3Confirmed = true;
+  const isPregnancyUnlocked = true;
+  const isBirthUnlocked = true;
 
   // Section navigation state
   const [activeSection, setActiveSection] = useState('lifecycle');
 
-  // Expanded stages state
+  // Expanded stages state: all 7 stages open & accessible
   const [expandedStages, setExpandedStages] = useState({
-    [plan.activeStageId || 3]: true,
-    1: false,
-    2: false,
+    1: true,
+    2: true,
     3: true,
+    4: true,
+    5: true,
+    6: true,
+    7: true,
   });
 
   // Action checklist local state (stored in plan)
@@ -264,21 +289,21 @@ export default function PersonalisedPlanTracker() {
           className={`cpt-nav-btn ${activeSection === 'family-planning' ? 'is-active' : ''}`}
           onClick={() => scrollToSection('family-planning')}
         >
-          Stage 4. Family planning {isStage3Confirmed ? '' : '🔒'}
+          Stage 4. Family planning
         </button>
         <button
           type="button"
           className={`cpt-nav-btn ${activeSection === 'pregnancy' ? 'is-active' : ''}`}
           onClick={() => scrollToSection('pregnancy')}
         >
-          5. Pregnancy journey {isPregnancyUnlocked ? '' : '🔒'}
+          5. Pregnancy journey
         </button>
         <button
           type="button"
           className={`cpt-nav-btn ${activeSection === 'birth' ? 'is-active' : ''}`}
           onClick={() => scrollToSection('birth')}
         >
-          6. Birth & newborn records {isBirthUnlocked ? '' : '🔒'}
+          6. Birth & newborn records
         </button>
       </nav>
 
@@ -425,7 +450,7 @@ export default function PersonalisedPlanTracker() {
                         ) : isCurrent ? (
                           <Badge tone="amber">Active Focus</Badge>
                         ) : (
-                          <Badge tone="grey">Unavailable</Badge>
+                          <Badge tone="blue">Unlocked</Badge>
                         )}
                       </td>
                       <td style={{ padding: '12px', color: '#475569', fontSize: '12.5px' }}>
@@ -442,6 +467,41 @@ export default function PersonalisedPlanTracker() {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Lifecycle Continuity: How the 7 Stages Connect */}
+          <div className="cpt-relationship-card">
+            <div className="cpt-relationship-header">
+              <div>
+                <h4 style={{ fontSize: '15px', fontWeight: 700, margin: '0 0 2px 0', color: '#0F172A' }}>
+                  Lifecycle Continuity: How the 7 Stages Connect · ترابط مراحل الرعاية الوراثية
+                </h4>
+                <p style={{ fontSize: '12.5px', color: '#64748B', margin: 0 }}>
+                  Clinical handover deliverables passing from premarital screening through to newborn care.
+                </p>
+              </div>
+              <Badge tone="green">7 Handover Pathways</Badge>
+            </div>
+
+            <div className="cpt-rel-pathway">
+              {STAGE_RELATIONSHIPS.map((rel) => (
+                <div key={rel.fromId} className="cpt-rel-row">
+                  <div className="cpt-rel-badge-col">
+                    <span className="cpt-rel-step-pill">Stage {rel.fromId} → {rel.toId}</span>
+                    <div className="cpt-rel-arrow">
+                      <ArrowRight size={16} />
+                    </div>
+                  </div>
+                  <div className="cpt-rel-content">
+                    <div className="cpt-rel-title-line">
+                      <span className="cpt-rel-stage-name">{rel.fromTitle} ➔ {rel.toTitle}</span>
+                      <span className="cpt-rel-handover-tag">Handover: {rel.handover}</span>
+                    </div>
+                    <p className="cpt-rel-desc">{rel.summary}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>

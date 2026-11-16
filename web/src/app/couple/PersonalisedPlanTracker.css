@@ -931,3 +931,106 @@
   color: #64748B;
   margin: 0;
 }
+
+/* ─── Stage Relationship & Clinical Handover Pathway ─── */
+.cpt-relationship-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 24px;
+}
+
+.cpt-relationship-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cpt-rel-pathway {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cpt-rel-row {
+  display: flex;
+  align-items: stretch;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #F8FAFC;
+  border: 1px solid #F1F5F9;
+  transition: all 0.2s ease;
+}
+
+.cpt-rel-row:hover {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+  transform: translateX(2px);
+}
+
+.cpt-rel-badge-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 90px;
+  flex-shrink: 0;
+}
+
+.cpt-rel-step-pill {
+  font-size: 11px;
+  font-weight: 700;
+  color: #00843D;
+  background: rgba(0, 132, 61, 0.1);
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.cpt-rel-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94A3B8;
+  margin-top: 4px;
+}
+
+.cpt-rel-content {
+  flex: 1;
+}
+
+.cpt-rel-title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.cpt-rel-stage-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.cpt-rel-handover-tag {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #2563EB;
+  background: #EFF6FF;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.cpt-rel-desc {
+  font-size: 12.5px;
+  color: #475569;
+  line-height: 1.55;
+  margin: 0;
+}

@@ -115,10 +115,86 @@ export function approveNote(coupleId, noteId) {
     });
 }
 
+export const REFERRAL_FACILITY_MAP = {
+  'IVF / PGT-M': 'Cleveland Clinic Abu Dhabi · Fertility Center',
+  'Fetal medicine': 'Danat Al Emarat Hospital · Fetal Medicine Unit',
+  'Haematology': 'Sheikh Shakhbout Medical City (SSMC) · Adult & Paediatric Haematology',
+  'Paediatrics': 'Sheikh Khalifa Medical City (SKMC) · Paediatric Genetics',
+  'Other': 'Cleveland Clinic Abu Dhabi · Medical Genetics',
+};
+
+export function getFacilityForDestination(destination) {
+  if (!destination) return 'Cleveland Clinic Abu Dhabi · Fertility Center';
+  return REFERRAL_FACILITY_MAP[destination] || `${destination} Specialized Care Center`;
+}
+
 export function addReferral(coupleId, destination, priority, reason) {
   const s = get();
-  const item = { destination, priority, reason, status: 'sent', t: new Date().toISOString() };
-  return act({ referrals: { ...s.referrals, [coupleId]: [item, ...(s.referrals[coupleId] || [])] } },
+  const refYear = new Date().getFullYear();
+  const refCode = String(Date.now()).slice(-4);
+  const refId = `REF-${refYear}-${coupleId.toUpperCase()}-${refCode}`;
+  const facility = getFacilityForDestination(destination);
+  const item = {
+    id: refId,
+    destination,
+    facility,
+    priority: priority || 'high',
+    reason,
+    status: 'dispatched',
+    dispatchedAt: new Date().toISOString(),
+    t: new Date().toISOString(),
+  };
+
+  const nextRefs = [item, ...(s.referrals[coupleId] || [])];
+  const curPlan = s.carePlans?.[coupleId] || {};
+  const prevItems = curPlan.completedItems || [
+    'individual_screening',
+    'medical_family_history',
+    'pedigree_completion',
+    'results_explanations',
+    'partner_connection_consent',
+    'joint_risk_assessment',
+    'reproductive_options',
+  ];
+  const nextCompletedItems = Array.from(new Set([
+    ...prevItems,
+    'appointment_booking',
+    'counsellor_recommendations',
+    'follow_up_referrals',
+  ]));
+
+  const nextPlan = {
+    ...curPlan,
+    referrals: nextRefs,
+    completedItems: nextCompletedItems,
+    counsellingCompleted: true,
+    activeStageId: Math.max(curPlan.activeStageId || 1, 4),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const coupleUsers = coupleId === 'c5' ? ['rashid', 'aisha'] :
+    coupleId === 'c2' ? ['ahmed', 'noura'] :
+    coupleId === 'c3' ? ['saeed', 'maryam'] :
+    coupleId === 'c4' ? ['omar', 'latifa'] :
+    ['fatima', 'khalid'];
+
+  const referralNotifs = coupleUsers.map((pId) => ({
+    id: `notif_ref_${Date.now()}_${pId}`,
+    userId: pId,
+    actorId: 'mariam',
+    type: 'REFERRAL_ISSUED',
+    title: 'Specialist Clinical Referral Issued',
+    body: `Dr. Mariam issued a referral to ${facility} (${destination}) for your care plan.`,
+    link: '/app/plan',
+    isRead: false,
+    createdAt: new Date().toISOString(),
+  }));
+
+  return act({
+    referrals: { ...s.referrals, [coupleId]: nextRefs },
+    carePlans: { ...(s.carePlans || {}), [coupleId]: nextPlan },
+    notifications: [...referralNotifs, ...(s.notifications || [])],
+  },
     `Counsellor referred ${coupleId.toUpperCase()} to ${destination}`,
     () => supabase.from('referrals').insert({ case_id: s.cases[coupleId]?.id, destination, priority, reason }));
 }
@@ -509,7 +585,35 @@ export function addNote(coupleId, text) {
 
 export function approvePlan(coupleId) {
   const s = get();
-  return act({ approved: [...s.approved, coupleId] }, `Counsellor approved the plan for ${coupleId.toUpperCase()}`,
+  const curPlan = s.carePlans?.[coupleId] || {};
+  const prevItems = curPlan.completedItems || [
+    'individual_screening',
+    'medical_family_history',
+    'pedigree_completion',
+    'results_explanations',
+    'partner_connection_consent',
+    'joint_risk_assessment',
+    'reproductive_options',
+  ];
+  const nextCompletedItems = Array.from(new Set([
+    ...prevItems,
+    'appointment_booking',
+    'counsellor_recommendations',
+    'approved_care_plan',
+  ]));
+
+  const nextPlan = {
+    ...curPlan,
+    completedItems: nextCompletedItems,
+    counsellingCompleted: true,
+    activeStageId: Math.max(curPlan.activeStageId || 1, 4),
+    updatedAt: new Date().toISOString(),
+  };
+
+  return act({
+    approved: [...s.approved, coupleId],
+    carePlans: { ...(s.carePlans || {}), [coupleId]: nextPlan },
+  }, `Counsellor approved the plan for ${coupleId.toUpperCase()}`,
     async () => {
       const { data: { user } } = await supabase.auth.getUser();
       return supabase.from('plans').update({ approved_by: user.id, approved_at: new Date().toISOString() }).eq('couple_id', coupleId);
