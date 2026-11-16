@@ -5,7 +5,8 @@ import { COUPLES, PEOPLE, GENES, REFERRAL_DESTINATIONS } from '../shared/data.js
 import { assess, TIER_PRIORITY } from '../shared/genetics.js';
 import Report from '../shared/Report.jsx';
 import { useStore } from '../shared/store.js';
-import { addNote as saveNote, approvePlan, approveNote, addReferral } from '../shared/db.js';
+import { addNote as saveNote, approvePlan, approveNote, addReferral, loadAll } from '../shared/db.js';
+import { CarePathControls, escalation } from '../shared/CarePath.jsx';
 
 export default function CaseView({ id }) {
   const couple = COUPLES.find((c) => c.id === id);
@@ -67,7 +68,9 @@ export default function CaseView({ id }) {
         {!done && chosen && <button className="btn" onClick={approve}>Approve plan</button>}
       </Card>
 
-      <Card title="Referrals">
+      <Card title="Care path & referrals" aside={escalation({ type: r.type }, couple) ? <Badge tone="amber">Needs counselling</Badge> : null}>
+        <p className="muted" style={{ marginTop: 0 }}>The couple sees this path on their home page. Each change is recorded in the audit log.</p>
+        <CarePathControls coupleId={id} refs={refs} onChanged={loadAll} />
         <div className="ref-form">
           <select value={ref.destination} onChange={(e) => setRef({ ...ref, destination: e.target.value })}>{REFERRAL_DESTINATIONS.map((d) => <option key={d}>{d}</option>)}</select>
           <select value={ref.priority} onChange={(e) => setRef({ ...ref, priority: e.target.value })}>{['urgent', 'high', 'routine'].map((p) => <option key={p}>{p}</option>)}</select>

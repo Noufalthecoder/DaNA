@@ -8,6 +8,7 @@ import { useCouple } from './useCouple.js';
 import { fetchMalaffi, book as bookSlot } from '../shared/db.js';
 import { SLOTS } from '../shared/data.js';
 import './counsellor.css';
+import CarePath, { EscalationNote } from '../shared/CarePath.jsx';
 
 export default function Home() {
   const { me, partner, result, couple } = useCouple();
@@ -117,6 +118,7 @@ export default function Home() {
       }
     >
       <Journey />
+      {!waiting && journey.linked && <EscalationNote result={result} couple={couple} />}
 
       <div className={counsellorReady ? 'grid2' : undefined}>
         <Card title="Your couple result">
@@ -297,6 +299,8 @@ export default function Home() {
         </Card>
         )}
       </div>
+
+      {counsellorReady && <CarePath result={result} couple={couple} />}
 
       <div className="tiles">
         <a className="tile" href="#/app/bonds"><small>Your plan</small><b>{plan ? plan.split(':')[0] : 'Not chosen yet'}</b><span>{plan ? 'Change any time' : 'Take your time →'}</span></a>

@@ -656,12 +656,12 @@ async function doLoad() {
   if (s.role === 'counsellor') {
     const [{ data }, refs] = await Promise.all([
       supabase.from('notes').select('id, couple_id, body, created_at, approved_at').order('created_at', { ascending: false }),
-      supabase.from('referrals').select('destination, priority, reason, status, created_at, clinical_cases(couple_id)').order('created_at', { ascending: false }),
+      supabase.from('referrals').select('id, destination, priority, reason, status, created_at, clinical_cases(couple_id)').order('created_at', { ascending: false }),
     ]);
     patch.notes = {};
     (data || []).forEach((n) => { (patch.notes[n.couple_id] ||= []).push({ id: n.id, t: n.created_at, text: n.body, approved: !!n.approved_at }); });
     patch.referrals = {};
-    (refs.data || []).forEach((r) => { const cid = r.clinical_cases?.couple_id; if (cid) (patch.referrals[cid] ||= []).push({ destination: r.destination, priority: r.priority, reason: r.reason, status: r.status, t: r.created_at }); });
+    (refs.data || []).forEach((r) => { const cid = r.clinical_cases?.couple_id; if (cid) (patch.referrals[cid] ||= []).push({ id: r.id, destination: r.destination, priority: r.priority, reason: r.reason, status: r.status, t: r.created_at }); });
   }
   if (s.role === 'admin') {
     const [st, tiers, br] = await Promise.all([supabase.rpc('programme_stats'), supabase.rpc('programme_tiers'), supabase.rpc('programme_breakdown')]);
