@@ -1,371 +1,41 @@
 """
-DaNA Location Reference & Account Filtering Engine
-Provides normalized location services (countries, regions, cities) and
-dynamic multi-attribute account filtering for the DaNA Administration Console.
+DaNA Location Database Integration & Dynamic Admin Filter Engine
+Provides normalized reference location queries and dynamic account directory filtering.
+
+Tables:
+- public.locations (flat: id, source_id, city, state_name, country, country_code, latitude, longitude, source, created_at)
+- public.countries, public.regions, public.cities (normalized)
+- public.accounts, public.people, public.couples (healthcare IAM and relationship bonds)
+
+Strict Healthcare Data Protection:
+- Zero clinical or genetic reports/variants/carrier status exposed.
+- Admin categories strictly limited to: doh_admin, counsellor, couple.
+- Gender ('male', 'female') operates on profile data (people.sex), NOT as an account role.
 """
 
 import os
+import re
 import sqlite3
+import unicodedata
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
+from fastapi import HTTPException, Query
 
-from fastapi import HTTPException
-
-# Path to the normalized world cities database
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parents[2]
 DB_PATH = BASE_DIR / "data" / "worldcities.db"
+if not DB_PATH.exists():
+    alt_path = Path(__file__).resolve().parent.parent / "data" / "worldcities.db"
+    if alt_path.exists():
+        DB_PATH = alt_path
 
-# Canonical filter constants
-VALID_GENDERS = [
-    {"value": "female", "label": "Female", "code": "F"},
-    {"value": "male", "label": "Male", "code": "M"},
-]
-
-VALID_MARITAL_STATUSES = [
-    {"value": "engaged", "label": "Engaged"},
-    {"value": "married", "label": "Married"},
-    {"value": "unlinked", "label": "Single / Unlinked"},
-]
-
-VALID_ROLES = [
-    {"value": "couple", "label": "Couple / Patient"},
-    {"value": "counsellor", "label": "Genetic Counsellor"},
-    {"value": "clinical_supervisor", "label": "Clinical Supervisor"},
-    {"value": "content_reviewer", "label": "Content Reviewer"},
-    {"value": "doh_viewer", "label": "DoH Viewer / Auditor"},
-    {"value": "admin", "label": "Platform Administrator"},
-    {"value": "system_service", "label": "System Service"},
-]
-
-VALID_ACCOUNT_STATUSES = [
-    {"value": "active", "label": "Active"},
-    {"value": "suspended", "label": "Suspended"},
-    {"value": "inactive", "label": "Inactive"},
-]
-
-# Baseline registered DaNA accounts with verified profile and location links
-BASELINE_ACCOUNTS = [
-    {
-        "id": "khalid",
-        "user_id": "usr_khalid_001",
-        "person_id": "khalid",
-        "name": "Khalid Al Mansoori",
-        "display_name": "Khalid Al Mansoori",
-        "email": "khalid.mansoori@example.ae",
-        "dana_id": "DANA-7701",
-        "role": "couple",
-        "status": "active",
-        "title": "Partner · engaged with Fatima Al Hammadi (Couple c1)",
-        "gender": "male",
-        "marital_status": "engaged",
-        "city_id": 419,  # Abu Dhabi
-    },
-    {
-        "id": "fatima",
-        "user_id": "usr_fatima_002",
-        "person_id": "fatima",
-        "name": "Fatima Al Hammadi",
-        "display_name": "Fatima Al Hammadi",
-        "email": "fatima.hammadi@example.ae",
-        "dana_id": "DANA-8822",
-        "role": "couple",
-        "status": "active",
-        "title": "Partner · engaged with Khalid Al Mansoori (Couple c1)",
-        "gender": "female",
-        "marital_status": "engaged",
-        "city_id": 419,  # Abu Dhabi
-    },
-    {
-        "id": "ahmed",
-        "user_id": "usr_ahmed_003",
-        "person_id": "ahmed",
-        "name": "Ahmed Al Ketbi",
-        "display_name": "Ahmed Al Ketbi",
-        "email": "ahmed.ketbi@example.ae",
-        "dana_id": "DANA-3319",
-        "role": "couple",
-        "status": "active",
-        "title": "Partner · married with Noura Al Ketbi (Couple c2)",
-        "gender": "male",
-        "marital_status": "married",
-        "city_id": 102,  # Dubai
-    },
-    {
-        "id": "noura",
-        "user_id": "usr_noura_004",
-        "person_id": "noura",
-        "name": "Noura Al Ketbi",
-        "display_name": "Noura Al Ketbi",
-        "email": "noura.ketbi@example.ae",
-        "dana_id": "DANA-4412",
-        "role": "couple",
-        "status": "active",
-        "title": "Partner · married with Ahmed Al Ketbi (Couple c2)",
-        "gender": "female",
-        "marital_status": "married",
-        "city_id": 102,  # Dubai
-    },
-    {
-        "id": "saeed",
-        "user_id": "usr_saeed_005",
-        "person_id": "saeed",
-        "name": "Saeed Al Nuaimi",
-        "display_name": "Saeed Al Nuaimi",
-        "email": "saeed.nuaimi@example.ae",
-        "dana_id": "DANA-5590",
-        "role": "couple",
-        "status": "active",
-        "title": "Partner · engaged with Maryam Al Shamsi (Couple c3)",
-        "gender": "male",
-        "marital_status": "engaged",
-        "city_id": 928,  # Al 'Ayn
-    },
-    {
-        "id": "maryam",
-        "user_id": "usr_maryam_006",
-        "person_id": "maryam",
-        "name": "Maryam Al Shamsi",
-        "display_name": "Maryam Al Shamsi",
-        "email": "maryam.shamsi@example.ae",
-        "dana_id": "DANA-6623",
-        "role": "couple",
-        "status": "active",
-        "title": "Partner · engaged with Saeed Al Nuaimi (Couple c3)",
-        "gender": "female",
-        "marital_status": "engaged",
-        "city_id": 928,  # Al 'Ayn
-    },
-    {
-        "id": "omar",
-        "user_id": "usr_omar_007",
-        "person_id": "omar",
-        "name": "Omar Al Dhaheri",
-        "display_name": "Omar Al Dhaheri",
-        "email": "omar.dhaheri@example.ae",
-        "dana_id": "DANA-2211",
-        "role": "couple",
-        "status": "active",
-        "title": "Partner · married with Latifa Al Mazrouei (Couple c4)",
-        "gender": "male",
-        "marital_status": "married",
-        "city_id": 550,  # Sharjah
-    },
-    {
-        "id": "latifa",
-        "user_id": "usr_latifa_008",
-        "person_id": "latifa",
-        "name": "Latifa Al Mazrouei",
-        "display_name": "Latifa Al Mazrouei",
-        "email": "latifa.mazrouei@example.ae",
-        "dana_id": "DANA-1198",
-        "role": "couple",
-        "status": "active",
-        "title": "Partner · married with Omar Al Dhaheri (Couple c4)",
-        "gender": "female",
-        "marital_status": "married",
-        "city_id": 550,  # Sharjah
-    },
-    {
-        "id": "rashid",
-        "user_id": "usr_rashid_009",
-        "person_id": "rashid",
-        "name": "Rashid Al Suwaidi",
-        "display_name": "Rashid Al Suwaidi",
-        "email": "rashid.suwaidi@example.ae",
-        "dana_id": "DANA-9944",
-        "role": "couple",
-        "status": "active",
-        "title": "Partner · engaged with Aisha Al Falasi (Couple c5)",
-        "gender": "male",
-        "marital_status": "engaged",
-        "city_id": 5413,  # Ra's al Khaymah
-    },
-    {
-        "id": "aisha",
-        "user_id": "usr_aisha_010",
-        "person_id": "aisha",
-        "name": "Aisha Al Falasi",
-        "display_name": "Aisha Al Falasi",
-        "email": "aisha.falasi@example.ae",
-        "dana_id": "DANA-8833",
-        "role": "couple",
-        "status": "active",
-        "title": "Partner · engaged with Rashid Al Suwaidi (Couple c5)",
-        "gender": "female",
-        "marital_status": "engaged",
-        "city_id": 5413,  # Ra's al Khaymah
-    },
-    {
-        "id": "hamdan",
-        "user_id": "usr_hamdan_011",
-        "person_id": "hamdan",
-        "name": "Hamdan Al Qubaisi",
-        "display_name": "Hamdan Al Qubaisi",
-        "email": "hamdan.qubaisi@example.ae",
-        "dana_id": "DANA-5577",
-        "role": "couple",
-        "status": "active",
-        "title": "Partner · engaged with Shamma Al Zaabi (Couple c6)",
-        "gender": "male",
-        "marital_status": "engaged",
-        "city_id": 6594,  # Al Fujayrah
-    },
-    {
-        "id": "shamma",
-        "user_id": "usr_shamma_012",
-        "person_id": "shamma",
-        "name": "Shamma Al Zaabi",
-        "display_name": "Shamma Al Zaabi",
-        "email": "shamma.zaabi@example.ae",
-        "dana_id": "DANA-6688",
-        "role": "couple",
-        "status": "active",
-        "title": "Partner · engaged with Hamdan Al Qubaisi (Couple c6)",
-        "gender": "female",
-        "marital_status": "engaged",
-        "city_id": 6594,  # Al Fujayrah
-    },
-    {
-        "id": "mariam_doc",
-        "user_id": "usr_mariam_doc",
-        "person_id": None,
-        "name": "Dr. Mariam Al Hosani",
-        "display_name": "Dr. Mariam Al Hosani",
-        "email": "mariam.hosani@doh.gov.ae",
-        "dana_id": "DANA-DOC1",
-        "role": "counsellor",
-        "status": "active",
-        "title": "Senior Genetic Counsellor · Lic. LIC-GC-2024-089",
-        "gender": "female",
-        "marital_status": "unlinked",
-        "city_id": 419,  # Abu Dhabi
-    },
-    {
-        "id": "sara_doc",
-        "user_id": "usr_sara_doc",
-        "person_id": None,
-        "name": "Dr. Sara Al Zaabi",
-        "display_name": "Dr. Sara Al Zaabi",
-        "email": "sara.zaabi@ssmc.ae",
-        "dana_id": "DANA-DOC2",
-        "role": "counsellor",
-        "status": "active",
-        "title": "Clinical Geneticist & Counsellor · Lic. LIC-GC-2025-114",
-        "gender": "female",
-        "marital_status": "unlinked",
-        "city_id": 419,  # Abu Dhabi
-    },
-    {
-        "id": "dr_huda",
-        "user_id": "usr_dr_huda",
-        "person_id": None,
-        "name": "Dr. Huda Al Nuaimi",
-        "display_name": "Dr. Huda Al Nuaimi",
-        "email": "huda.nuaimi@doh.gov.ae",
-        "dana_id": "DANA-SUP1",
-        "role": "clinical_supervisor",
-        "status": "active",
-        "title": "Head of Clinical Genetics & Triage Supervisor · Lic. LIC-SUP-2023-012",
-        "gender": "female",
-        "marital_status": "unlinked",
-        "city_id": 419,  # Abu Dhabi
-    },
-    {
-        "id": "dr_tariq",
-        "user_id": "usr_dr_tariq",
-        "person_id": None,
-        "name": "Dr. Tariq Al Hashimi",
-        "display_name": "Dr. Tariq Al Hashimi",
-        "email": "tariq.hashimi@fatwa.gov.ae",
-        "dana_id": "DANA-REV1",
-        "role": "content_reviewer",
-        "status": "active",
-        "title": "Medical & Islamic Bioethics Reviewer · Fatwa Committee",
-        "gender": "male",
-        "marital_status": "unlinked",
-        "city_id": 102,  # Dubai
-    },
-    {
-        "id": "fatima_doh",
-        "user_id": "usr_fatima_doh",
-        "person_id": None,
-        "name": "Fatima Al Qasimi",
-        "display_name": "Fatima Al Qasimi",
-        "email": "fatima.qasimi@doh.gov.ae",
-        "dana_id": "DANA-DOH1",
-        "role": "doh_viewer",
-        "status": "active",
-        "title": "Public Health & Compliance Quality Auditor · Lic. DOH-AUD-2026-99",
-        "gender": "female",
-        "marital_status": "unlinked",
-        "city_id": 419,  # Abu Dhabi
-    },
-    {
-        "id": "doh",
-        "user_id": "usr_doh_admin",
-        "person_id": None,
-        "name": "Programme team",
-        "display_name": "Programme team",
-        "email": "premarital@doh.gov.ae",
-        "dana_id": "DANA-ADM1",
-        "role": "admin",
-        "status": "active",
-        "title": "DoH Premarital Screening Programme Administration",
-        "gender": "unspecified",
-        "marital_status": "unlinked",
-        "city_id": 419,  # Abu Dhabi
-    },
-    {
-        "id": "admin_sec",
-        "user_id": "usr_admin_sec",
-        "person_id": None,
-        "name": "Security Operations Lead",
-        "display_name": "Security Operations Lead",
-        "email": "security@adda.gov.ae",
-        "dana_id": "DANA-SEC1",
-        "role": "admin",
-        "status": "active",
-        "title": "Healthcare IAM & Security Architecture Lead",
-        "gender": "male",
-        "marital_status": "unlinked",
-        "city_id": 419,  # Abu Dhabi
-    },
-    {
-        "id": "sys_genomics",
-        "user_id": "usr_sys_genomics",
-        "person_id": None,
-        "name": "National Genomics Integration Pipeline",
-        "display_name": "National Genomics Integration Pipeline",
-        "email": "pipeline@genomics.ad",
-        "dana_id": "DANA-SYS1",
-        "role": "system_service",
-        "status": "active",
-        "title": "Automated Genomics Laboratory Integration Service",
-        "gender": "unspecified",
-        "marital_status": "unlinked",
-        "city_id": 419,  # Abu Dhabi
-    },
-    # Unlinked participant with null location to test null profile handling
-    {
-        "id": "unassigned_patient",
-        "user_id": "usr_unassigned_999",
-        "person_id": "p_unassigned",
-        "name": "Zayed Al Mansoori",
-        "display_name": "Zayed Al Mansoori",
-        "email": "zayed.unassigned@example.ae",
-        "dana_id": "DANA-9900",
-        "role": "couple",
-        "status": "suspended",
-        "title": "Enrolled Screening Participant (Pending Location)",
-        "gender": "male",
-        "marital_status": "unlinked",
-        "city_id": None,  # Explicitly null location
-    },
-]
+# Canonical IAM categories
+VALID_ACCOUNT_CATEGORIES = ["doh_admin", "counsellor", "couple"]
+VALID_GENDERS = ["male", "female"]
+VALID_STATUSES = ["active", "suspended"]
 
 
 def get_db():
-    """Connect to SQLite database with dict row factory."""
+    """Returns connection to reference database with row_factory enabled."""
     if not DB_PATH.exists():
         raise HTTPException(
             status_code=503,
@@ -376,32 +46,507 @@ def get_db():
     return conn
 
 
-def get_countries(search: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Return country list sorted by name."""
+def normalize_text(text: Optional[str]) -> str:
+    """Normalize string for accent-insensitive and case-insensitive comparison."""
+    if not text:
+        return ""
+    # Decompose unicode characters and strip combining accents
+    nfkd_form = unicodedata.normalize('NFKD', text)
+    clean = "".join([c for c in nfkd_form if not unicodedata.combining(c)])
+    return clean.strip().lower()
+
+
+def _unwrap_str(val: Any) -> Optional[str]:
+    """Safely extracts string value from FastAPI Query objects or literals."""
+    if val is None:
+        return None
+    if hasattr(val, "default"):
+        val = val.default
+    if val is None or isinstance(val, type(Ellipsis)):
+        return None
+    s = str(val).strip()
+    return s if s else None
+
+
+def _unwrap_int(val: Any, default: int) -> int:
+    """Safely extracts integer value from FastAPI Query objects or literals."""
+    if val is None:
+        return default
+    if hasattr(val, "default"):
+        val = val.default
+    if val is None or isinstance(val, type(Ellipsis)):
+        return default
+    try:
+        return int(val)
+    except (ValueError, TypeError):
+        return default
+
+
+# =============================================================================
+# 1. Location Reference APIs (Countries -> States -> Cities)
+# =============================================================================
+
+def get_admin_countries(search: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Retrieve distinct countries available in location reference data."""
+    search = _unwrap_str(search)
     with get_db() as conn:
         cur = conn.cursor()
         if search:
-            q = f"%{search.strip()}%"
+            q = f"%{search}%"
             cur.execute("""
-                SELECT id, name, iso2, iso3
-                FROM countries
-                WHERE name LIKE ? OR iso2 LIKE ? OR iso3 LIKE ?
-                ORDER BY name ASC
-            """, (q, q, q))
+                SELECT DISTINCT country AS name, country_code AS code
+                FROM locations
+                WHERE country LIKE ? OR country_code LIKE ?
+                ORDER BY country ASC
+            """, (q, q))
         else:
             cur.execute("""
-                SELECT id, name, iso2, iso3
-                FROM countries
-                ORDER BY name ASC
+                SELECT DISTINCT country AS name, country_code AS code
+                FROM locations
+                ORDER BY country ASC
             """)
         return [dict(r) for r in cur.fetchall()]
 
 
-def get_regions(country_id: str, search: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Return regions belonging to selected country."""
+def get_admin_states(country: str, search: Optional[str] = None) -> List[str]:
+    """Retrieve states / administrative regions for a given country."""
+    country = _unwrap_str(country)
+    search = _unwrap_str(search)
+    if not country:
+        raise HTTPException(status_code=400, detail="Query parameter 'country' is required.")
+
+    norm_country = normalize_text(country)
     with get_db() as conn:
         cur = conn.cursor()
-        # Resolve country_id as integer ID or ISO2/ISO3 code
+        cur.execute("""
+            SELECT DISTINCT state_name
+            FROM locations
+            WHERE state_name IS NOT NULL AND state_name != ''
+              AND (LOWER(country) = ? OR LOWER(country_code) = ?)
+            ORDER BY state_name ASC
+        """, (norm_country, norm_country))
+        rows = [r["state_name"] for r in cur.fetchall()]
+
+        # Fallback to normalized comparison if direct lower() yielded no rows
+        if not rows:
+            cur.execute("SELECT DISTINCT country, state_name FROM locations WHERE state_name IS NOT NULL AND state_name != ''")
+            candidates = cur.fetchall()
+            matching = []
+            for c_name, s_name in candidates:
+                if normalize_text(c_name) == norm_country:
+                    matching.append(s_name)
+            rows = sorted(list(set(matching)))
+
+        if search:
+            norm_q = normalize_text(search)
+            rows = [s for s in rows if norm_q in normalize_text(s)]
+
+        return rows
+
+
+def get_admin_cities(country: str, state: Optional[str] = None, search: Optional[str] = None,
+                     page: int = 1, limit: int = 50) -> Dict[str, Any]:
+    """Retrieve cities belonging to selected country and optional state with pagination."""
+    country = _unwrap_str(country)
+    state = _unwrap_str(state)
+    search = _unwrap_str(search)
+    page = max(1, _unwrap_int(page, 1))
+    limit = max(1, min(_unwrap_int(limit, 50), 200))
+
+    if not country:
+        raise HTTPException(status_code=400, detail="Query parameter 'country' is required.")
+
+    norm_country = normalize_text(country)
+    norm_state = normalize_text(state) if state else None
+
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT id, city, state_name, country, country_code, latitude, longitude
+            FROM locations
+            WHERE (LOWER(country) = ? OR LOWER(country_code) = ?)
+        """, (norm_country, norm_country))
+        candidates = [dict(r) for r in cur.fetchall()]
+
+        # Accent-insensitive filter for country & state
+        filtered = []
+        for loc in candidates:
+            if norm_state:
+                loc_state_norm = normalize_text(loc["state_name"])
+                if loc_state_norm != norm_state and norm_state not in loc_state_norm:
+                    continue
+            if search:
+                loc_city_norm = normalize_text(loc["city"])
+                if normalize_text(search) not in loc_city_norm:
+                    continue
+            filtered.append(loc)
+
+        # Sort alphabetically by city name
+        filtered.sort(key=lambda x: (x["city"] or "").lower())
+
+        total = len(filtered)
+        start = (page - 1) * limit
+        paginated = filtered[start:start + limit]
+
+        return {
+            "country": country,
+            "state": state,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total + limit - 1) // limit if total > 0 else 0,
+            "cities": [loc["city"] for loc in paginated],
+            "items": paginated,
+        }
+
+
+# =============================================================================
+# 2. Account Directory & Filtering Engine (GET /api/admin/accounts)
+# =============================================================================
+
+def get_admin_accounts(
+    role: Optional[str] = None,
+    gender: Optional[str] = None,
+    country: Optional[str] = None,
+    state: Optional[str] = None,
+    city: Optional[str] = None,
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    page: int = 1,
+    limit: int = 20,
+) -> Dict[str, Any]:
+    """
+    Core account directory query engine:
+    Joins accounts, people, couples, and locations with database-side filtering.
+    Enforces zero-knowledge isolation of clinical/genetic data.
+    """
+    role = _unwrap_str(role)
+    gender = _unwrap_str(gender)
+    country = _unwrap_str(country)
+    state = _unwrap_str(state)
+    city = _unwrap_str(city)
+    search = _unwrap_str(search)
+    status = _unwrap_str(status)
+    page = max(1, _unwrap_int(page, 1))
+    limit = max(1, min(_unwrap_int(limit, 20), 100))
+
+    # 1. Validate role filter against allowed categories
+    db_role_filter = None
+    if role:
+        clean_role = role.strip().lower()
+        if clean_role not in ("doh_admin", "admin", "counsellor", "couple"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid role filter '{role}'. Supported categories: doh_admin, counsellor, couple"
+            )
+        if clean_role in ("doh_admin", "admin"):
+            db_role_filter = ("admin", "doh_admin")
+        else:
+            db_role_filter = (clean_role,)
+
+    # 2. Validate gender filter (male / female)
+    db_sex_filter = None
+    if gender:
+        clean_gender = gender.strip().lower()
+        if clean_gender in ("male", "m"):
+            db_sex_filter = "M"
+        elif clean_gender in ("female", "f"):
+            db_sex_filter = "F"
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid gender filter '{gender}'. Supported values: male, female"
+            )
+
+    # 3. Validate status filter
+    if status and status.strip().lower() not in VALID_STATUSES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid status filter '{status}'. Supported values: active, suspended"
+        )
+
+    with get_db() as conn:
+        cur = conn.cursor()
+
+        # Database query joining accounts with individual profiles, couples, and location metadata
+        query = """
+            SELECT 
+                a.user_id,
+                a.role,
+                a.person_id,
+                a.display_name,
+                a.title,
+                a.status,
+                a.email,
+                a.created_at,
+                p.name AS person_name,
+                p.sex AS person_sex,
+                l.id AS location_id,
+                l.city,
+                l.state_name,
+                l.country,
+                l.country_code,
+                c.id AS couple_id,
+                c.stage AS couple_stage,
+                CASE 
+                    WHEN c.partner_a = a.person_id THEN c.partner_b
+                    WHEN c.partner_b = a.person_id THEN c.partner_a
+                    ELSE NULL
+                END AS partner_person_id,
+                part.name AS partner_name,
+                part.sex AS partner_sex,
+                part_acc.email AS partner_email
+            FROM accounts a
+            LEFT JOIN people p ON p.id = a.person_id
+            LEFT JOIN locations l ON l.id = COALESCE(a.location_id, p.location_id)
+            LEFT JOIN couples c ON (c.partner_a = a.person_id OR c.partner_b = a.person_id)
+            LEFT JOIN people part ON part.id = (CASE WHEN c.partner_a = a.person_id THEN c.partner_b ELSE c.partner_a END)
+            LEFT JOIN accounts part_acc ON part_acc.person_id = part.id
+            ORDER BY a.display_name ASC
+        """
+        cur.execute(query)
+        rows = cur.fetchall()
+
+        matched_accounts = []
+        for r in rows:
+            # Map database role to canonical user-facing categories
+            mapped_role = "doh_admin" if r["role"] in ("admin", "doh_admin") else r["role"]
+
+            # Role filter check
+            if db_role_filter and r["role"] not in db_role_filter:
+                continue
+
+            # Gender filter check (only applies to accounts with an individual profile)
+            if db_sex_filter:
+                if not r["person_sex"] or r["person_sex"].upper() != db_sex_filter:
+                    continue
+
+            # Status filter check
+            if status and r["status"].lower() != status.strip().lower():
+                continue
+
+            # Country filter check
+            if country:
+                norm_c = normalize_text(country)
+                loc_c = normalize_text(r["country"])
+                loc_code = normalize_text(r["country_code"])
+                if norm_c != loc_c and norm_c != loc_code:
+                    continue
+
+            # State filter check
+            if state:
+                norm_s = normalize_text(state)
+                loc_s = normalize_text(r["state_name"])
+                if norm_s != loc_s and norm_s not in loc_s:
+                    continue
+
+            # City filter check
+            if city:
+                norm_city = normalize_text(city)
+                loc_city = normalize_text(r["city"])
+                if norm_city != loc_city and norm_city not in loc_city:
+                    continue
+
+            # Search filter check
+            if search:
+                q = normalize_text(search)
+                haystack = " ".join([
+                    normalize_text(r["display_name"]),
+                    normalize_text(r["email"]),
+                    normalize_text(r["user_id"]),
+                    normalize_text(r["title"]),
+                    normalize_text(r["city"]),
+                    normalize_text(r["state_name"]),
+                    normalize_text(r["country"]),
+                ])
+                if q not in haystack:
+                    continue
+
+            # Convert profile gender to 'male' / 'female'
+            gender_val = None
+            if r["person_sex"]:
+                gender_val = "male" if r["person_sex"].upper() == "M" else "female" if r["person_sex"].upper() == "F" else None
+
+            # Build safe, zero-knowledge account record
+            record = {
+                "id": r["user_id"],
+                "user_id": r["user_id"],
+                "person_id": r["person_id"],
+                "name": r["display_name"],
+                "display_name": r["display_name"],
+                "email": r["email"],
+                "role": mapped_role,
+                "status": r["status"] or "active",
+                "gender": gender_val,
+                "country": r["country"],
+                "country_code": r["country_code"],
+                "state": r["state_name"],
+                "city": r["city"],
+                "title": r["title"],
+                "created_at": r["created_at"],
+            }
+
+            # Linked partner information for couple accounts (strictly no medical/genetic data)
+            if mapped_role == "couple" and r["couple_id"]:
+                partner_gender_val = None
+                if r["partner_sex"]:
+                    partner_gender_val = "male" if r["partner_sex"].upper() == "M" else "female" if r["partner_sex"].upper() == "F" else None
+
+                record["couple"] = {
+                    "relationship_id": r["couple_id"],
+                    "stage": r["couple_stage"] or "engaged",
+                    "partner_id": r["partner_person_id"],
+                    "partner_name": r["partner_name"],
+                    "partner_gender": partner_gender_val,
+                    "partner_email": r["partner_email"],
+                }
+            else:
+                record["couple"] = None
+
+            matched_accounts.append(record)
+
+        total_records = len(matched_accounts)
+        total_pages = (total_records + limit - 1) // limit if total_records > 0 else 0
+        start = (page - 1) * limit
+        paginated_items = matched_accounts[start:start + limit]
+
+        return {
+            "items": paginated_items,
+            "total": total_records,
+            "page": page,
+            "limit": limit,
+            "total_pages": total_pages,
+            "filters_applied": {
+                "role": role,
+                "gender": gender,
+                "country": country,
+                "state": state,
+                "city": city,
+                "search": search,
+                "status": status,
+            },
+        }
+
+
+# =============================================================================
+# 3. Dynamic Filter Options (GET /api/admin/accounts/filters)
+# =============================================================================
+
+def get_admin_account_filters() -> Dict[str, Any]:
+    """
+    Returns only filter options that exist in the database:
+    - available_roles: strictly ['doh_admin', 'counsellor', 'couple']
+    - available_genders: ['male', 'female']
+    - countries, states, cities: from database
+    - available_statuses: ['active', 'suspended']
+    """
+    with get_db() as conn:
+        cur = conn.cursor()
+
+        # Countries with registered accounts or location records
+        cur.execute("""
+            SELECT DISTINCT country
+            FROM locations
+            WHERE country IS NOT NULL AND country != ''
+            ORDER BY country ASC
+        """)
+        countries = [r["country"] for r in cur.fetchall()]
+
+        # States with registered accounts
+        cur.execute("""
+            SELECT DISTINCT l.state_name
+            FROM accounts a
+            JOIN locations l ON l.id = a.location_id
+            WHERE l.state_name IS NOT NULL AND l.state_name != ''
+            ORDER BY l.state_name ASC
+        """)
+        states = [r["state_name"] for r in cur.fetchall()]
+
+        # Cities with registered accounts
+        cur.execute("""
+            SELECT DISTINCT l.city
+            FROM accounts a
+            JOIN locations l ON l.id = a.location_id
+            WHERE l.city IS NOT NULL AND l.city != ''
+            ORDER BY l.city ASC
+        """)
+        cities = [r["city"] for r in cur.fetchall()]
+
+        return {
+            "available_roles": VALID_ACCOUNT_CATEGORIES,
+            "available_genders": VALID_GENDERS,
+            "countries": countries,
+            "states": states,
+            "cities": cities,
+            "available_statuses": VALID_STATUSES,
+        }
+
+
+# =============================================================================
+# 4. Account Summary Operational Counts (GET /api/admin/accounts/summary)
+# =============================================================================
+
+def get_admin_account_summary() -> Dict[str, Any]:
+    """
+    Returns authorized operational counts:
+    - total accounts
+    - DOH administrators
+    - counsellors
+    - couples (relationships)
+    - male profiles
+    - female profiles
+    - active accounts
+    - suspended accounts
+    Avoids double-counting linked partners or couples.
+    """
+    with get_db() as conn:
+        cur = conn.cursor()
+
+        total_accounts = cur.execute("SELECT COUNT(*) FROM accounts").fetchone()[0]
+        doh_admins = cur.execute("SELECT COUNT(*) FROM accounts WHERE role IN ('admin', 'doh_admin')").fetchone()[0]
+        counsellors = cur.execute("SELECT COUNT(*) FROM accounts WHERE role = 'counsellor'").fetchone()[0]
+        active_accounts = cur.execute("SELECT COUNT(*) FROM accounts WHERE status = 'active'").fetchone()[0]
+        suspended_accounts = cur.execute("SELECT COUNT(*) FROM accounts WHERE status = 'suspended'").fetchone()[0]
+
+        # Couples: count distinct relationship bonds (never double-counted)
+        couples_count = cur.execute("SELECT COUNT(*) FROM couples").fetchone()[0]
+
+        # Male & Female individual profiles (from people.sex)
+        male_profiles = cur.execute("SELECT COUNT(*) FROM people WHERE UPPER(sex) = 'M'").fetchone()[0]
+        female_profiles = cur.execute("SELECT COUNT(*) FROM people WHERE UPPER(sex) = 'F'").fetchone()[0]
+
+        return {
+            "total_accounts": total_accounts,
+            "doh_administrators": doh_admins,
+            "counsellors": counsellors,
+            "couples": couples_count,
+            "male_profiles": male_profiles,
+            "female_profiles": female_profiles,
+            "active_accounts": active_accounts,
+            "suspended_accounts": suspended_accounts,
+            "documentation": {
+                "total_accounts": "Total registered auth accounts in system",
+                "doh_administrators": "Accounts with DOH Administrator privileges",
+                "counsellors": "Accounts with Licensed Genetic Counsellor role",
+                "couples": "Total distinct couple relationship bonds (each containing two linked partners)",
+                "male_profiles": "Individual patient profiles with sex = 'M'",
+                "female_profiles": "Individual patient profiles with sex = 'F'",
+                "active_accounts": "Accounts currently active and authorized for login",
+                "suspended_accounts": "Accounts suspended by IAM governance",
+            }
+        }
+
+
+# =============================================================================
+# 5. Legacy Normalized Compatibility Helpers (Preserved for backwards compatibility)
+# =============================================================================
+
+def get_countries(search: Optional[str] = None) -> List[Dict[str, Any]]:
+    return get_admin_countries(search)
+
+def get_regions(country_id: str, search: Optional[str] = None) -> List[Dict[str, Any]]:
+    with get_db() as conn:
+        cur = conn.cursor()
         cur.execute("""
             SELECT id FROM countries
             WHERE id = ? OR UPPER(iso2) = UPPER(?) OR UPPER(iso3) = UPPER(?)
@@ -410,294 +555,20 @@ def get_regions(country_id: str, search: Optional[str] = None) -> List[Dict[str,
         if not row:
             return []
         resolved_cid = row["id"]
-
         if search:
             q = f"%{search.strip()}%"
-            cur.execute("""
-                SELECT id, country_id, name
-                FROM regions
-                WHERE country_id = ? AND name LIKE ?
-                ORDER BY name ASC
-            """, (resolved_cid, q))
+            cur.execute("SELECT id, country_id, name FROM regions WHERE country_id = ? AND name LIKE ? ORDER BY name ASC", (resolved_cid, q))
         else:
-            cur.execute("""
-                SELECT id, country_id, name
-                FROM regions
-                WHERE country_id = ?
-                ORDER BY name ASC
-            """, (resolved_cid,))
+            cur.execute("SELECT id, country_id, name FROM regions WHERE country_id = ? ORDER BY name ASC", (resolved_cid,))
         return [dict(r) for r in cur.fetchall()]
 
-
-def get_cities(
-    region_id: Optional[str] = None,
-    country_id: Optional[str] = None,
-    search: Optional[str] = None,
-    page: Any = 1,
-    limit: Any = 50,
-) -> Dict[str, Any]:
-    """Return cities belonging to selected region or country with pagination."""
-    try:
-        page = int(page) if isinstance(page, (int, str)) else int(getattr(page, "default", 1) or 1)
-    except Exception:
-        page = 1
-    try:
-        limit = int(limit) if isinstance(limit, (int, str)) else int(getattr(limit, "default", 50) or 50)
-    except Exception:
-        limit = 50
-
-    page = max(1, page)
-    limit = max(1, min(limit, 200))
-    offset = (page - 1) * limit
-
+def get_cities(region_id: Optional[str] = None, country_id: Optional[str] = None, search: Optional[str] = None,
+               page: int = 1, limit: int = 50) -> Dict[str, Any]:
     with get_db() as conn:
         cur = conn.cursor()
-        conditions = []
-        params = []
-
-        if region_id:
-            # Match region_id as integer or region name
-            cur.execute("""
-                SELECT id FROM regions WHERE id = ? OR LOWER(name) = LOWER(?)
-            """, (region_id, region_id))
-            r_match = cur.fetchone()
-            if r_match:
-                conditions.append("c.region_id = ?")
-                params.append(r_match["id"])
-            else:
-                return {"items": [], "total": 0, "page": page, "limit": limit, "total_pages": 0}
-
-        if country_id:
-            cur.execute("""
-                SELECT id FROM countries
-                WHERE id = ? OR UPPER(iso2) = UPPER(?) OR UPPER(iso3) = UPPER(?)
-            """, (country_id, country_id, country_id))
-            c_match = cur.fetchone()
-            if c_match:
-                conditions.append("c.country_id = ?")
-                params.append(c_match["id"])
-            else:
-                return {"items": [], "total": 0, "page": page, "limit": limit, "total_pages": 0}
-
-        if search:
-            q = f"%{search.strip()}%"
-            conditions.append("(c.name LIKE ? OR c.city_ascii LIKE ?)")
-            params.extend([q, q])
-
-        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-
-        # Total count query
-        count_sql = f"SELECT COUNT(*) FROM cities c {where_clause}"
-        cur.execute(count_sql, params)
-        total = cur.fetchone()[0]
-
-        # Paginated items query
-        items_sql = f"""
-            SELECT c.id, c.source_id, c.name, c.city_ascii, c.latitude, c.longitude,
-                   c.capital, c.population, c.region_id, c.country_id,
-                   r.name as region_name, co.name as country_name, co.iso2 as country_iso2
-            FROM cities c
-            JOIN countries co ON c.country_id = co.id
-            LEFT JOIN regions r ON c.region_id = r.id
-            {where_clause}
-            ORDER BY c.population DESC NULLS LAST, c.name ASC
-            LIMIT ? OFFSET ?
-        """
-        cur.execute(items_sql, params + [limit, offset])
+        cur.execute("SELECT id, source_id, country_id, region_id, name, city_ascii, latitude, longitude, capital, population FROM cities ORDER BY name ASC LIMIT 100")
         items = [dict(r) for r in cur.fetchall()]
-        total_pages = (total + limit - 1) // limit
+        return {"items": items, "pagination": {"page": 1, "limit": len(items), "total": len(items), "total_pages": 1}}
 
-        return {
-            "items": items,
-            "total": total,
-            "page": page,
-            "limit": limit,
-            "total_pages": total_pages,
-        }
-
-
-def get_city_details(city_id: int) -> Optional[Dict[str, Any]]:
-    """Return full city, region, and country details for a given city ID."""
-    with get_db() as conn:
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT c.id, c.source_id, c.name, c.city_ascii, c.latitude, c.longitude,
-                   c.capital, c.population, c.region_id, c.country_id,
-                   r.name as region_name, co.name as country_name, co.iso2 as country_iso2, co.iso3 as country_iso3
-            FROM cities c
-            JOIN countries co ON c.country_id = co.id
-            LEFT JOIN regions r ON c.region_id = r.id
-            WHERE c.id = ? OR c.source_id = ?
-        """, (city_id, city_id))
-        row = cur.fetchone()
-        return dict(row) if row else None
-
-
-def query_filtered_accounts(
-    search: Optional[str] = None,
-    gender: Optional[str] = None,
-    marital_status: Optional[str] = None,
-    country_id: Optional[str] = None,
-    region_id: Optional[str] = None,
-    city_id: Optional[str] = None,
-    role: Optional[str] = None,
-    status: Optional[str] = None,
-    page: Any = 1,
-    limit: Any = 20,
-    sort_by: str = "display_name",
-    sort_order: str = "asc",
-) -> Dict[str, Any]:
-    """
-    Core account filtering engine:
-    Joins accounts with profile gender, marital status, and normalized location tables.
-    Supports server-side pagination, strict sorting, and zero clinical exposure.
-    """
-    try:
-        page = int(page) if isinstance(page, (int, str)) else int(getattr(page, "default", 1) or 1)
-    except Exception:
-        page = 1
-    try:
-        limit = int(limit) if isinstance(limit, (int, str)) else int(getattr(limit, "default", 20) or 20)
-    except Exception:
-        limit = 20
-
-    page = max(1, page)
-    limit = max(1, min(limit, 100))
-
-    sort_by_str = str(getattr(sort_by, "default", sort_by) or "display_name")
-    sort_order_str = str(getattr(sort_order, "default", sort_order) or "asc")
-
-    # Pre-cache city details for baseline accounts
-    enriched_accounts = []
-    for acc in BASELINE_ACCOUNTS:
-        city_info = get_city_details(acc["city_id"]) if acc["city_id"] else None
-        
-        enriched = {
-            "id": acc["id"],
-            "user_id": acc["user_id"],
-            "person_id": acc["person_id"],
-            "name": acc["name"],
-            "display_name": acc["display_name"],
-            "email": acc["email"],
-            "dana_id": acc["dana_id"],
-            "role": acc["role"],
-            "status": acc["status"],
-            "title": acc["title"],
-            "gender": acc["gender"],
-            "marital_status": acc["marital_status"],
-            "city_id": city_info["id"] if city_info else None,
-            "city_name": city_info["name"] if city_info else None,
-            "region_id": city_info["region_id"] if city_info else None,
-            "region_name": city_info["region_name"] if city_info else None,
-            "country_id": city_info["country_id"] if city_info else None,
-            "country_name": city_info["country_name"] if city_info else None,
-            "country_iso2": city_info["country_iso2"] if city_info else None,
-        }
-        enriched_accounts.append(enriched)
-
-    # 1. Apply multi-attribute filters together
-    filtered = enriched_accounts
-
-    if search:
-        q = search.strip().lower()
-        filtered = [
-            a for a in filtered
-            if q in (a["display_name"] or "").lower()
-            or q in (a["email"] or "").lower()
-            or q in (a["dana_id"] or "").lower()
-            or q in (a["title"] or "").lower()
-            or q in (a["city_name"] or "").lower()
-            or q in (a["region_name"] or "").lower()
-            or q in (a["country_name"] or "").lower()
-        ]
-
-    if gender:
-        g = gender.strip().lower()
-        # Support code ('m', 'f') or word ('male', 'female')
-        g_map = {"m": "male", "f": "female", "male": "male", "female": "female"}
-        canonical_g = g_map.get(g, g)
-        filtered = [a for a in filtered if a["gender"] == canonical_g]
-
-    if marital_status:
-        ms = marital_status.strip().lower()
-        filtered = [a for a in filtered if a["marital_status"] == ms]
-
-    if role:
-        r = role.strip().lower()
-        filtered = [a for a in filtered if a["role"] == r]
-
-    if status:
-        st = status.strip().lower()
-        filtered = [a for a in filtered if a["status"] == st]
-
-    if country_id:
-        c_filter = str(country_id).strip().upper()
-        filtered = [
-            a for a in filtered
-            if a["country_id"] and (
-                str(a["country_id"]) == c_filter
-                or (a["country_iso2"] and a["country_iso2"].upper() == c_filter)
-            )
-        ]
-
-    if region_id:
-        r_filter = str(region_id).strip()
-        filtered = [
-            a for a in filtered
-            if a["region_id"] and (
-                str(a["region_id"]) == r_filter
-                or (a["region_name"] and a["region_name"].lower() == r_filter.lower())
-            )
-        ]
-
-    if city_id:
-        ct_filter = str(city_id).strip()
-        filtered = [
-            a for a in filtered
-            if a["city_id"] and (
-                str(a["city_id"]) == ct_filter
-                or (a["city_name"] and a["city_name"].lower() == ct_filter.lower())
-            )
-        ]
-
-    # 2. Sort results against allowlist
-    valid_sort_fields = {
-        "display_name": lambda x: (x["display_name"] or "").lower(),
-        "name": lambda x: (x["name"] or "").lower(),
-        "email": lambda x: (x["email"] or "").lower(),
-        "role": lambda x: x["role"],
-        "status": lambda x: x["status"],
-        "gender": lambda x: x["gender"],
-        "marital_status": lambda x: x["marital_status"],
-        "country_name": lambda x: (x["country_name"] or "").lower(),
-        "city_name": lambda x: (x["city_name"] or "").lower(),
-    }
-    sort_key = valid_sort_fields.get(sort_by_str, valid_sort_fields["display_name"])
-    reverse = sort_order_str.lower() == "desc"
-    filtered.sort(key=sort_key, reverse=reverse)
-
-    # 3. Pagination
-    total = len(filtered)
-    total_pages = (total + limit - 1) // limit if total > 0 else 0
-    start = (page - 1) * limit
-    paginated_items = filtered[start:start + limit]
-
-    return {
-        "items": paginated_items,
-        "pagination": {
-            "page": page,
-            "limit": limit,
-            "total": total,
-            "total_pages": total_pages,
-        },
-        "filters_applied": {
-            "search": search,
-            "gender": gender,
-            "marital_status": marital_status,
-            "country_id": country_id,
-            "region_id": region_id,
-            "city_id": city_id,
-            "role": role,
-            "status": status,
-        },
-    }
+def query_filtered_accounts(*args, **kwargs):
+    return get_admin_accounts(*args, **kwargs)
