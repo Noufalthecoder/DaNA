@@ -3,6 +3,7 @@
   Keys come from web/.env.local (see web/.env.example). Without them the app
   runs in demo mode: only the simulated UAE PASS login works.
 */
+
 import { createClient } from '@supabase/supabase-js';
 import { COUPLES, generateDanaId } from './data.js';
 import { get, set, startFresh } from './store.js';
@@ -13,12 +14,12 @@ const getEnv = (key) => {
     if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
       return import.meta.env[key];
     }
-  } catch {}
+  } catch { }
   try {
     if (typeof process !== 'undefined' && process.env && process.env[key]) {
       return process.env[key];
     }
-  } catch {}
+  } catch { }
   return '';
 };
 
@@ -52,12 +53,12 @@ export async function loadSession(user) {
   }
   // staff role chosen at sign-up (016): the database checks the access code
   let claim = null;
-  try { claim = JSON.parse(sessionStorage.getItem('dana.staffClaim') || 'null'); sessionStorage.removeItem('dana.staffClaim'); } catch {}
+  try { claim = JSON.parse(sessionStorage.getItem('dana.staffClaim') || 'null'); sessionStorage.removeItem('dana.staffClaim'); } catch { }
   if (claim && acc.role === 'couple' && !acc.person_id) {
     const { error } = await supabase.rpc('claim_staff_role', { p_role: claim.role, p_code: claim.code });
     if (error) {
       // never let a failed staff sign-up continue into the app
-      await supabase.auth.signOut().catch(() => {});
+      await supabase.auth.signOut().catch(() => { });
       throw new Error(`${error.message}. Sign-up as ${claim.role === 'admin' ? 'DoH admin' : 'counsellor'} was not completed.`);
     } else {
       const again = await supabase.from('accounts').select('*').eq('user_id', user.id).maybeSingle();
@@ -137,7 +138,7 @@ export async function refreshSession() {
 
 /* keep the app's session in step with Supabase (also handles the Google redirect) */
 export function watchAuth(onReady) {
-  if (!supabase) { onReady(); return () => {}; }
+  if (!supabase) { onReady(); return () => { }; }
   let current = null;
   let readyCalled = false;
   const notifyReady = () => {
@@ -199,13 +200,13 @@ export function watchAuth(onReady) {
   } catch {
     clearTimeout(timer);
     notifyReady();
-    return () => {};
+    return () => { };
   }
 }
 
 export async function signOut() {
   if (supabase) {
-    try { await supabase.auth.signOut(); } catch {}
+    try { await supabase.auth.signOut(); } catch { }
   }
 }
 

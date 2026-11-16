@@ -66,7 +66,7 @@ export const MENUS = {
     label: 'Couple',
     items: [
       { to: '/app', label: 'Home', icon: <HomeIcon /> },
-      { to: '/app/tracker', label: 'Personal Tracker', icon: <PlanTrackerIcon />, badge: 'New' },
+      { to: '/app/tracker', label: 'Personal Tracker', icon: <PlanTrackerIcon /> },
       { to: '/app/result', label: 'My result', icon: <ContentIcon /> },
       { to: '/app/connections', label: 'Connections', icon: <ConnectionsIcon /> },
       { to: '/app/bonds', label: 'Bonds', icon: <BondsIcon /> },

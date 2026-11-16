@@ -332,17 +332,10 @@ def build_sqlite_database(rows: list, db_path: Path):
     # Pre-resolve key locations
     abu_dhabi_loc = loc_id_map.get(('abu dhabi', 'united arab emirates'))
     dubai_loc = loc_id_map.get(('dubai', 'united arab emirates'))
-    al_ain_loc = loc_id_map.get(('al ain', 'united arab emirates'))
+    al_ain_loc = loc_id_map.get(('al ‘ayn', 'united arab emirates')) or loc_id_map.get(('al `ayn', 'united arab emirates'))
     sharjah_loc = loc_id_map.get(('sharjah', 'united arab emirates'))
-    rak_loc = loc_id_map.get(("ra's al khaymah", 'united arab emirates'))
+    rak_loc = loc_id_map.get(("ra’s al khaymah", 'united arab emirates')) or loc_id_map.get(("ra's al khaymah", 'united arab emirates'))
     fuj_loc = loc_id_map.get(('al fujayrah', 'united arab emirates'))
-    
-    # India locations (Chennai, Tamil Nadu)
-    chennai_loc = loc_id_map.get(('chennai', 'india'))
-    mumbai_loc = loc_id_map.get(('mumbai', 'india'))
-    
-    # Riyadh, Saudi Arabia
-    riyadh_loc = loc_id_map.get(('riyadh', 'saudi arabia'))
 
     people_data = [
         # UAE premarital screening cohort
@@ -359,11 +352,11 @@ def build_sqlite_database(rows: list, db_path: Path):
         ('hamdan', 'Hamdan Al Qubaisi', 'Hamdan', 'M', 2000, 'ar', fuj_loc),
         ('shamma', 'Shamma Al Zaabi', 'Shamma', 'F', 2002, 'ar', fuj_loc),
 
-        # India premarital cohort (Tamil Nadu & Maharashtra)
-        ('rohit', 'Rohit Sharma', 'Rohit', 'M', 1996, 'en', chennai_loc),
-        ('priya', 'Priya Sundaram', 'Priya', 'F', 1998, 'en', chennai_loc),
-        ('arjun', 'Arjun Kapoor', 'Arjun', 'M', 1995, 'en', mumbai_loc),
-        ('ananya_p', 'Ananya Iyer', 'Ananya', 'F', 1997, 'en', mumbai_loc),
+        # Registered premarital partner profiles across UAE clinics
+        ('rohit', 'Rohit Sharma', 'Rohit', 'M', 1996, 'en', dubai_loc),
+        ('priya', 'Priya Sundaram', 'Priya', 'F', 1998, 'en', dubai_loc),
+        ('arjun', 'Arjun Kapoor', 'Arjun', 'M', 1995, 'en', abu_dhabi_loc),
+        ('ananya_p', 'Ananya Iyer', 'Ananya', 'F', 1997, 'en', abu_dhabi_loc),
     ]
 
     cur.executemany("""
@@ -407,7 +400,7 @@ def build_sqlite_database(rows: list, db_path: Path):
         # 2. COUNSELLOR
         ('mariam', 'counsellor', None, 'Dr. Mariam Al Hosani', 'Senior Genetic Counsellor · Lic. LIC-GC-2024-089', 'active', 'mariam@dana.demo', abu_dhabi_loc),
         ('sara', 'counsellor', None, 'Dr. Sara Al Zaabi', 'Clinical Geneticist & Counsellor · Lic. LIC-GC-2025-114', 'active', 'sara.zaabi@ssmc.ae', dubai_loc),
-        ('counsellor_in', 'counsellor', None, 'Dr. Rajesh Raman', 'Lead Genetic Counsellor (India Registry)', 'active', 'rajesh.raman@genetics.in', chennai_loc),
+        ('counsellor_in', 'counsellor', None, 'Dr. Rajesh Raman', 'Lead Genetic Counsellor · SSMC Dubai Healthcare City', 'active', 'rajesh.raman@genetics.ae', dubai_loc),
 
         # 3. COUPLE accounts (linked to individual profiles)
         ('khalid', 'couple', 'khalid', 'Khalid Al Mansoori', 'Partner · engaged with Fatima Al Hammadi (Couple c1)', 'active', 'khalid@dana.demo', abu_dhabi_loc),
@@ -423,11 +416,11 @@ def build_sqlite_database(rows: list, db_path: Path):
         ('hamdan', 'couple', 'hamdan', 'Hamdan Al Qubaisi', 'Partner · engaged with Shamma Al Zaabi (Couple c6)', 'active', 'hamdan@dana.demo', fuj_loc),
         ('shamma', 'couple', 'shamma', 'Shamma Al Zaabi', 'Partner · engaged with Hamdan Al Qubaisi (Couple c6)', 'active', 'shamma@dana.demo', fuj_loc),
         
-        # India Couple accounts
-        ('rohit', 'couple', 'rohit', 'Rohit Sharma', 'Partner · engaged with Priya Sundaram (Couple c7)', 'active', 'rohit.sharma@example.in', chennai_loc),
-        ('priya', 'couple', 'priya', 'Priya Sundaram', 'Partner · engaged with Rohit Sharma (Couple c7)', 'active', 'priya.sundaram@example.in', chennai_loc),
-        ('arjun', 'couple', 'arjun', 'Arjun Kapoor', 'Partner · married with Ananya Iyer (Couple c8)', 'active', 'arjun.kapoor@example.in', mumbai_loc),
-        ('ananya_p', 'couple', 'ananya_p', 'Ananya Iyer', 'Partner · married with Arjun Kapoor (Couple c8)', 'active', 'ananya.iyer@example.in', mumbai_loc),
+        # UAE Registered Couples (SSMC & Cleveland Clinic Abu Dhabi cohorts)
+        ('rohit', 'couple', 'rohit', 'Rohit Sharma', 'Partner · engaged with Priya Sundaram (Couple c7)', 'active', 'rohit.sharma@example.ae', dubai_loc),
+        ('priya', 'couple', 'priya', 'Priya Sundaram', 'Partner · engaged with Rohit Sharma (Couple c7)', 'active', 'priya.sundaram@example.ae', dubai_loc),
+        ('arjun', 'couple', 'arjun', 'Arjun Kapoor', 'Partner · married with Ananya Iyer (Couple c8)', 'active', 'arjun.kapoor@example.ae', abu_dhabi_loc),
+        ('ananya_p', 'couple', 'ananya_p', 'Ananya Iyer', 'Partner · married with Arjun Kapoor (Couple c8)', 'active', 'ananya.iyer@example.ae', abu_dhabi_loc),
     ]
 
     cur.executemany("""
