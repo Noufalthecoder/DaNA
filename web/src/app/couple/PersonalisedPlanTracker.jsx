@@ -294,6 +294,109 @@ export default function PersonalisedPlanTracker() {
             );
           })}
         </div>
+
+        {/* 7-Stage Care Protocol Matrix Table */}
+        <div style={{ marginTop: 28, borderTop: '1px solid #E2E8F0', paddingTop: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div>
+              <h4 style={{ fontSize: '15px', fontWeight: 700, margin: '0 0 2px 0', color: '#0F172A' }}>
+                7-Stage Care Protocol Matrix · جدول خطة الرعاية الوراثية الشاملة
+              </h4>
+              <p style={{ fontSize: '12.5px', color: '#64748B', margin: 0 }}>
+                Structured lifecycle oversight across screening, counselling, conception, gestation, and newborn care.
+              </p>
+            </div>
+            <Badge tone="blue">Stage {plan.activeStageId || 3} of 7 Active</Badge>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table className="table" style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', textAlign: 'left' }}>
+                  <th style={{ width: '45px', padding: '10px 8px' }}>#</th>
+                  <th style={{ padding: '10px 12px' }}>Clinical Stage</th>
+                  <th style={{ padding: '10px 12px' }}>Domain</th>
+                  <th style={{ padding: '10px 12px' }}>Checkpoints</th>
+                  <th style={{ padding: '10px 12px' }}>Status</th>
+                  <th style={{ padding: '10px 12px' }}>Clinical Deliverable</th>
+                </tr>
+              </thead>
+              <tbody>
+                {CARE_PLAN_STAGES.map((stg) => {
+                  const completedCount = stg.items.filter((it) => plan.completedItems?.includes(it.id)).length;
+                  const totalCount = stg.items.length;
+                  const isDone = stg.id < (plan.activeStageId || 3);
+                  const isCurrent = stg.id === (plan.activeStageId || 3);
+
+                  return (
+                    <tr
+                      key={stg.id}
+                      style={{
+                        background: isCurrent ? 'rgba(0, 132, 61, 0.04)' : undefined,
+                        borderBottom: '1px solid #E2E8F0',
+                      }}
+                    >
+                      <td style={{ padding: '12px 8px' }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          background: isDone ? '#00843D' : isCurrent ? '#FFFFFF' : '#F1F5F9',
+                          color: isDone ? '#FFFFFF' : isCurrent ? '#00843D' : '#64748B',
+                          border: isCurrent ? '2px solid #00843D' : '1px solid #CBD5E1',
+                        }}>
+                          {isDone ? '✓' : stg.id}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <b>{stg.title}</b>
+                        <div style={{ fontSize: '11px', color: '#64748B' }}>{stg.titleAr}</div>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={{
+                          fontSize: '11px',
+                          padding: '2px 8px',
+                          borderRadius: '9999px',
+                          fontWeight: 600,
+                          background: stg.tag ? 'rgba(0, 132, 61, 0.1)' : '#F1F5F9',
+                          color: stg.tag ? '#00843D' : '#475569',
+                        }}>
+                          {stg.tag || 'Clinical'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>
+                        <b>{completedCount}</b> / {totalCount} completed
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        {isDone ? (
+                          <Badge tone="green">Completed</Badge>
+                        ) : isCurrent ? (
+                          <Badge tone="amber">Active Focus</Badge>
+                        ) : (
+                          <Badge tone="grey">Locked</Badge>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px', color: '#475569', fontSize: '12.5px' }}>
+                        {stg.id === 1 && 'Individual genetic sequencing and pedigree generation complete.'}
+                        {stg.id === 2 && 'Mendelian compatibility evaluated; carrier risk calculated.'}
+                        {stg.id === 3 && 'Telehealth genetic counselling session & care protocol approval.'}
+                        {stg.id === 4 && 'Preconception pathway chosen & IVF/PGT-M referral dispatched.'}
+                        {stg.id === 5 && 'Gestational age tracking & CVS/Amniocentesis testing windows.'}
+                        {stg.id === 6 && 'Danat Al Emarat maternity handover dossier & cord blood alert.'}
+                        {stg.id === 7 && 'UAE DoH newborn blood spot screening & SSMC pediatric care handoff.'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       {/* ═════════════════════════════════════════════════════════════════════════════ */}
