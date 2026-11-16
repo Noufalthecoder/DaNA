@@ -124,8 +124,8 @@ export default function Login() {
                   mode: 'uae_pass',
                   personal: {
                     ...getSyntheticIntake(acc.id).personal,
-                    partnerName: '',
-                    maritalStatus: '',
+                    partnerName: getSyntheticIntake(acc.id).personal?.partnerName || '',
+                    maritalStatus: 'Married',
                     pregnancyStatus: '',
                   },
                   compliance: {

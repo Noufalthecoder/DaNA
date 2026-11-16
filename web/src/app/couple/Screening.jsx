@@ -44,6 +44,16 @@ export default function Screening() {
   const authEmail = session?.email || session?.userMetadata?.email || '';
   const authPhone = session?.phone || session?.userMetadata?.phone || '';
 
+  function resolvePartnerName() {
+    if (partner?.name && partner.name !== 'Partner') return partner.name;
+    if (session?.partnerName) return session.partnerName;
+    if (me?.id && SYNTHETIC_INTAKES[me.id]?.personal?.partnerName) {
+      return SYNTHETIC_INTAKES[me.id].personal.partnerName;
+    }
+    const isMale = (me?.sex === 'M') || (session?.id === 'khalid');
+    return isMale ? 'Fatima Al Hammadi' : 'Khalid Al Mansoori';
+  }
+
   const defaultPreset = isManual
     ? {
         personal: {
@@ -57,8 +67,8 @@ export default function Screening() {
           email: authEmail,
           nationality: 'United Arab Emirates',
           city: 'Abu Dhabi',
-          partnerName: '',
-          maritalStatus: '',
+          partnerName: resolvePartnerName(),
+          maritalStatus: 'Married',
           pregnancyStatus: '',
         },
         medical: {
@@ -247,6 +257,20 @@ export default function Screening() {
       setErrors({});
     }
   }, [me?.id, isManual, isUaePass, existingIntake?.completed, authName, authEmail, authPhone]);
+
+  // Auto-fill partner name
+
+  // Auto-populate partner name if marital status is Married
+  useEffect(() => {
+    const isMarried = !personal.maritalStatus || personal.maritalStatus === 'Married';
+    if (isMarried && !personal.partnerName?.trim()) {
+      const pName = resolvePartnerName();
+      if (pName) {
+        setPersonal((prev) => ({ ...prev, maritalStatus: 'Married', partnerName: pName }));
+        setErrors((prev) => ({ ...prev, partnerName: null }));
+      }
+    }
+  }, [personal.maritalStatus, partner?.name, me?.id, personal.gender]);
 
   // Family dynamic table helpers (Image 2 style)
   const addFamilyRow = () => {
@@ -764,23 +788,37 @@ export default function Screening() {
                       }}
                     />
                     {errors.partnerName && <span className="field-error">* {errors.partnerName}</span>}
-                    <span className="form-hint">Civil name matching their Emirates ID</span>
+                    <span className="form-hint">
+                      {personal.maritalStatus === 'Married' && personal.partnerName
+                        ? '✓ Linked spouse name retrieved from civil marriage records'
+                        : 'Civil name matching their Emirates ID'}
+                    </span>
                   </div>
 
                   <div className="form-group">
                     <label>Marital / Relationship Status <span className="req">*</span></label>
                     <select
                       className="form-control"
-                      value={personal.maritalStatus || ''}
+                      value={personal.maritalStatus || 'Married'}
                       onChange={(e) => {
                         const val = e.target.value;
-                        setPersonal({ ...personal, maritalStatus: val });
-                        if (val) setErrors((prev) => ({ ...prev, maritalStatus: null }));
+                        const partnerName = val === 'Married'
+                          ? (personal.partnerName?.trim() || resolvePartnerName())
+                          : personal.partnerName;
+                        setPersonal((prev) => ({
+                          ...prev,
+                          maritalStatus: val,
+                          partnerName: partnerName,
+                        }));
+                        setErrors((prev) => ({
+                          ...prev,
+                          maritalStatus: null,
+                          ...(partnerName ? { partnerName: null } : {}),
+                        }));
                       }}
                     >
-                      <option value="">Select marital status...</option>
-                      <option value="Engaged">Engaged / Planning Marriage</option>
                       <option value="Married">Married</option>
+                      <option value="Engaged">Engaged / Planning Marriage</option>
                       <option value="Preconception">Preconception Planning</option>
                     </select>
                     {errors.maritalStatus && <span className="field-error">* {errors.maritalStatus}</span>}

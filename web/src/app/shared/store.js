@@ -4,7 +4,7 @@
   Owner: Platform. Swap for a real API later without changing the pages.
 */
 import { useSyncExternalStore, useRef, useCallback } from 'react';
-import { getSyntheticIntake } from './data.js';
+import { getSyntheticIntake, INITIAL_SCHEDULE } from './data.js';
 
 export const EMPTY_OBJ = Object.freeze({});
 export const EMPTY_ARR = Object.freeze([]);
@@ -17,7 +17,38 @@ const initial = {
   notes: {},
   approved: [],
   plans: {},          // couple id -> chosen plan
-  appointments: {},   // couple id -> booked slot label
+  appointments: {
+    c1: 'Tue 10 Nov · 13:30',
+    c2: 'Thu 5 Nov · 09:00',
+    c3: 'Thu 5 Nov · 15:30',
+    c4: 'Thu 5 Nov · 11:30',
+    c5: 'Thu 5 Nov · 14:00',
+    c6: 'Thu 12 Nov · 10:00',
+  },   // couple id -> booked slot label
+  scheduleAppointments: [
+    {
+      id: 'appt_c1',
+      date: '2026-11-10',
+      time: '13:30',
+      endTime: '14:15',
+      who: 'Khalid & Fatima',
+      what: 'Pre-marital counselling',
+      priority: 'pending',
+      status: 'pending',
+      confirmed: false,
+      requestedAt: '2026-11-14T09:00:00Z',
+      tone: 'amber',
+      doctor: 'Dr. Mariam Al Hosani',
+      mode: 'online',
+      type: 'Video',
+      provider: 'Google Meet',
+      meetLink: 'https://meet.google.com/dan-c1-0224',
+      language: 'Arabic',
+      cid: 'c1',
+      notes: 'Pre-marital carrier compatibility consultation booked via portal.'
+    },
+    ...INITIAL_SCHEDULE,
+  ],
   faith: {},
   audit: [],
   family: {},          // person id -> their family_members rows
@@ -75,6 +106,30 @@ const initial = {
   blockedUsers: [],
   notifications: [
     {
+      id: 'notif_consult_appt_c1',
+      requestId: 'appt_c1',
+      userId: 'mariam',
+      actorId: 'c1',
+      type: 'CONSULTATION_REQUEST',
+      title: 'New Consultation Request',
+      body: 'Khalid & Fatima requested an Online Video consultation for 10 Nov at 13:30 GST.',
+      link: '/app/schedule?review=appt_c1',
+      isRead: false,
+      createdAt: '2026-11-14T09:00:00Z',
+    },
+    {
+      id: 'notif_consult_appt_4',
+      requestId: 'appt_4',
+      userId: 'mariam',
+      actorId: 'c5',
+      type: 'CONSULTATION_REQUEST',
+      title: 'New Consultation Request',
+      body: 'Rashid & Aisha requested an Online Video consultation for 5 Nov at 14:00 GST.',
+      link: '/app/schedule?review=appt_4',
+      isRead: false,
+      createdAt: '2026-11-04T16:30:00Z',
+    },
+    {
       id: 'notif_welcome',
       userId: 'khalid',
       actorId: 'ahmed',
@@ -105,7 +160,72 @@ const subs = new Set();
 function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
-    return { ...initial, ...saved };
+    if (saved.appointments && (saved.appointments.c1 === 'Thu 5 Nov · 10:30' || saved.appointments.c1?.includes('5 Nov'))) {
+      delete saved.appointments.c1;
+    }
+    if (saved.scheduleAppointments) {
+      saved.scheduleAppointments = saved.scheduleAppointments.filter((a) => a.id !== 'appt_2' && !(a.cid === 'c1' && a.date === '2026-11-05'));
+      if (!saved.c1Cancelled && !saved.scheduleAppointments.some((a) => a.id === 'appt_c1' || a.cid === 'c1')) {
+        saved.scheduleAppointments.unshift({
+          id: 'appt_c1',
+          date: '2026-11-10',
+          time: '13:30',
+          endTime: '14:15',
+          who: 'Khalid & Fatima',
+          what: 'Pre-marital counselling',
+          priority: 'pending',
+          status: 'pending',
+          confirmed: false,
+          requestedAt: '2026-11-14T09:00:00Z',
+          tone: 'amber',
+          doctor: 'Dr. Mariam Al Hosani',
+          mode: 'online',
+          type: 'Video',
+          provider: 'Google Meet',
+          meetLink: 'https://meet.google.com/dan-c1-0224',
+          language: 'Arabic',
+          cid: 'c1',
+          notes: 'Pre-marital carrier compatibility consultation booked via portal.'
+        });
+      }
+    }
+    if (!saved.c1Cancelled && saved.appointments && !saved.appointments.c1) {
+      saved.appointments = { ...saved.appointments, c1: 'Tue 10 Nov · 13:30' };
+    }
+    if (!saved.c1Cancelled && saved.notifications && !saved.notifications.some((n) => n.id === 'notif_consult_appt_c1' || n.requestId === 'appt_c1')) {
+      saved.notifications.unshift({
+        id: 'notif_consult_appt_c1',
+        requestId: 'appt_c1',
+        userId: 'mariam',
+        actorId: 'c1',
+        type: 'CONSULTATION_REQUEST',
+        title: 'New Consultation Request',
+        body: 'Khalid & Fatima requested an Online Video consultation for 10 Nov at 13:30 GST.',
+        link: '/app/schedule?review=appt_c1',
+        isRead: false,
+        createdAt: '2026-11-14T09:00:00Z',
+      });
+    }
+    if (saved.notifications && !saved.notifications.some((n) => n.id === 'notif_consult_appt_4' || n.requestId === 'appt_4')) {
+      saved.notifications.unshift({
+        id: 'notif_consult_appt_4',
+        requestId: 'appt_4',
+        userId: 'mariam',
+        actorId: 'c5',
+        type: 'CONSULTATION_REQUEST',
+        title: 'New Consultation Request',
+        body: 'Rashid & Aisha requested an Online Video consultation for 5 Nov at 14:00 GST.',
+        link: '/app/schedule?review=appt_4',
+        isRead: false,
+        createdAt: '2026-11-04T16:30:00Z',
+      });
+    }
+    return {
+      ...initial,
+      ...saved,
+      appointments: saved.appointments !== undefined ? saved.appointments : initial.appointments,
+      scheduleAppointments: saved.scheduleAppointments !== undefined ? saved.scheduleAppointments : initial.scheduleAppointments,
+    };
   } catch {
     return { ...initial };
   }
@@ -137,10 +257,19 @@ export function get() {
 
 export function signOut() {
   state = {
-    ...state,
+    ...initial,
     session: null,
+    reports: {},
+    notes: {},
+    screeningIntakes: {},
+    cases: {},
+    appointments: {},
   };
-  save();
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    /* private browsing mode */
+  }
   subs.forEach((f) => f());
 }
 
@@ -178,7 +307,7 @@ export function startFresh(session) {
           personal: {
             ...syn.personal,
             partnerName: existing?.personal?.partnerName || syn.personal?.partnerName || '',
-            maritalStatus: existing?.personal?.maritalStatus || syn.personal?.maritalStatus || '',
+            maritalStatus: existing?.personal?.maritalStatus || syn.personal?.maritalStatus || 'Married',
             pregnancyStatus: isMale ? 'no' : (existing?.personal?.pregnancyStatus || ''),
           },
           medical: syn.medical,
@@ -213,7 +342,7 @@ export function resetDemo() {
         personal: {
           ...syn.personal,
           partnerName: syn.personal?.partnerName || '',
-          maritalStatus: syn.personal?.maritalStatus || '',
+          maritalStatus: syn.personal?.maritalStatus || 'Married',
           pregnancyStatus: isMale ? 'no' : '',
         },
         compliance: {

@@ -15,6 +15,21 @@ import { get, set } from './store.js';
 import { assess } from './genetics.js';
 import { supabase, refreshSession } from './supabase.js';
 import { loadAll, logAudit } from './db.js';
+import {
+  ROLES,
+  RESOURCES,
+  ACTIONS,
+  CONSENT_PURPOSES,
+  CONSENT_SCOPES,
+  CONSENT_STATUSES,
+  SECURITY_ERRORS,
+  AuthorizationError,
+  hasActiveConsent,
+  hasActiveCoupleRelationship,
+  isResourceOwner,
+  authorizedEvaluateCoupleAssessment,
+  sanitizeResourceForViewer,
+} from './auth/authorizationEngine.js';
 
 // Canonical ordering helper for bidirectional connections
 function canonicalPair(id1, id2) {
@@ -127,6 +142,18 @@ export function initConnectionsStore() {
   if (!state.notifications) {
     updates.notifications = [
       {
+        id: 'notif_consult_appt_4',
+        requestId: 'appt_4',
+        userId: 'mariam',
+        actorId: 'c5',
+        type: 'CONSULTATION_REQUEST',
+        title: 'New Consultation Request',
+        body: 'Rashid & Aisha requested an Online Video consultation for 5 Nov at 14:00 GST.',
+        link: '/app/schedule?review=appt_4',
+        isRead: false,
+        createdAt: '2026-11-04T16:30:00Z',
+      },
+      {
         id: 'notif_welcome',
         userId: 'khalid',
         actorId: 'ahmed',
@@ -148,6 +175,23 @@ export function initConnectionsStore() {
         isRead: true,
         createdAt: '2026-10-12T09:00:00Z',
       },
+    ];
+    modified = true;
+  } else if (!state.notifications.some((n) => n.id === 'notif_consult_appt_4' || n.requestId === 'appt_4')) {
+    updates.notifications = [
+      {
+        id: 'notif_consult_appt_4',
+        requestId: 'appt_4',
+        userId: 'mariam',
+        actorId: 'c5',
+        type: 'CONSULTATION_REQUEST',
+        title: 'New Consultation Request',
+        body: 'Rashid & Aisha requested an Online Video consultation for 5 Nov at 14:00 GST.',
+        link: '/app/schedule?review=appt_4',
+        isRead: false,
+        createdAt: '2026-11-04T16:30:00Z',
+      },
+      ...state.notifications,
     ];
     modified = true;
   }
@@ -1208,6 +1252,36 @@ export function getProfile(actingUserId, targetUserId) {
   const isConnected = isUserConnected(actingUserId, targetUserId);
   const conn = getConnectionRecord(actingUserId, targetUserId);
 
+  // Field-level authorization for protected genomic data:
+  // Carrier gene is revealed to self, OR to connected partner ONLY if explicit active consent is granted
+  let carrierGene = null;
+  let consentRequired = false;
+
+  if (isSelf) {
+    carrierGene = target.carrier || null;
+  } else if (isConnected) {
+    const allConsents = [
+      ...(state.connectionConsents || []),
+      ...(state.consents || []),
+    ];
+    const hasConsent = allConsents.some((c) => {
+      const owner = c.granterId || c.owner_id || c.person_id;
+      const recipient = c.granteeId || c.recipient_id;
+      const status = (c.status || (c.granted ? 'active' : 'revoked')).toLowerCase();
+      if (owner !== targetUserId) return false;
+      if (recipient && recipient !== actingUserId) return false;
+      if (status !== 'active' || c.revoked_at || c.revokedAt) return false;
+      return true;
+    });
+
+    if (hasConsent) {
+      carrierGene = target.carrier || null;
+    } else {
+      carrierGene = null;
+      consentRequired = true;
+    }
+  }
+
   return {
     id: targetUserId,
     name: target.name,
@@ -1220,21 +1294,80 @@ export function getProfile(actingUserId, targetUserId) {
     isConnected,
     connectionId: conn?.id || null,
     connectedAt: conn?.connectedAt || null,
-    carrierGene: isSelf || isConnected ? target.carrier : null,
+    carrierGene,
+    consentRequired,
   };
 }
 
-// Backward-compatible consent stubs (no consent barriers)
-export function grantConsent(granterId, granteeId, connectionId, purpose, dataScope = 'CARRIER_GENE') {
-  return { id: generateId('cst'), connectionId, granterId, granteeId, status: 'ACTIVE' };
+export function grantConsent(granterId, granteeId, connectionId, purpose = 'Premarital couple compatibility review', dataScope = 'CARRIER_GENE') {
+  initConnectionsStore();
+  const state = get();
+  const consents = state.connectionConsents || [];
+  const cid = generateId('cst');
+
+  const newConsent = {
+    id: cid,
+    connectionId,
+    granterId,
+    granteeId,
+    purpose,
+    dataScope,
+    scope: dataScope === 'CARRIER_GENE' ? 'result_summary' : 'full_report',
+    status: 'ACTIVE',
+    grantedAt: new Date().toISOString(),
+    revokedAt: null,
+  };
+
+  const filtered = consents.filter(
+    (c) => !(c.granterId === granterId && c.granteeId === granteeId && c.dataScope === dataScope)
+  );
+
+  set(
+    { connectionConsents: [newConsent, ...filtered] },
+    `Granted consent to share ${dataScope} with ${PEOPLE[granteeId]?.name || granteeId}`
+  );
+
+  logAudit(`Granted consent to share ${dataScope} with ${PEOPLE[granteeId]?.name || granteeId}`, {
+    resourceType: 'consents',
+    resourceId: cid,
+  });
+
+  return newConsent;
 }
 
-export function revokeConsent() {
+export function revokeConsent(consentId, actingUserId) {
+  initConnectionsStore();
+  const state = get();
+  const consents = state.connectionConsents || [];
+  const target = consents.find((c) => c.id === consentId || (c.granterId === actingUserId && c.status === 'ACTIVE'));
+
+  if (!target) return false;
+  if (target.granterId !== actingUserId) {
+    throw new Error('Only the data owner can revoke their consent.');
+  }
+
+  const updated = consents.map((c) =>
+    c.id === target.id
+      ? { ...c, status: 'REVOKED', revokedAt: new Date().toISOString() }
+      : c
+  );
+
+  set({ connectionConsents: updated }, `Revoked partner sharing consent`);
+
+  logAudit(`Revoked partner sharing consent`, {
+    resourceType: 'consents',
+    resourceId: target.id,
+  });
+
   return true;
 }
 
-export function getConsentsForConnection() {
-  return [];
+export function getConsentsForConnection(connectionId) {
+  initConnectionsStore();
+  const state = get();
+  return (state.connectionConsents || []).filter(
+    (c) => c.connectionId === connectionId && c.status === 'ACTIVE'
+  );
 }
 
 // -----------------------------------------------------------------------------
@@ -1244,7 +1377,37 @@ export function getConsentsForConnection() {
 export function getNotifications(userId) {
   initConnectionsStore();
   const state = get();
-  return (state.notifications || []).filter((n) => n.userId === userId);
+  let notifs = state.notifications || [];
+
+  if (userId === 'mariam') {
+    const pendingAppts = (state.scheduleAppointments || []).filter(
+      (a) => a.priority === 'pending' || a.confirmed === false
+    );
+    let added = false;
+    pendingAppts.forEach((a) => {
+      const notifId = `notif_consult_${a.id}`;
+      if (!notifs.some((n) => n.id === notifId || n.requestId === a.id)) {
+        notifs = [{
+          id: notifId,
+          requestId: a.id,
+          userId: 'mariam',
+          actorId: a.cid || a.id,
+          type: 'CONSULTATION_REQUEST',
+          title: 'New Consultation Request',
+          body: `${a.who || 'Couple'} requested a ${a.mode === 'offline' ? 'Clinic' : 'Online Video'} consultation for ${a.date} at ${a.time} GST.`,
+          link: `/app/schedule?review=${a.id}`,
+          isRead: false,
+          createdAt: a.requestedAt || '2026-11-04T16:30:00Z',
+        }, ...notifs];
+        added = true;
+      }
+    });
+    if (added) {
+      setTimeout(() => set({ notifications: notifs }), 0);
+    }
+  }
+
+  return notifs.filter((n) => n.userId === userId);
 }
 
 export function markNotificationAsRead(notificationId, userId) {
@@ -1266,9 +1429,8 @@ export function markAllNotificationsAsRead(userId) {
 }
 
 export function getUnreadNotificationCount(userId) {
-  initConnectionsStore();
-  const state = get();
-  return (state.notifications || []).filter((n) => n.userId === userId && !n.isRead).length;
+  const notifs = getNotifications(userId);
+  return notifs.filter((n) => !n.isRead).length;
 }
 
 // -----------------------------------------------------------------------------
