@@ -24,6 +24,7 @@ import { Dialog, Badge } from '../shared/ui.jsx';
 import { useStore } from '../shared/store.js';
 import { COUPLES, PEOPLE, INITIAL_SCHEDULE } from '../shared/data.js';
 import { completeAppointment, saveScheduleAppointments, confirmAppointment, declineAppointment, isLive } from '../shared/db.js';
+import { confirmConsultationByCounsellor, syncConsultationsFromSupabase } from '../shared/consultationService.js';
 import ClinicSlots from './ClinicSlots.jsx';
 import './schedule.css';
 
@@ -107,8 +108,18 @@ export default function Schedule() {
     return () => window.removeEventListener('hashchange', checkHashReview);
   }, [appointments]);
 
-  const handleAcceptRequest = (appt) => {
+  const handleAcceptRequest = async (appt) => {
     confirmAppointment(appt.id || appt.cid);
+    try {
+      if (appt.requestId || appt.id) {
+        await confirmConsultationByCounsellor(appt.requestId || appt.id, appt.cid);
+      }
+      if (appt.cid) {
+        await syncConsultationsFromSupabase(appt.cid);
+      }
+    } catch (e) {
+      console.warn('Accept consultation notice:', e?.message);
+    }
     setAppointments((prev) =>
       prev.map((a) => (a.id === appt.id || (a.cid && a.cid === appt.cid) ? {
         ...a,

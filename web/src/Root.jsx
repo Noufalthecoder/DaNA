@@ -14,6 +14,7 @@ import { watchAuth, signOut as supabaseSignOut } from './app/shared/supabase.js'
 import { loadAll } from './app/shared/db.js';
 import MyReport from './app/couple/MyReport.jsx';
 import { isLinked, NEEDS_PARTNER, useJourney } from './app/shared/journey.js';
+import { isUserScreened } from './app/shared/screeningPersistence.js';
 import Onboarding from './app/onboarding/Onboarding.jsx';
 import { PENDING_CODE_KEY } from './app/shared/PartnerCode.jsx';
 import './app/app.css';
@@ -80,7 +81,7 @@ export default function Root() {
   const obReview = useStore((s) => s.obReview);
 
   const isCouple = session?.role === 'couple';
-  const isScreened = session ? (!!session.intakeDone || !!intakes[session.id]?.completed || !!intakes[session.personId]?.completed) : false;
+  const isScreened = session ? (!!session.intakeDone || !!intakes[session.id]?.completed || !!intakes[session.personId]?.completed || isUserScreened(session.id)) : false;
 
   useEffect(() => {
     const unsub = watchAuth(() => setReady(true));
@@ -94,7 +95,7 @@ export default function Root() {
   }, [ready, inApp, session]);
 
   // the gate: unverified couple members go to /onboarding; verified ones never stay on it
-  const mustOnboard = !!session && isCouple && (obReview || !journey.verified);
+  const mustOnboard = !!session && isCouple && (obReview || (!isScreened && !journey.verified));
   const gateReady = !session?.backend || dataLoaded;
   useEffect(() => {
     if (!gateReady) return;

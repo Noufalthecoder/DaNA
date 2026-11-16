@@ -2,7 +2,8 @@
    1 About you · 2 Verify identity (UAE PASS) · 3 Consent · 4 Marriage & pregnancy · 5 Family history · 6 Get your results.
    Root.jsx sends every /app page here until the person is verified (profile + identity + consent + details + results). */
 import { useEffect, useState } from 'react';
-import { useStore, signOut, set } from '../shared/store.js';
+import { useStore, signOut, set, get } from '../shared/store.js';
+import { setUserScreened } from '../shared/screeningPersistence.js';
 import MalaffiRecord from '../shared/MalaffiRecord.jsx';
 import { refreshSession, signOut as supabaseSignOut } from '../shared/supabase.js';
 import { startMyProfile, setMySex, linkUaePass, myIdentity, submitIntake, fetchMalaffi, loadAll } from '../shared/db.js';
@@ -108,7 +109,37 @@ export default function Onboarding() {
     await loadAll();
     setStep(6);
   });
-  const enter = () => { set({ obReview: false }); go('/app/result'); };
+  const enter = () => {
+    setUserScreened(session?.id, true, {
+      completed: true,
+      mode: 'uae_pass',
+      submittedAt: new Date().toISOString(),
+      personal: {
+        fullName: session?.name,
+        gender: female ? 'Female' : 'Male',
+        partnerName: session?.id === 'khalid' ? 'Fatima Al Hammadi' : (session?.id === 'fatima' ? 'Khalid Al Mansoori' : ''),
+        maritalStatus: f.marital_status || 'Married',
+        pregnancyStatus: female && f.pregnant ? 'yes' : 'no',
+      },
+      compliance: {
+        isPregnant: female && f.pregnant ? 'yes' : 'no',
+        gestationalWeeks: female && f.pregnant ? f.pregnancy_weeks : '',
+      },
+    });
+    set({
+      obReview: false,
+      session: {
+        ...(get().session || session),
+        fresh: false,
+        needsProfile: false,
+        sexConfirmed: true,
+        uaepassLinked: true,
+        malaffiConsent: true,
+        intakeDone: true,
+      },
+    });
+    go('/app');
+  };
 
   const leave = async () => { signOut(); try { await supabaseSignOut(); } catch {} go('/login'); };
 

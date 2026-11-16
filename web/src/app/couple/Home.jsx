@@ -2,10 +2,12 @@ import { Page, Card, Stat, Badge } from '../shared/ui.jsx';
 import Journey from '../shared/Journey.jsx';
 import { useJourney } from '../shared/journey.js';
 import { useStore, EMPTY_OBJ, EMPTY_ARR } from '../shared/store.js';
-import { useState, useMemo } from 'react';
-import { Calendar, Clock, Video, MapPin, Check, ExternalLink, X } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Calendar, Clock, Video, MapPin, Check, CheckCircle, ExternalLink, X } from 'lucide-react';
 import { useCouple } from './useCouple.js';
 import { fetchMalaffi, book as bookSlot } from '../shared/db.js';
+import { syncConsultationsFromSupabase } from '../shared/consultationService.js';
+import { isUserScreened } from '../shared/screeningPersistence.js';
 import { SLOTS } from '../shared/data.js';
 import './counsellor.css';
 
@@ -14,7 +16,7 @@ export default function Home() {
   const journey = useJourney();
   const intakes = useStore((s) => s.screeningIntakes) || EMPTY_OBJ;
   const myIntake = intakes[me.id];
-  const isScreened = !!myIntake?.completed;
+  const isScreened = !!myIntake?.completed || isUserScreened(me.id);
 
   // live couples: the result is only meaningful once BOTH lab reports are in
   const live = useStore((s) => !!s.session?.backend);
@@ -77,7 +79,8 @@ export default function Home() {
   };
 
   const activeAppt = useMemo(() => {
-    const found = scheduleAppointments.find((a) => a.cid === cid);
+    const coupleAppts = scheduleAppointments.filter((a) => a.cid === cid);
+    const found = coupleAppts.find((a) => a.confirmed === true || a.status === 'confirmed' || a.priority === 'upcoming') || coupleAppts[0];
     if (found) return found;
     if (bookedLabel) {
       let apptDate = '2026-11-10';
@@ -104,6 +107,12 @@ export default function Home() {
     }
     return null;
   }, [scheduleAppointments, cid, bookedLabel]);
+
+  useEffect(() => {
+    if (cid) {
+      syncConsultationsFromSupabase(cid);
+    }
+  }, [cid]);
 
   // the counsellor comes in once the groundwork is done: own result seen and the couple result ready
   const counsellorReady = journey.done.result && journey.done.together;
@@ -299,6 +308,11 @@ export default function Home() {
       </div>
 
       <div className="tiles">
+        <a className="tile" href="#/app/tracker" style={{ borderColor: '#00843D', background: '#F0FDF4' }}>
+          <small style={{ color: '#00843D', fontWeight: 600 }}>Personal Tracker</small>
+          <b style={{ color: '#0F172A' }}>7-Stage Care Roadmap</b>
+          <span style={{ color: '#00843D' }}>Stage 3: Counselling active →</span>
+        </a>
         <a className="tile" href="#/app/bonds"><small>Your plan</small><b>{plan ? plan.split(':')[0] : 'Not chosen yet'}</b><span>{plan ? 'Change any time' : 'Take your time →'}</span></a>
         <a className="tile" href="#/app/roots"><small>Relatives invited</small><b>{sent.length}</b><span>Anonymous alerts →</span></a>
         <a className="tile" href="#/app/my-report"><small>Your report</small><b>Ready</b><span>English · العربية · اردو →</span></a>

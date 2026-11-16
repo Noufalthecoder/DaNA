@@ -5,6 +5,7 @@
 */
 import { useSyncExternalStore, useRef, useCallback } from 'react';
 import { getSyntheticIntake, INITIAL_SCHEDULE } from './data.js';
+import { resetAllScreening } from './screeningPersistence.js';
 
 export const EMPTY_OBJ = Object.freeze({});
 export const EMPTY_ARR = Object.freeze([]);
@@ -257,19 +258,11 @@ export function get() {
 
 export function signOut() {
   state = {
-    ...initial,
+    ...state,
     session: null,
-    reports: {},
-    notes: {},
-    screeningIntakes: {},
-    cases: {},
-    appointments: {},
+    dbError: null,
   };
-  try {
-    localStorage.removeItem(KEY);
-  } catch {
-    /* private browsing mode */
-  }
+  save();
   subs.forEach((f) => f());
 }
 
@@ -328,10 +321,11 @@ export function startFresh(session) {
 
 /* Reset demo journey data so onboarding, feeding / manual entry and results can be replayed */
 export function resetDemo() {
+  resetAllScreening();
   const session = state.session;
   const freshIntakes = {};
 
-  ['khalid', 'fatima', 'ahmed', 'noura'].forEach((id) => {
+  ['khalid', 'fatima', 'ahmed', 'noura', 'saeed', 'maryam', 'rashid', 'aisha'].forEach((id) => {
     const syn = getSyntheticIntake(id);
     if (syn) {
       const isMale = syn?.personal?.gender === 'Male';
@@ -339,6 +333,7 @@ export function resetDemo() {
         ...syn,
         completed: false,
         mode: 'uae_pass',
+        submittedAt: null,
         personal: {
           ...syn.personal,
           partnerName: syn.personal?.partnerName || '',
@@ -349,6 +344,12 @@ export function resetDemo() {
           ...syn.compliance,
           isPregnant: isMale ? 'no' : '',
           gestationalWeeks: '',
+        },
+        consent: {
+          malaffiSync: false,
+          partnerShare: false,
+          counsellorAccess: false,
+          anonymizedResearch: false,
         },
       };
     }
@@ -387,6 +388,22 @@ export function resetDemo() {
     booked: null,
     appointments: {},
     reports: {},
+    carePlans: {
+      c1: {
+        activeStageId: 1,
+        condition: 'Beta-thalassaemia (HBB)',
+        tier: 2,
+        counsellor: 'Dr. Mariam Al Hosani',
+        completedItems: [],
+        referrals: [],
+        followUp: null,
+        reproductivePathway: { selected: null, approvedByCounsellor: false },
+        silaStats: { relativesEligible: 5, alertsDispatched: 0, screeningsBooked: 0 },
+        pregnancy: { isPregnant: false, weeks: null, edd: null, deliveryHospital: 'Danat Al Emarat Hospital for Women & Children, Abu Dhabi' },
+        childbirth: { delivered: false, babyName: '', birthDate: null, newbornScreenStatus: 'pending', geneticFollowUpNeeded: true },
+        customNotes: '',
+      },
+    },
   };
   save();
   subs.forEach((f) => f());
