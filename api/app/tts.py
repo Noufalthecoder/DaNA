@@ -27,7 +27,7 @@ STYLE = {
     "en": "Read this aloud in English",
 }
 MAX_CHARS = 900
-PER_HOUR = 40
+PER_HOUR = 60
 
 _cache: "OrderedDict[str, bytes]" = OrderedDict()
 _calls: "defaultdict[str, deque]" = defaultdict(deque)

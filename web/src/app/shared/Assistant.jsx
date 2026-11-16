@@ -263,11 +263,25 @@ async function speakEnglish(text, sex, onEnd) {
 
 /* Arabic and Urdu: a natural voice from the DaNA server (Gemini). The key stays on the server.
    Each answer is fetched once and kept for this visit. */
-const voiceCache = new Map();
+const voiceCache = new Map(); // key -> Promise<blob url>: one request per answer, shared by prepare and play
 let nowPlaying = null;
-async function arabicUrduAudio(text, lang, sex) {
+function arabicUrduAudio(text, lang, sex) {
   const k = `${lang}|${sex}|${text}`;
-  if (voiceCache.has(k)) return voiceCache.get(k);
+  if (!voiceCache.has(k)) {
+    const p = fetchVoice(text, lang, sex);
+    voiceCache.set(k, p);
+    p.catch(() => voiceCache.delete(k)); // a failed try can be retried
+  }
+  return voiceCache.get(k);
+}
+/* the free server sleeps when idle: wake it as soon as the guide opens, so the first voice is quick */
+let woke = 0;
+function wakeVoiceServer() {
+  if (Date.now() - woke < 5 * 60 * 1000) return;
+  woke = Date.now();
+  fetch(`${API_URL}/tts/status`).catch(() => {});
+}
+async function fetchVoice(text, lang, sex) {
   const { data } = (await supabase?.auth.getSession()) || {};
   const token = data?.session?.access_token;
   if (!token) throw new Error({ ar: 'الصوت بالعربية متاح بعد تسجيل الدخول.', ur: 'اردو آواز سائن اِن کے بعد دستیاب ہے۔' }[lang]);
@@ -285,9 +299,7 @@ async function arabicUrduAudio(text, lang, sex) {
     const j = await res.json().catch(() => ({}));
     throw new Error(j.detail || 'Voice is not available right now.');
   }
-  const url = URL.createObjectURL(await res.blob());
-  voiceCache.set(k, url);
-  return url;
+  return URL.createObjectURL(await res.blob());
 }
 function stopAll() {
   if (canSpeak) window.speechSynthesis.cancel();
@@ -315,7 +327,16 @@ export default function Assistant() {
 
   useEffect(() => { end.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs, open]);
   useEffect(() => { if (canSpeak) window.speechSynthesis.getVoices(); }, []); // loads the voice list early
-  useEffect(() => { if (!open) stopAll(); }, [open]);
+  useEffect(() => { if (!open) stopAll(); else if (session?.backend) wakeVoiceServer(); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // get the Arabic/Urdu voice ready while the person reads, so Listen plays at once
+  useEffect(() => {
+    if (!session?.backend) return;
+    msgs.forEach((m) => {
+      const l = m.shown;
+      if (m.from === 'dana' && (l === 'ar' || l === 'ur') && m[l]) arabicUrduAudio(m[l], l, sex).catch(() => {});
+    });
+  }, [msgs.map((m) => `${m.shown}|${m.en}`).join('~')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const upd = (i, patch) => setMsgs((m) => m.map((x, j) => (j === i ? { ...x, ...patch } : x)));
 
