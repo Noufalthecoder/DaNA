@@ -24,6 +24,7 @@ import {
   Check,
   UserCheck,
   Building,
+  Lock,
 } from 'lucide-react';
 import { Page, Card, Badge, Dialog } from '../shared/ui.jsx';
 import { useStore } from '../shared/store.js';
@@ -51,6 +52,37 @@ export default function PersonalisedPlanTracker() {
   }, [storePlans, cid]);
 
   const progress = useMemo(() => computeCarePlanProgress(plan), [plan]);
+
+  // Section availability / milestone gates:
+  // 1. Stage 3 (Genetic Counselling) Confirmation:
+  // Once Stage 3 is confirmed (plan_approved or referral_coordinated or activeStageId >= 4), specialist referrals unlock.
+  const isStage3Confirmed = useMemo(() => {
+    return (
+      (plan.activeStageId || 1) >= 4 ||
+      plan.completedItems?.includes('plan_approved') ||
+      plan.completedItems?.includes('referral_coordinated')
+    );
+  }, [plan.activeStageId, plan.completedItems]);
+
+  // 2. Section 5 (Pregnancy Journey) Unlock:
+  // Available ONLY once previous sections/stages (1-4) are completed AND pregnancy is confirmed.
+  const isPregnancyUnlocked = useMemo(() => {
+    return (
+      (plan.activeStageId || 1) >= 5 ||
+      !!plan.pregnancy?.isPregnant ||
+      !!plan.completedItems?.includes('pregnancy_confirmation')
+    );
+  }, [plan.activeStageId, plan.pregnancy?.isPregnant, plan.completedItems]);
+
+  // 3. Section 6 (Birth & Newborn Records) Unlock:
+  // Available ONLY once pregnancy stage advances to birth preparation (Stage 6) or delivery (Stage 7).
+  const isBirthUnlocked = useMemo(() => {
+    return (
+      (plan.activeStageId || 1) >= 6 ||
+      !!plan.childbirth?.delivered ||
+      !!plan.completedItems?.includes('birth_details')
+    );
+  }, [plan.activeStageId, plan.childbirth?.delivered, plan.completedItems]);
 
   // Section navigation state
   const [activeSection, setActiveSection] = useState('lifecycle');
@@ -192,14 +224,14 @@ export default function PersonalisedPlanTracker() {
           className={`cpt-nav-btn ${activeSection === 'pregnancy' ? 'is-active' : ''}`}
           onClick={() => scrollToSection('pregnancy')}
         >
-          5. Pregnancy journey
+          5. Pregnancy journey {isPregnancyUnlocked ? '' : '🔒'}
         </button>
         <button
           type="button"
           className={`cpt-nav-btn ${activeSection === 'birth' ? 'is-active' : ''}`}
           onClick={() => scrollToSection('birth')}
         >
-          6. Birth & newborn records
+          6. Birth & newborn records {isBirthUnlocked ? '' : '🔒'}
         </button>
       </nav>
 
@@ -637,40 +669,7 @@ export default function PersonalisedPlanTracker() {
         </div>
 
         <div className="cpt-appts-grid">
-          {/* Active Referral Card */}
-          <div className="cpt-detail-card">
-            <div className="cpt-card-top-badge">
-              <Hospital size={16} color="#2563EB" />
-              <span>Specialist Genomics Referral</span>
-              <Badge tone="blue">Dispatched</Badge>
-            </div>
-
-            <h4 className="cpt-card-h4">Cleveland Clinic Abu Dhabi · Fertility Center</h4>
-            <dl className="cpt-dl">
-              <dt>Service Destination</dt>
-              <dd><b>IVF with PGT-M (Embryo Testing)</b></dd>
-              <dt>Requisition Ref</dt>
-              <dd><code>{plan.referrals?.[0]?.id || 'REF-2026-HBB-041'}</code></dd>
-              <dt>Clinical Priority</dt>
-              <dd><Badge tone="amber">High Priority (Carrier Match)</Badge></dd>
-              <dt>Clinical Indication</dt>
-              <dd>Both partners confirmed carriers of pathogenic <i>HBB</i> beta-globin gene mutations ({'c.20A>T'} &amp; {'c.92+1G>A'}).</dd>
-              <dt>HIE Integration</dt>
-              <dd>Dispatched through Malaffi · Confirmed received by facility</dd>
-            </dl>
-
-            <div style={{ marginTop: 14, display: 'flex', gap: 10 }}>
-              <button
-                type="button"
-                className="btn-clean-sm btn-green-subtle"
-                onClick={() => setShowPrintModal(true)}
-              >
-                <Printer size={13} /> Print Referral Slip
-              </button>
-            </div>
-          </div>
-
-          {/* Active Consultation Card */}
+          {/* Active Consultation Card (Counselling session) */}
           <div className="cpt-detail-card">
             <div className="cpt-card-top-badge">
               <Video size={16} color="#16A34A" />
@@ -706,6 +705,57 @@ export default function PersonalisedPlanTracker() {
               </a>
             </div>
           </div>
+
+          {/* Specialist Referral Card: ONLY available once Stage 3 is confirmed & completed */}
+          {isStage3Confirmed ? (
+            <div className="cpt-detail-card">
+              <div className="cpt-card-top-badge">
+                <Hospital size={16} color="#2563EB" />
+                <span>Specialist Genomics Referral</span>
+                <Badge tone="blue">Dispatched</Badge>
+              </div>
+
+              <h4 className="cpt-card-h4">Cleveland Clinic Abu Dhabi · Fertility Center</h4>
+              <dl className="cpt-dl">
+                <dt>Service Destination</dt>
+                <dd><b>IVF with PGT-M (Embryo Testing)</b></dd>
+                <dt>Requisition Ref</dt>
+                <dd><code>{plan.referrals?.[0]?.id || 'REF-2026-HBB-041'}</code></dd>
+                <dt>Clinical Priority</dt>
+                <dd><Badge tone="amber">High Priority (Carrier Match)</Badge></dd>
+                <dt>Clinical Indication</dt>
+                <dd>Both partners confirmed carriers of pathogenic <i>HBB</i> beta-globin gene mutations ({'c.20A>T'} &amp; {'c.92+1G>A'}).</dd>
+                <dt>HIE Integration</dt>
+                <dd>Dispatched through Malaffi · Confirmed received by facility</dd>
+              </dl>
+
+              <div style={{ marginTop: 14, display: 'flex', gap: 10 }}>
+                <button
+                  type="button"
+                  className="btn-clean-sm btn-green-subtle"
+                  onClick={() => setShowPrintModal(true)}
+                >
+                  <Printer size={13} /> Print Referral Slip
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="cpt-detail-card cpt-detail-card-pending">
+              <div className="cpt-card-top-badge">
+                <Lock size={16} color="#D97706" />
+                <span>Specialist Referral</span>
+                <Badge tone="amber">Pending Stage 3 Consultation</Badge>
+              </div>
+              <h4 className="cpt-card-h4">Specialist Genomics Referral Requisition</h4>
+              <p style={{ fontSize: '13.5px', color: '#475569', lineHeight: 1.55, margin: '0 0 14px 0' }}>
+                Specialist clinical referrals (such as IVF with PGT-M or Prenatal Genetics) are issued by your counsellor Dr. Mariam Al Hosani upon clinical confirmation of your consultation and approval of your joint reproductive care plan.
+              </p>
+              <div className="cpt-pending-hint">
+                <Clock size={13} style={{ color: '#D97706' }} />
+                <span>Unlocks once Stage 3 consultation is confirmed &amp; care plan approved</span>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -721,79 +771,106 @@ export default function PersonalisedPlanTracker() {
               Gestational age tracking, trimester health milestones, and time-critical prenatal testing windows.
             </p>
           </div>
-          <button
-            type="button"
-            className="btn-clean-sm btn-green-subtle"
-            onClick={() => setShowPregnancyModal(true)}
-          >
-            Update Pregnancy Record →
-          </button>
+          {isPregnancyUnlocked && (
+            <button
+              type="button"
+              className="btn-clean-sm btn-green-subtle"
+              onClick={() => setShowPregnancyModal(true)}
+            >
+              Update Pregnancy Record →
+            </button>
+          )}
         </div>
 
-        <div className="cpt-preg-dashboard">
-          <div className="cpt-preg-stat-box">
-            <span className="cpt-preg-stat-label">Gestational Age</span>
-            <b className="cpt-preg-stat-val">
-              {plan.pregnancy?.weeks ? `${plan.pregnancy.weeks} Weeks` : '12 Weeks'}
-            </b>
-            <span className="cpt-preg-stat-note">First Trimester · Ultrasound Dating Aligned</span>
-          </div>
+        {isPregnancyUnlocked ? (
+          <>
+            <div className="cpt-preg-dashboard">
+              <div className="cpt-preg-stat-box">
+                <span className="cpt-preg-stat-label">Gestational Age</span>
+                <b className="cpt-preg-stat-val">
+                  {plan.pregnancy?.weeks ? `${plan.pregnancy.weeks} Weeks` : '12 Weeks'}
+                </b>
+                <span className="cpt-preg-stat-note">First Trimester · Ultrasound Dating Aligned</span>
+              </div>
 
-          <div className="cpt-preg-stat-box">
-            <span className="cpt-preg-stat-label">Expected Delivery Date (EDD)</span>
-            <b className="cpt-preg-stat-val">
-              {plan.pregnancy?.edd ? new Date(plan.pregnancy.edd).toLocaleDateString('en-GB') : '15 May 2027'}
-            </b>
-            <span className="cpt-preg-stat-note">Danat Al Emarat Hospital for Women & Children</span>
-          </div>
+              <div className="cpt-preg-stat-box">
+                <span className="cpt-preg-stat-label">Expected Delivery Date (EDD)</span>
+                <b className="cpt-preg-stat-val">
+                  {plan.pregnancy?.edd ? new Date(plan.pregnancy.edd).toLocaleDateString('en-GB') : '15 May 2027'}
+                </b>
+                <span className="cpt-preg-stat-note">
+                  {plan.pregnancy?.deliveryHospital || 'Danat Al Emarat Hospital for Women & Children'}
+                </span>
+              </div>
 
-          <div className="cpt-preg-stat-box">
-            <span className="cpt-preg-stat-label">Prenatal Genetic Testing Window</span>
-            <b className="cpt-preg-stat-val" style={{ color: '#2563EB' }}>
-              Active (Weeks 11–14)
-            </b>
-            <span className="cpt-preg-stat-note">Chorionic Villus Sampling (CVS) eligible</span>
-          </div>
-        </div>
-
-        {/* Trimester Timetable */}
-        <div className="cpt-trimester-timeline">
-          <div className="cpt-tri-col active">
-            <div className="cpt-tri-head">
-              <b>1st Trimester (Weeks 1–12)</b>
-              <Badge tone="green">Current Phase</Badge>
+              <div className="cpt-preg-stat-box">
+                <span className="cpt-preg-stat-label">Prenatal Genetic Testing Window</span>
+                <b className="cpt-preg-stat-val" style={{ color: '#2563EB' }}>
+                  Active (Weeks 11–14)
+                </b>
+                <span className="cpt-preg-stat-note">Chorionic Villus Sampling (CVS) eligible</span>
+              </div>
             </div>
-            <ul className="cpt-tri-list">
-              <li>✓ Obstetric registration and ultrasound dating</li>
-              <li>✓ Early prenatal genetic consultation with Dr. Mariam</li>
-              <li>• Optional CVS diagnostic window (Weeks 11–14)</li>
-            </ul>
-          </div>
 
-          <div className="cpt-tri-col">
-            <div className="cpt-tri-head">
-              <b>2nd Trimester (Weeks 13–27)</b>
-              <Badge tone="grey">Upcoming</Badge>
-            </div>
-            <ul className="cpt-tri-list">
-              <li>• Amniocentesis testing window (Weeks 15–18 if indicated)</li>
-              <li>• Fetal anomaly ultrasound scan (Weeks 18–22)</li>
-              <li>• Pediatric hematology coordination visit</li>
-            </ul>
-          </div>
+            {/* Trimester Timetable */}
+            <div className="cpt-trimester-timeline">
+              <div className="cpt-tri-col active">
+                <div className="cpt-tri-head">
+                  <b>1st Trimester (Weeks 1–12)</b>
+                  <Badge tone="green">Current Phase</Badge>
+                </div>
+                <ul className="cpt-tri-list">
+                  <li>✓ Obstetric registration and ultrasound dating</li>
+                  <li>✓ Early prenatal genetic consultation with Dr. Mariam</li>
+                  <li>• Optional CVS diagnostic window (Weeks 11–14)</li>
+                </ul>
+              </div>
 
-          <div className="cpt-tri-col">
-            <div className="cpt-tri-head">
-              <b>3rd Trimester (Weeks 28–40)</b>
-              <Badge tone="grey">Upcoming</Badge>
+              <div className="cpt-tri-col">
+                <div className="cpt-tri-head">
+                  <b>2nd Trimester (Weeks 13–27)</b>
+                  <Badge tone="grey">Upcoming</Badge>
+                </div>
+                <ul className="cpt-tri-list">
+                  <li>• Amniocentesis testing window (Weeks 15–18 if indicated)</li>
+                  <li>• Fetal anomaly ultrasound scan (Weeks 18–22)</li>
+                  <li>• Pediatric hematology coordination visit</li>
+                </ul>
+              </div>
+
+              <div className="cpt-tri-col">
+                <div className="cpt-tri-head">
+                  <b>3rd Trimester (Weeks 28–40)</b>
+                  <Badge tone="grey">Upcoming</Badge>
+                </div>
+                <ul className="cpt-tri-list">
+                  <li>• Delivery hospital maternity protocol sign-off</li>
+                  <li>• Cord blood sampling kit pre-stationed at delivery ward</li>
+                  <li>• Pre-birth pediatric genetic intake briefed</li>
+                </ul>
+              </div>
             </div>
-            <ul className="cpt-tri-list">
-              <li>• Delivery hospital maternity protocol sign-off</li>
-              <li>• Cord blood sampling kit pre-stationed at delivery ward</li>
-              <li>• Pre-birth pediatric genetic intake briefed</li>
-            </ul>
+          </>
+        ) : (
+          <div className="cpt-locked-card">
+            <div className="cpt-locked-icon-wrap">
+              <Lock size={22} />
+            </div>
+            <h4 className="cpt-locked-title">Pregnancy Journey Unlocks at Stage 5</h4>
+            <p className="cpt-locked-desc">
+              This section is only available once the previous stages (Screening, Couple Assessment, Genetic Counselling, and Family Planning) are completed. Once a pregnancy is confirmed, gestational milestones, trimester health tracking, and time-critical prenatal testing windows (CVS and Amniocentesis) will activate here automatically.
+            </p>
+            <div className="cpt-locked-btn-row">
+              <button
+                type="button"
+                className="btn-clean-sm btn-green-subtle"
+                onClick={() => setShowPregnancyModal(true)}
+              >
+                Confirm Pregnancy Record Early →
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </section>
 
       {/* ═════════════════════════════════════════════════════════════════════════════ */}
@@ -808,66 +885,89 @@ export default function PersonalisedPlanTracker() {
               Maternity delivery coordination, national newborn blood spot screening, and pediatric care handoff.
             </p>
           </div>
-          <button
-            type="button"
-            className="btn-clean-sm btn-green-subtle"
-            onClick={() => setShowBirthModal(true)}
-          >
-            <Baby size={14} /> Log Childbirth Details →
-          </button>
+          {isBirthUnlocked && (
+            <button
+              type="button"
+              className="btn-clean-sm btn-green-subtle"
+              onClick={() => setShowBirthModal(true)}
+            >
+              <Baby size={14} /> Log Childbirth Details →
+            </button>
+          )}
         </div>
 
-        <div className="cpt-birth-grid">
-          {/* Maternity Handover Status */}
-          <div className="cpt-detail-card">
-            <div className="cpt-card-top-badge">
-              <Building size={16} color="#00843D" />
-              <span>Maternity & Hospital Handover</span>
-              <Badge tone="green">Ready</Badge>
+        {isBirthUnlocked ? (
+          <div className="cpt-birth-grid">
+            {/* Maternity Handover Status */}
+            <div className="cpt-detail-card">
+              <div className="cpt-card-top-badge">
+                <Building size={16} color="#00843D" />
+                <span>Maternity & Hospital Handover</span>
+                <Badge tone="green">Ready</Badge>
+              </div>
+
+              <h4 className="cpt-card-h4">
+                {plan.pregnancy?.deliveryHospital || 'Danat Al Emarat Hospital for Women & Children'}
+              </h4>
+              <dl className="cpt-dl">
+                <dt>Expected Delivery</dt>
+                <dd><b>{plan.pregnancy?.edd ? new Date(plan.pregnancy.edd).toLocaleDateString('en-GB') : '15 May 2027'}</b></dd>
+                <dt>Labor Ward Alert</dt>
+                <dd><Badge tone="green">Active · Cord blood sampling protocol alerted</Badge></dd>
+                <dt>Clinical Handover</dt>
+                <dd>Pre-authorized genomic dossier transferred to pediatric team with couple consent.</dd>
+              </dl>
             </div>
 
-            <h4 className="cpt-card-h4">
-              {plan.pregnancy?.deliveryHospital || 'Danat Al Emarat Hospital for Women & Children'}
-            </h4>
-            <dl className="cpt-dl">
-              <dt>Expected Delivery</dt>
-              <dd><b>{plan.pregnancy?.edd ? new Date(plan.pregnancy.edd).toLocaleDateString('en-GB') : '15 May 2027'}</b></dd>
-              <dt>Labor Ward Alert</dt>
-              <dd><Badge tone="green">Active · Cord blood sampling protocol alerted</Badge></dd>
-              <dt>Clinical Handover</dt>
-              <dd>Pre-authorized genomic dossier transferred to pediatric team with couple consent.</dd>
-            </dl>
-          </div>
+            {/* Newborn Screening & Record */}
+            <div className="cpt-detail-card">
+              <div className="cpt-card-top-badge">
+                <Baby size={16} color="#2563EB" />
+                <span>Newborn Screening Record</span>
+                <Badge tone={plan.childbirth?.delivered ? 'green' : 'amber'}>
+                  {plan.childbirth?.delivered ? 'Verified' : 'Scheduled at Birth'}
+                </Badge>
+              </div>
 
-          {/* Newborn Screening & Record */}
-          <div className="cpt-detail-card">
-            <div className="cpt-card-top-badge">
-              <Baby size={16} color="#2563EB" />
-              <span>Newborn Screening Record</span>
-              <Badge tone={plan.childbirth?.delivered ? 'green' : 'amber'}>
-                {plan.childbirth?.delivered ? 'Verified' : 'Scheduled at Birth'}
-              </Badge>
+              <h4 className="cpt-card-h4">
+                {plan.childbirth?.delivered
+                  ? `Baby ${plan.childbirth.babyName || 'Zayed'} Al Mansoori`
+                  : 'National Newborn Screening Protocol (UAE DoH)'}
+              </h4>
+              <dl className="cpt-dl">
+                <dt>Blood Spot Screen</dt>
+                <dd>
+                  <b>Extended Metabolic & Hemoglobinopathy Panel</b> · Heel-prick test completed at 48 hours.
+                </dd>
+                <dt>Cord Blood Confirmation</dt>
+                <dd>Tested for parental <i>HBB</i> variants · Confirmatory results verified.</dd>
+                <dt>Pediatric Follow-up</dt>
+                <dd>Assigned to Sheikh Shakhbout Medical City (SSMC) Pediatric Care.</dd>
+                <dt>Family Pedigree Link</dt>
+                <dd>Child registered on generation (+1) node in the family health pedigree.</dd>
+              </dl>
             </div>
-
-            <h4 className="cpt-card-h4">
-              {plan.childbirth?.delivered
-                ? `Baby ${plan.childbirth.babyName || 'Zayed'} Al Mansoori`
-                : 'National Newborn Screening Protocol (UAE DoH)'}
-            </h4>
-            <dl className="cpt-dl">
-              <dt>Blood Spot Screen</dt>
-              <dd>
-                <b>Extended Metabolic & Hemoglobinopathy Panel</b> · Heel-prick test completed at 48 hours.
-              </dd>
-              <dt>Cord Blood Confirmation</dt>
-              <dd>Tested for parental <i>HBB</i> variants · Confirmatory results verified.</dd>
-              <dt>Pediatric Follow-up</dt>
-              <dd>Assigned to Sheikh Shakhbout Medical City (SSMC) Pediatric Care.</dd>
-              <dt>Family Pedigree Link</dt>
-              <dd>Child registered on generation (+1) node in the family health pedigree.</dd>
-            </dl>
           </div>
-        </div>
+        ) : (
+          <div className="cpt-locked-card">
+            <div className="cpt-locked-icon-wrap">
+              <Lock size={22} />
+            </div>
+            <h4 className="cpt-locked-title">Birth &amp; Newborn Records Unlock at Stage 6 &amp; 7</h4>
+            <p className="cpt-locked-desc">
+              This section is only available once previous pregnancy milestones are reached. During birth preparation (Stage 6), the hospital maternity handover dossier and labor-ward cord blood protocol will activate. Following delivery (Stage 7), the UAE National Newborn Screening records will be logged here.
+            </p>
+            <div className="cpt-locked-btn-row">
+              <button
+                type="button"
+                className="btn-clean-sm btn-green-subtle"
+                onClick={() => setShowBirthModal(true)}
+              >
+                <Baby size={14} /> Log Childbirth Details Early →
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ─── Pregnancy Modal ─── */}
