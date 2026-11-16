@@ -654,6 +654,7 @@ async function doLoad() {
     patch.tiers = tiers.data || null;
     patch.breakdown = br.data || null;
   }
+  patch.dataLoaded = true; // the onboarding gate waits for this, so a verified person never sees it flash
   set(patch);
 }
 

@@ -14,7 +14,8 @@ import { watchAuth, signOut as supabaseSignOut } from './app/shared/supabase.js'
 import { loadAll } from './app/shared/db.js';
 import Welcome from './app/couple/Welcome.jsx';
 import MyReport from './app/couple/MyReport.jsx';
-import { isLinked, NEEDS_PARTNER } from './app/shared/journey.js';
+import { isLinked, NEEDS_PARTNER, useJourney } from './app/shared/journey.js';
+import Onboarding from './app/onboarding/Onboarding.jsx';
 import { PENDING_CODE_KEY } from './app/shared/PartnerCode.jsx';
 import './app/app.css';
 
@@ -75,6 +76,8 @@ export default function Root() {
   const intakes = useStore((s) => s.screeningIntakes) || EMPTY_OBJ;
   const inApp = path.startsWith('/app');
   const [ready, setReady] = useState(false);
+  const journey = useJourney();
+  const dataLoaded = useStore((s) => s.dataLoaded);
 
   const isCouple = session?.role === 'couple';
   const isScreened = session ? (!!session.intakeDone || !!intakes[session.id]?.completed || !!intakes[session.personId]?.completed) : false;
@@ -139,8 +142,16 @@ export default function Root() {
       );
     }
 
-    // No forced redirect to the intake: Home shows the journey and its one next step
-    // (profile -> consent & results -> details -> result). Agreed product decision.
+    // Only verified couple members enter the app: profile, UAE PASS identity, consent, details and
+    // results first. Until then every /app page shows the onboarding (outside the app shell).
+    if (isCouple && !(journey.done.profile && journey.done.malaffi)) {
+      if (session.backend && !dataLoaded) return <div className="ob-loading">Loading your account…</div>;
+      return (
+        <ErrorBoundary>
+          <Onboarding key={session.id} />
+        </ErrorBoundary>
+      );
+    }
 
     // Full standalone layout for individual medical report
     if (isCouple && path === '/app/my-report') {
