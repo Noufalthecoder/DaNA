@@ -28,11 +28,14 @@ export async function syncConsultationsFromSupabase(coupleId, counsellorUserId =
   if (!supabase) return;
   try {
     // 1. Fetch pending & confirmed consultation requests
-    let query = supabase.from('consultation_requests').select('*');
-    if (coupleId) {
-      query = query.eq('couple_id', coupleId);
-    }
-    const { data: requests, error: reqErr } = await query.order('created_at', { ascending: false });
+    // with the counsellor and clinic joined (needs 030_location_scope.sql); plain rows until it is run
+    const fetchRows = (cols) => {
+      let q = supabase.from('consultation_requests').select(cols);
+      if (coupleId) q = q.eq('couple_id', coupleId);
+      return q.order('created_at', { ascending: false });
+    };
+    let { data: requests, error: reqErr } = await fetchRows('*, counsellors(name), locations(city, state_name)');
+    if (reqErr) ({ data: requests, error: reqErr } = await fetchRows('*'));
 
     if (!reqErr && Array.isArray(requests) && requests.length > 0) {
       const state = get();
@@ -68,13 +71,13 @@ export async function syncConsultationsFromSupabase(coupleId, counsellorUserId =
           requestedAt: row.created_at,
           confirmedAt: row.responded_at,
           tone: row.status === 'CONFIRMED' ? 'green' : 'amber',
-          doctor: 'Dr. Mariam Al Hosani',
+          doctor: row.counsellors?.name || 'Dr. Mariam Al Hosani',
           mode: row.modality || 'online',
           type: row.modality === 'offline' ? 'Clinic' : 'Video',
           meetLink: row.meet_link || (row.modality === 'offline' ? null : `https://meet.google.com/dan-${row.couple_id}-0224`),
-          clinicName: row.modality === 'offline' ? 'DaNA Partner Clinic' : null,
-          clinicRoom: row.modality === 'offline' ? 'Abu Dhabi · Building A · Room 204' : null,
-          clinicAddress: row.modality === 'offline' ? 'Cleveland Clinic Abu Dhabi, Al Maryah Island' : null,
+          clinicName: row.modality === 'offline' ? (row.counsellors?.name ? `${row.counsellors.name}'s clinic` : 'DaNA Partner Clinic') : null,
+          clinicRoom: row.modality === 'offline' ? (row.locations?.city || 'Abu Dhabi') : null,
+          clinicAddress: row.modality === 'offline' ? (row.locations ? [row.locations.city, row.locations.state_name].filter((x, i, a) => x && a.indexOf(x) === i).join(', ') : 'Abu Dhabi') : null,
           notes: row.patient_notes || '',
         };
 
