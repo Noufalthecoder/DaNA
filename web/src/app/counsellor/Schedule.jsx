@@ -23,7 +23,8 @@ import {
 import { Dialog, Badge } from '../shared/ui.jsx';
 import { useStore } from '../shared/store.js';
 import { COUPLES, PEOPLE, INITIAL_SCHEDULE } from '../shared/data.js';
-import { completeAppointment, saveScheduleAppointments, confirmAppointment, declineAppointment } from '../shared/db.js';
+import { completeAppointment, saveScheduleAppointments, confirmAppointment, declineAppointment, isLive } from '../shared/db.js';
+import ClinicSlots from './ClinicSlots.jsx';
 import './schedule.css';
 
 const DOCTORS = [
@@ -1044,7 +1045,8 @@ export default function Schedule() {
       </div>
 
       {/* ─── AVAILABILITY DIALOG (Image 1) ─── */}
-      {availabilityModal && (
+      {availabilityModal && isLive() && <ClinicSlots onClose={() => setAvailabilityModal(false)} />}
+      {availabilityModal && !isLive() && (
         <Dialog
           title="Availability & Working Hours"
           onClose={() => setAvailabilityModal(false)}

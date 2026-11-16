@@ -21,6 +21,8 @@ import { Page, Card, Avatar } from '../shared/ui.jsx';
 import { useStore } from '../shared/store.js';
 import { SLOTS, INITIAL_SCHEDULE } from '../shared/data.js';
 import { book as bookSlot, cancelBooking, rescheduleAppointment, confirmAppointment, isLive } from '../shared/db.js';
+import SlotFinder from './SlotFinder.jsx';
+import { syncConsultationsFromSupabase } from '../shared/consultationService.js';
 import './counsellor.css';
 
 export default function Counsellor() {
@@ -439,7 +441,7 @@ export default function Counsellor() {
                     onClick={() => setBookModality('offline')}
                   >
                     <b><MapPin size={16} color="#059669" /> In-Person Clinic Visit</b>
-                    <span>Cleveland Clinic Abu Dhabi, Building A</span>
+                    <span>At your counsellor's clinic, in your emirate</span>
                   </div>
                 </div>
               </div>
@@ -449,7 +451,13 @@ export default function Counsellor() {
                 <label style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', display: 'block', marginBottom: 8 }}>
                   Available Time Slots
                 </label>
-                {slots.length ? (
+                {isLive() ? (
+                  <SlotFinder
+                    modality={bookModality}
+                    onRequested={async () => { await syncConsultationsFromSupabase(cid); showToast('Request sent. Your counsellor will confirm shortly.'); }}
+                    onError={(m) => showToast(m)}
+                  />
+                ) : slots.length ? (
                   <div className="patient-slots-grid">
                     {slots.map((s) => (
                       <button
