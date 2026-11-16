@@ -130,18 +130,22 @@ export function getFacilityForDestination(destination) {
 
 export function addReferral(coupleId, destination, priority, reason) {
   const s = get();
+  const isObj = typeof destination === 'object' && destination !== null;
+  const actualDest = isObj ? destination.destination : destination;
+  const actualPriority = (isObj ? destination.priority : priority) || 'high';
+  const actualReason = isObj ? destination.reason : reason;
   const refYear = new Date().getFullYear();
   const refCode = String(Date.now()).slice(-4);
-  const refId = `REF-${refYear}-${coupleId.toUpperCase()}-${refCode}`;
-  const facility = getFacilityForDestination(destination);
+  const refId = (isObj && destination.id) ? destination.id : `REF-${refYear}-${coupleId.toUpperCase()}-${refCode}`;
+  const facility = (isObj && destination.facility) ? destination.facility : getFacilityForDestination(actualDest);
   const item = {
     id: refId,
-    destination,
+    destination: actualDest,
     facility,
-    priority: priority || 'high',
-    reason,
-    status: 'dispatched',
-    dispatchedAt: new Date().toISOString(),
+    priority: actualPriority,
+    reason: actualReason,
+    status: (isObj && destination.status) ? destination.status : 'dispatched',
+    dispatchedAt: (isObj && destination.dispatchedAt) ? destination.dispatchedAt : new Date().toISOString(),
     t: new Date().toISOString(),
   };
 
@@ -178,13 +182,15 @@ export function addReferral(coupleId, destination, priority, reason) {
     coupleId === 'c4' ? ['omar', 'latifa'] :
     ['fatima', 'khalid'];
 
+  const assignedDoctor = s.coupleCounsellors?.[coupleId] || s.cases?.[coupleId]?.counsellor || curPlan.counsellor || 'Dr. Mariam Al Hosani';
+
   const referralNotifs = coupleUsers.map((pId) => ({
     id: `notif_ref_${Date.now()}_${pId}`,
     userId: pId,
     actorId: 'mariam',
     type: 'REFERRAL_ISSUED',
     title: 'Specialist Clinical Referral Issued',
-    body: `Dr. Mariam issued a referral to ${facility} (${destination}) for your care plan.`,
+    body: `${assignedDoctor} issued a referral to ${facility} (${destination}) for your care plan.`,
     link: '/app/plan',
     isRead: false,
     createdAt: new Date().toISOString(),
@@ -325,6 +331,7 @@ export function book(coupleId, slot, details = {}) {
   }
 
   const isPending = details.confirmed === false || details.priority === 'pending' || details.status === 'pending';
+  const assignedDoctor = details.doctor || s.coupleCounsellors?.[coupleId] || s.cases?.[coupleId]?.counsellor || 'Dr. Mariam Al Hosani';
 
   const newAppt = {
     id: details.id || `appt_${Date.now()}`,
@@ -339,7 +346,7 @@ export function book(coupleId, slot, details = {}) {
     requestedAt: details.requestedAt || new Date().toISOString(),
     confirmedAt: details.confirmedAt || (!isPending ? new Date().toISOString() : null),
     tone: details.tone || (isPending ? 'amber' : 'green'),
-    doctor: details.doctor || 'Dr. Mariam Al Hosani',
+    doctor: assignedDoctor,
     mode: details.mode || 'online',
     type: details.mode === 'offline' ? 'Clinic' : 'Video',
     provider: details.mode === 'offline' ? null : 'Google Meet',
@@ -371,11 +378,35 @@ export function book(coupleId, slot, details = {}) {
     }
   }
 
+  const updatedCoupleCounsellors = {
+    ...(s.coupleCounsellors || {}),
+    [coupleId]: assignedDoctor,
+  };
+  const updatedCases = {
+    ...(s.cases || {}),
+    [coupleId]: {
+      ...(s.cases?.[coupleId] || {}),
+      counsellor: assignedDoctor,
+    },
+  };
+  const curPlan = s.carePlans?.[coupleId] || {};
+  const updatedCarePlans = {
+    ...(s.carePlans || {}),
+    [coupleId]: {
+      ...curPlan,
+      counsellor: assignedDoctor,
+    },
+  };
+
   const extraFlags = coupleId === 'c1' ? { c1Cancelled: false } : {};
   return act({
     appointments: { ...s.appointments, [coupleId]: label },
     scheduleAppointments: schedule,
     notifications: notifs,
+    coupleCounsellors: updatedCoupleCounsellors,
+    cases: updatedCases,
+    carePlans: updatedCarePlans,
+    booked: label,
     ...extraFlags,
   },
     `Couple booked a counsellor session: ${label}`,
@@ -400,6 +431,59 @@ export function book(coupleId, slot, details = {}) {
       }
       return { error: null };
     });
+}
+
+export function getCoupleCounsellor(coupleId) {
+  const s = get();
+  return (
+    s.coupleCounsellors?.[coupleId] ||
+    s.cases?.[coupleId]?.counsellor ||
+    s.carePlans?.[coupleId]?.counsellor ||
+    (s.scheduleAppointments || []).find((a) => a.cid === coupleId)?.doctor ||
+    'Dr. Mariam Al Hosani'
+  );
+}
+
+export function selectCounsellor(coupleId, counsellorNameOrObj) {
+  const s = get();
+  const counsellorName = typeof counsellorNameOrObj === 'string' ? counsellorNameOrObj : counsellorNameOrObj?.name;
+  if (!counsellorName) return;
+
+  const updatedCoupleCounsellors = {
+    ...(s.coupleCounsellors || {}),
+    [coupleId]: counsellorName,
+  };
+
+  const updatedCases = {
+    ...(s.cases || {}),
+    [coupleId]: {
+      ...(s.cases?.[coupleId] || {}),
+      counsellor: counsellorName,
+    },
+  };
+
+  const curPlan = s.carePlans?.[coupleId] || {};
+  const updatedCarePlans = {
+    ...(s.carePlans || {}),
+    [coupleId]: {
+      ...curPlan,
+      counsellor: counsellorName,
+    },
+  };
+
+  const updatedSchedule = (s.scheduleAppointments || []).map((a) => {
+    if (a.cid === coupleId) {
+      return { ...a, doctor: counsellorName };
+    }
+    return a;
+  });
+
+  return act({
+    coupleCounsellors: updatedCoupleCounsellors,
+    cases: updatedCases,
+    carePlans: updatedCarePlans,
+    scheduleAppointments: updatedSchedule,
+  }, `Couple ${coupleId.toUpperCase()} selected dedicated counsellor: ${counsellorName}`);
 }
 
 export function rescheduleAppointment(coupleId, newSlotLabel, newDetails = {}) {
@@ -468,13 +552,15 @@ export function confirmAppointment(apptIdOrCid) {
     updatedRow?.cid === 'c4' ? ['omar', 'latifa'] :
     ['fatima', 'khalid'];
 
+  const assignedDoctor = updatedRow?.doctor || s.coupleCounsellors?.[updatedRow?.cid] || 'Dr. Mariam Al Hosani';
+
   const coupleNotifs = coupleUsers.map((pId) => ({
     id: `notif_confirmed_${Date.now()}_${pId}`,
     userId: pId,
     actorId: 'mariam',
     type: 'CONSULTATION_CONFIRMED',
     title: 'Consultation Confirmed',
-    body: `Dr. Mariam confirmed your premarital consultation for ${updatedRow?.date} at ${updatedRow?.time} GST.`,
+    body: `${assignedDoctor} confirmed your premarital consultation for ${updatedRow?.date} at ${updatedRow?.time} GST.`,
     link: '/app/counsellor',
     isRead: false,
     createdAt: new Date().toISOString(),
@@ -541,12 +627,24 @@ export function completeAppointment(coupleId) {
   delete rest[coupleId];
   const schedule = (s.scheduleAppointments || []).map((a) => (a.cid === coupleId ? { ...a, priority: 'completed', tone: 'blue' } : a));
   const plan = s.carePlans?.[coupleId] || {};
+  // Auto-tick Stage 3 items when counsellor marks the session complete
+  const prevItems = plan.completedItems || [
+    'individual_screening', 'medical_family_history', 'pedigree_completion', 'results_explanations',
+    'partner_connection_consent', 'joint_risk_assessment', 'reproductive_options',
+  ];
+  const nextCompletedItems = Array.from(new Set([
+    ...prevItems,
+    'appointment_booking',
+    'counsellor_recommendations',
+  ]));
   const updatedPlans = {
     ...(s.carePlans || {}),
     [coupleId]: {
       ...plan,
+      completedItems: nextCompletedItems,
       counsellingCompleted: true,
       counsellingCompletedAt: new Date().toISOString(),
+      activeStageId: Math.max(plan.activeStageId || 1, 3),
     },
   };
   return act({ appointments: rest, scheduleAppointments: schedule, carePlans: updatedPlans }, `Counsellor completed the session with ${coupleId.toUpperCase()}`,

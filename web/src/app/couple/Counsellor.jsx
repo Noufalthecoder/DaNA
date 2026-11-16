@@ -22,7 +22,7 @@ import {
 import { Page, Card, Avatar, Badge } from '../shared/ui.jsx';
 import { useStore } from '../shared/store.js';
 import { SLOTS, INITIAL_SCHEDULE, COUNSELLORS } from '../shared/data.js';
-import { book as bookSlot, cancelBooking, rescheduleAppointment, confirmAppointment, isLive } from '../shared/db.js';
+import { book as bookSlot, cancelBooking, rescheduleAppointment, confirmAppointment, selectCounsellor, isLive } from '../shared/db.js';
 import SlotFinder from './SlotFinder.jsx';
 import { syncConsultationsFromSupabase } from '../shared/consultationService.js';
 import { getRecommendedCounsellors } from '../shared/counsellorMatcher.js';
@@ -34,7 +34,9 @@ export default function Counsellor() {
   const bookedLabel = useStore((s) => s.appointments[cid]);
   const scheduleAppointments = useStore((s) => s.scheduleAppointments) || INITIAL_SCHEDULE;
   const liveSlots = useStore((s) => s.slots);
-  const counsellorName = useStore((s) => s.cases[cid]?.counsellor) || 'Dr. Mariam Al Hosani';
+  const dedicatedCounsellor = useStore((s) => s.coupleCounsellors?.[cid]) || useStore((s) => s.cases[cid]?.counsellor) || 'Dr. Mariam Al Hosani';
+  const counsellorName = dedicatedCounsellor;
+  const counsellorObj = COUNSELLORS.find((c) => c.name === dedicatedCounsellor) || COUNSELLORS[0];
 
   const [toastMessage, setToastMessage] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -162,9 +164,9 @@ export default function Counsellor() {
       requestedAt: new Date().toISOString(),
       tone: 'amber',
       meetLink: isOnline ? `https://meet.google.com/dan-${cid}-${Date.now().toString().slice(-4)}` : null,
-      clinicName: isOnline ? null : 'DaNA Partner Clinic',
-      clinicRoom: isOnline ? null : 'Abu Dhabi · Building A · Room 204',
-      clinicAddress: isOnline ? null : 'Cleveland Clinic Abu Dhabi, Al Maryah Island',
+      clinicName: isOnline ? null : (counsellorObj?.clinicName || counsellorObj?.clinic || 'DaNA Partner Clinic'),
+      clinicRoom: isOnline ? null : (counsellorObj?.clinicRoom || counsellorObj?.room || 'Abu Dhabi · Building A · Room 204'),
+      clinicAddress: isOnline ? null : (counsellorObj?.clinicAddress || counsellorObj?.address || 'Cleveland Clinic Abu Dhabi, Al Maryah Island'),
     });
     showToast(`Appointment request forwarded to ${counsellorName} for confirmation.`);
   };
@@ -182,15 +184,15 @@ export default function Counsellor() {
             </div>
             <div className="counsellor-bio-info">
               <h2>{counsellorName}</h2>
-              <div className="counsellor-role-title">Genetic Counsellor · Arabic & English</div>
+              <div className="counsellor-role-title">{counsellorObj?.title || 'Genetic Counsellor'} · {counsellorObj?.languages?.join(' & ') || 'Arabic & English'}</div>
               <div className="counsellor-license-tag">
                 <ShieldCheck size={13} color="#059669" />
-                <span>DoH Licensed (DOH-GC-88412) · Cleveland Clinic Abu Dhabi Partner</span>
+                <span>{counsellorObj?.license || 'DoH Licensed (DOH-GC-88412)'} · {counsellorObj?.clinicName || counsellorObj?.clinic || 'Cleveland Clinic Abu Dhabi Partner'}</span>
               </div>
             </div>
           </div>
           <div className="counsellor-badge-verified">
-            <Check size={14} /> Verified Practitioner
+            <Check size={14} /> Dedicated Clinical Counsellor (Stages 3–7)
           </div>
         </div>
 
@@ -362,9 +364,9 @@ export default function Counsellor() {
                       <MapPin size={22} />
                     </div>
                     <div className="patient-clinic-location">
-                      <div className="patient-clinic-name">{activeAppt.clinicName || 'DaNA Partner Clinic'}</div>
-                      <div className="patient-clinic-room">{activeAppt.clinicRoom || 'Abu Dhabi · Building A · Room 204'}</div>
-                      <div className="patient-clinic-address">{activeAppt.clinicAddress || 'Cleveland Clinic Abu Dhabi, Al Maryah Island'}</div>
+                      <div className="patient-clinic-name">{activeAppt.clinicName || counsellorObj?.clinicName || counsellorObj?.clinic || 'DaNA Partner Clinic'}</div>
+                      <div className="patient-clinic-room">{activeAppt.clinicRoom || counsellorObj?.clinicRoom || counsellorObj?.room || 'Abu Dhabi · Building A · Room 204'}</div>
+                      <div className="patient-clinic-address">{activeAppt.clinicAddress || counsellorObj?.clinicAddress || counsellorObj?.address || 'Cleveland Clinic Abu Dhabi, Al Maryah Island'}</div>
                     </div>
                   </div>
 
@@ -378,7 +380,7 @@ export default function Counsellor() {
                       View directions
                     </button>
                     <a
-                      href="https://maps.google.com/?q=Cleveland+Clinic+Abu+Dhabi"
+                      href={counsellorObj?.mapUrl || `https://maps.google.com/?q=${encodeURIComponent(counsellorObj?.clinicAddress || counsellorObj?.clinicName || 'Cleveland Clinic Abu Dhabi')}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="patient-btn-join"
@@ -640,13 +642,13 @@ export default function Counsellor() {
                 </div>
                 <div>
                   <h4 style={{ margin: '0 0 4px 0', fontSize: 16, color: '#0F172A' }}>
-                    {activeAppt?.clinicName || 'DaNA Partner Clinic'}
+                    {activeAppt?.clinicName || counsellorObj?.clinicName || counsellorObj?.clinic || 'DaNA Partner Clinic'}
                   </h4>
                   <div style={{ fontSize: 14, fontWeight: 600, color: '#15803D', marginBottom: 4 }}>
-                    {activeAppt?.clinicRoom || 'Abu Dhabi · Building A · Room 204'}
+                    {activeAppt?.clinicRoom || counsellorObj?.clinicRoom || counsellorObj?.room || 'Abu Dhabi · Building A · Room 204'}
                   </div>
                   <div style={{ fontSize: 13, color: '#475569' }}>
-                    {activeAppt?.clinicAddress || 'Cleveland Clinic Abu Dhabi, Al Maryah Island, Abu Dhabi, UAE'}
+                    {activeAppt?.clinicAddress || counsellorObj?.clinicAddress || counsellorObj?.address || 'Cleveland Clinic Abu Dhabi, Al Maryah Island, Abu Dhabi, UAE'}
                   </div>
                 </div>
               </div>

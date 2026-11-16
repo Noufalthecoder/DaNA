@@ -40,58 +40,61 @@ import {
   updatePregnancyMilestone,
   logNewbornMilestone,
 } from '../shared/carePlanService.js';
+import { COUNSELLORS } from '../shared/data.js';
 import './PersonalisedPlanTracker.css';
 
-const STAGE_RELATIONSHIPS = [
-  {
-    fromId: 1,
-    fromTitle: 'Stage 1: Screening & Discovery',
-    toId: 2,
-    toTitle: 'Stage 2: Couple Assessment',
-    handover: 'Genetic Variants & Pedigrees',
-    summary: 'Both partners complete individual sequencing (570 genes). Their carrier profiles and 3-generation pedigrees directly feed the Mendelian risk algorithm to determine compatibility.',
-  },
-  {
-    fromId: 2,
-    fromTitle: 'Stage 2: Couple Assessment',
-    toId: 3,
-    toTitle: 'Stage 3: Genetic Counselling',
-    handover: 'Clinical Consultation Triage',
-    summary: 'Identifying shared recessive traits (e.g. HBB Beta-thalassaemia, 25% child risk) auto-triages the couple to accredited genetic counsellor Dr. Mariam Al Hosani.',
-  },
-  {
-    fromId: 3,
-    fromTitle: 'Stage 3: Genetic Counselling',
-    toId: 4,
-    toTitle: 'Stage 4: Family Planning',
-    handover: 'Approved Care Protocol',
-    summary: 'Counsellor approves personalized Reproductive Care Plan, enabling informed choice between IVF with PGT-M or natural conception with prenatal monitoring.',
-  },
-  {
-    fromId: 4,
-    fromTitle: 'Stage 4: Family Planning',
-    toId: 5,
-    toTitle: 'Stage 5: Pregnancy Journey',
-    handover: 'Conception & Gestational Trigger',
-    summary: 'Selecting conception route and confirming pregnancy automatically transitions the care team from preconception planning into active gestational tracking.',
-  },
-  {
-    fromId: 5,
-    fromTitle: 'Stage 5: Pregnancy Journey',
-    toId: 6,
-    toTitle: 'Stage 6: Birth Preparation',
-    handover: 'Prenatal Genomics & Hospital Alert',
-    summary: 'Prenatal diagnostic tests (CVS at 11–14w or Amniocentesis at 15–20w) verify fetal genetics and transmit delivery handover dossier to Danat Al Emarat labor ward.',
-  },
-  {
-    fromId: 6,
-    fromTitle: 'Stage 6: Birth Preparation',
-    toId: 7,
-    toTitle: 'Stage 7: Newborn Records',
-    handover: 'Delivery & Newborn Blood Spot Protocol',
-    summary: 'Childbirth activates UAE DoH National Newborn Blood Spot Screening (Day 2 heel-prick test) and registers the infant on the (+1) node in the family pedigree.',
-  },
-];
+function getStageRelationships(counsellorName = 'Dr. Mariam Al Hosani') {
+  return [
+    {
+      fromId: 1,
+      fromTitle: 'Stage 1: Screening & Discovery',
+      toId: 2,
+      toTitle: 'Stage 2: Couple Assessment',
+      handover: 'Genetic Variants & Pedigrees',
+      summary: 'Both partners complete individual sequencing (570 genes). Their carrier profiles and 3-generation pedigrees directly feed the Mendelian risk algorithm to determine compatibility.',
+    },
+    {
+      fromId: 2,
+      fromTitle: 'Stage 2: Couple Assessment',
+      toId: 3,
+      toTitle: 'Stage 3: Genetic Counselling',
+      handover: 'Clinical Consultation Triage',
+      summary: `Identifying shared recessive traits auto-triages the couple to accredited genetic counsellor ${counsellorName}.`,
+    },
+    {
+      fromId: 3,
+      fromTitle: 'Stage 3: Genetic Counselling',
+      toId: 4,
+      toTitle: 'Stage 4: Family Planning',
+      handover: 'Approved Care Protocol',
+      summary: 'Counsellor approves personalized Reproductive Care Plan, enabling informed choice between IVF with PGT-M or natural conception with prenatal monitoring.',
+    },
+    {
+      fromId: 4,
+      fromTitle: 'Stage 4: Family Planning',
+      toId: 5,
+      toTitle: 'Stage 5: Pregnancy Journey',
+      handover: 'Conception & Gestational Trigger',
+      summary: 'Selecting conception route and confirming pregnancy automatically transitions the care team from preconception planning into active gestational tracking.',
+    },
+    {
+      fromId: 5,
+      fromTitle: 'Stage 5: Pregnancy Journey',
+      toId: 6,
+      toTitle: 'Stage 6: Birth Preparation',
+      handover: 'Prenatal Genomics & Hospital Alert',
+      summary: 'Prenatal diagnostic tests (CVS at 11–14w or Amniocentesis at 15–20w) verify fetal genetics and transmit delivery handover dossier to Danat Al Emarat labor ward.',
+    },
+    {
+      fromId: 6,
+      fromTitle: 'Stage 6: Birth Preparation',
+      toId: 7,
+      toTitle: 'Stage 7: Newborn Records',
+      handover: 'Delivery & Newborn Blood Spot Protocol',
+      summary: 'Childbirth activates UAE DoH National Newborn Blood Spot Screening (Day 2 heel-prick test) and registers the infant on the (+1) node in the family pedigree.',
+    },
+  ];
+}
 
 export default function PersonalisedPlanTracker() {
   const { me, partner, result, couple } = useCouple();
@@ -101,26 +104,44 @@ export default function PersonalisedPlanTracker() {
   // Reactive plan state from store or service
   const storePlans = useStore((s) => s.carePlans);
   const storeReferrals = useStore((s) => s.referrals);
+  const scheduleAppointments = useStore((s) => s.scheduleAppointments);
+  const coupleCounsellors = useStore((s) => s.coupleCounsellors);
+  const storeApproved = useStore((s) => s.approved);
+  const connections = useStore((s) => s.connections);
+  const screeningIntakes = useStore((s) => s.screeningIntakes);
+
   const plan = useMemo(() => {
-    const basePlan = storePlans?.[cid] || getCoupleCarePlan(cid);
-    const liveRefs = storeReferrals?.[cid] || [];
-    if (liveRefs.length > 0) {
-      const existingIds = new Set((basePlan.referrals || []).map((r) => r.id));
-      const merged = [
-        ...liveRefs.filter((r) => !existingIds.has(r.id)),
-        ...(basePlan.referrals || []),
-      ];
-      return {
-        ...basePlan,
-        referrals: merged.length > 0 ? merged : basePlan.referrals,
-        completedItems: Array.from(new Set([...(basePlan.completedItems || []), 'follow_up_referrals'])),
-        counsellingCompleted: true,
-      };
+    return getCoupleCarePlan(cid);
+  }, [cid, storePlans, storeReferrals, scheduleAppointments, coupleCounsellors, storeApproved, connections, screeningIntakes]);
+
+  const dedicatedDoctor = useStore((s) => s.coupleCounsellors?.[cid]) || plan.counsellor || useStore((s) => s.cases?.[cid]?.counsellor) || 'Dr. Mariam Al Hosani';
+  const counsellorObj = useMemo(() => {
+    return COUNSELLORS.find((c) => c.name === dedicatedDoctor) || COUNSELLORS[0];
+  }, [dedicatedDoctor]);
+
+  const activeAppt = useMemo(() => {
+    const coupleAppts = (scheduleAppointments || []).filter((a) => a.cid === cid);
+    return coupleAppts.find((a) => a.confirmed === true || a.status === 'confirmed' || a.priority === 'upcoming') || coupleAppts[0] || null;
+  }, [scheduleAppointments, cid]);
+
+  const formatDateLabel = (d) => {
+    if (!d) return '';
+    if (typeof d === 'string' && d.includes('-')) {
+      const parts = d.split('-');
+      if (parts.length === 3) {
+        const [y, m, day] = parts;
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const mIdx = parseInt(m, 10) - 1;
+        if (mIdx >= 0 && mIdx < 12) {
+          return `${parseInt(day, 10)} ${months[mIdx]} ${y}`;
+        }
+      }
     }
-    return basePlan;
-  }, [storePlans, storeReferrals, cid]);
+    return d;
+  };
 
   const progress = useMemo(() => computeCarePlanProgress(plan), [plan]);
+  const stageRelationships = useMemo(() => getStageRelationships(dedicatedDoctor), [dedicatedDoctor]);
 
   // Section availability / milestone gates:
   // 1. Stage 3 (Genetic Counselling) Confirmation:
@@ -183,15 +204,13 @@ export default function PersonalisedPlanTracker() {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [selectedPrintReferral, setSelectedPrintReferral] = useState(null);
 
-  // Form states
-  const [pregWeeks, setPregWeeks] = useState(plan.pregnancy?.weeks || 12);
-  const [pregEdd, setPregEdd] = useState(plan.pregnancy?.edd || '2027-05-15');
-  const [deliveryHosp, setDeliveryHosp] = useState(
-    plan.pregnancy?.deliveryHospital || 'Danat Al Emarat Hospital for Women & Children, Abu Dhabi'
-  );
-  const [babyName, setBabyName] = useState(plan.childbirth?.babyName || 'Zayed');
-  const [babyDob, setBabyDob] = useState(plan.childbirth?.birthDate || '2027-05-12');
-  const [babyScreen, setBabyScreen] = useState(plan.childbirth?.newbornScreenStatus || 'completed');
+  // Form states without mock defaults
+  const [pregWeeks, setPregWeeks] = useState(plan.pregnancy?.weeks || '');
+  const [pregEdd, setPregEdd] = useState(plan.pregnancy?.edd || '');
+  const [deliveryHosp, setDeliveryHosp] = useState(plan.pregnancy?.deliveryHospital || '');
+  const [babyName, setBabyName] = useState(plan.childbirth?.babyName || '');
+  const [babyDob, setBabyDob] = useState(plan.childbirth?.birthDate || '');
+  const [babyScreen, setBabyScreen] = useState(plan.childbirth?.newbornScreenStatus || 'pending');
 
   const scrollToSection = (sectionId) => {
     setActiveSection(sectionId);
@@ -218,31 +237,17 @@ export default function PersonalisedPlanTracker() {
       setShowPregnancyModal(true);
       saveCoupleCarePlan(cid, {
         familyPlanningChoice: 'pregnant',
-        pregnancy: {
-          ...(plan.pregnancy || {}),
-          isPregnant: true,
-          weeks: plan.pregnancy?.weeks || 12,
-          edd: plan.pregnancy?.edd || '2027-05-15',
-          deliveryHospital: plan.pregnancy?.deliveryHospital || 'Danat Al Emarat Hospital for Women & Children, Abu Dhabi',
-        },
-        activeStageId: 5,
         completedItems: Array.from(new Set([
           ...(plan.completedItems || []),
           'chosen_conception_pathway',
-          'pgtm_coordination',
-          'preconception_followups',
-          'pregnancy_confirmation',
-          'gestational_milestones',
         ])),
       }, 'Declared pregnancy in Stage 4 Family Planning');
     } else {
       saveCoupleCarePlan(cid, {
         familyPlanningChoice: situationKey,
-        activeStageId: 4,
         completedItems: Array.from(new Set([
           ...(plan.completedItems || []),
           'chosen_conception_pathway',
-          ...(situationKey === 'planning_to_conceive' ? ['pgtm_coordination', 'preconception_followups'] : []),
         ])),
       }, `Selected family planning situation: ${situationKey}`);
     }
@@ -252,7 +257,7 @@ export default function PersonalisedPlanTracker() {
     e.preventDefault();
     updatePregnancyMilestone(cid, {
       isPregnant: true,
-      weeks: Number(pregWeeks),
+      weeks: Number(pregWeeks) || 0,
       edd: pregEdd,
       deliveryHospital: deliveryHosp,
     });
@@ -529,7 +534,7 @@ export default function PersonalisedPlanTracker() {
             </div>
 
             <div className="cpt-rel-pathway">
-              {STAGE_RELATIONSHIPS.map((rel) => (
+              {stageRelationships.map((rel) => (
                 <div key={rel.fromId} className="cpt-rel-row">
                   <div className="cpt-rel-badge-col">
                     <span className="cpt-rel-step-pill">Stage {rel.fromId} → {rel.toId}</span>
@@ -816,7 +821,7 @@ export default function PersonalisedPlanTracker() {
               <div style={{ flex: 1 }}>
                 <b className="cpt-action-title">1. Attend Genetic Counselling Consultation</b>
                 <p className="cpt-action-desc">
-                  Scheduled with <b>Dr. Mariam Al Hosani</b> for 10 Nov 2026 at 13:30 (Gulf Time). Discuss carrier match findings and PGT-M protocol.
+                  Scheduled with <b>{dedicatedDoctor}</b> for {activeAppt ? `${formatDateLabel(activeAppt.date)} at ${activeAppt.time} (GST)` : '10 Nov 2026 at 13:30 (GST)'}. Discuss carrier match findings and PGT-M protocol.
                 </p>
               </div>
             </div>
@@ -929,19 +934,21 @@ export default function PersonalisedPlanTracker() {
             <div className="cpt-card-top-badge">
               <Video size={16} color="#16A34A" />
               <span>Genetic Counselling Consultation</span>
-              <Badge tone="green">Confirmed</Badge>
+              <Badge tone={activeAppt?.confirmed ? 'green' : activeAppt ? 'amber' : 'green'}>
+                {activeAppt?.confirmed ? 'Confirmed' : activeAppt ? 'Pending' : 'Confirmed'}
+              </Badge>
             </div>
 
-            <h4 className="cpt-card-h4">Dr. Mariam Al Hosani · Licensed Clinical Geneticist</h4>
+            <h4 className="cpt-card-h4">{dedicatedDoctor} · Licensed Clinical Geneticist</h4>
             <dl className="cpt-dl">
               <dt>Session Date</dt>
-              <dd><b>Sunday, 10 Nov 2026 · 13:30 (GST)</b></dd>
+              <dd><b>{activeAppt ? `${formatDateLabel(activeAppt.date)} · ${activeAppt.time} (GST)` : 'Sunday, 10 Nov 2026 · 13:30 (GST)'}</b></dd>
               <dt>Format & Modality</dt>
-              <dd>Encrypted Telehealth (Google Meet)</dd>
+              <dd>{activeAppt?.mode === 'offline' ? 'In-Person Clinic Visit' : 'Encrypted Telehealth (Google Meet)'}</dd>
               <dt>Consultation Topic</dt>
-              <dd>Joint couple result interpretation, PGT-M pre-testing requirements, and Sanger validation.</dd>
+              <dd>{activeAppt?.what || 'Joint couple result interpretation, PGT-M pre-testing requirements, and Sanger validation.'}</dd>
               <dt>Physical Clinic</dt>
-              <dd>Cleveland Clinic Abu Dhabi · Building A · Room 204</dd>
+              <dd>{activeAppt?.clinicRoom ? `${activeAppt.clinicName} · ${activeAppt.clinicRoom}` : `${counsellorObj?.clinicName || counsellorObj?.clinic || 'Cleveland Clinic Abu Dhabi'} · ${counsellorObj?.clinicRoom || counsellorObj?.room || 'Building A · Room 204'}`}</dd>
             </dl>
 
             <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -1021,7 +1028,7 @@ export default function PersonalisedPlanTracker() {
               </div>
               <h4 className="cpt-card-h4">Specialist Genomics Referral Requisition</h4>
               <p style={{ fontSize: '13.5px', color: '#475569', lineHeight: 1.55, margin: '0 0 14px 0' }}>
-                Specialist clinical referrals (such as IVF with PGT-M or Prenatal Genetics) are issued by your counsellor Dr. Mariam Al Hosani upon clinical confirmation of your consultation and approval of your joint reproductive care plan.
+                Specialist clinical referrals (such as IVF with PGT-M or Prenatal Genetics) are issued by your counsellor {dedicatedDoctor} upon clinical confirmation of your consultation and approval of your joint reproductive care plan.
               </p>
               <div className="cpt-pending-hint">
                 <Clock size={13} style={{ color: '#D97706' }} />
@@ -1050,7 +1057,7 @@ export default function PersonalisedPlanTracker() {
             <p className="cpt-sec-sub">
               {isStage3Confirmed
                 ? "You've completed your genetic counselling. You can now record your family-planning decision and access relevant next steps."
-                : "Complete your genetic counselling consultation with Dr. Mariam Al Hosani to record your family-planning decision and access tailored next steps."}
+                : `Complete your genetic counselling consultation with ${dedicatedDoctor} to record your family-planning decision and access tailored next steps.`}
             </p>
           </div>
         </div>
@@ -1166,7 +1173,7 @@ export default function PersonalisedPlanTracker() {
             </div>
             <h4 className="cpt-locked-title">Family Planning Decision Unavailable until Stage 4</h4>
             <p className="cpt-locked-desc">
-              To record your family planning decision (such as IVF with PGT-M or preconception preparation), you must first complete your Stage 3 Genetic Counselling consultation with Dr. Mariam Al Hosani.
+              To record your family planning decision (such as IVF with PGT-M or preconception preparation), you must first complete your Stage 3 Genetic Counselling consultation with {dedicatedDoctor}.
             </p>
             <div className="cpt-locked-btn-row">
               <a href="#/app/counsellor" className="btn-clean-sm btn-green-subtle">
@@ -1244,7 +1251,7 @@ export default function PersonalisedPlanTracker() {
                 </div>
                 <ul className="cpt-tri-list">
                   <li>✓ Obstetric registration and ultrasound dating</li>
-                  <li>✓ Early prenatal genetic consultation with Dr. Mariam</li>
+                  <li>✓ Early prenatal genetic consultation with {dedicatedDoctor}</li>
                   <li>• Optional CVS diagnostic window (Weeks 11–14)</li>
                 </ul>
               </div>

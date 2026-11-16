@@ -30,12 +30,16 @@ export default function Home() {
   const [showBookModal, setShowBookModal] = useState(false);
   const [bookModality, setBookModality] = useState('online');
 
+  const session = useStore((s) => s.session);
+  const cid = session?.couple || couple?.id || 'c1';
+  const dedicatedDoctor = useStore((s) => s.coupleCounsellors?.[cid]) || useStore((s) => s.cases?.[cid]?.counsellor) || 'Dr. Mariam Al Hosani';
+
   const handleBookSlot = (slot) => {
     const isOnline = bookModality === 'online';
     bookSlot(cid, slot, {
       mode: isOnline ? 'online' : 'offline',
       who: session?.name || 'Khalid & Fatima',
-      doctor: 'Dr. Mariam Al Hosani',
+      doctor: dedicatedDoctor,
       what: 'Pre-marital counselling',
       priority: 'pending',
       status: 'pending',
@@ -55,8 +59,6 @@ export default function Home() {
     setBusy(false);
   };
 
-  const session = useStore((s) => s.session);
-  const cid = session?.couple || couple?.id || 'c1';
   const sent = useStore((s) => s.alertsSent) || EMPTY_ARR;
   const plan = useStore((s) => (couple?.id ? s.plans[couple.id] : null) || s.plan);
   const scheduleAppointments = useStore((s) => s.scheduleAppointments) || EMPTY_ARR;
@@ -94,7 +96,7 @@ export default function Home() {
         date: apptDate,
         time: apptTime,
         endTime: '14:15',
-        doctor: 'Dr. Mariam Al Hosani',
+        doctor: dedicatedDoctor,
         mode: 'online',
         type: 'Video',
         what: 'Pre-marital counselling',
@@ -106,7 +108,7 @@ export default function Home() {
       };
     }
     return null;
-  }, [scheduleAppointments, cid, bookedLabel]);
+  }, [scheduleAppointments, cid, bookedLabel, dedicatedDoctor]);
 
   useEffect(() => {
     if (cid) {
@@ -170,7 +172,7 @@ export default function Home() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '10px 14px', borderRadius: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10B981' }} />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>Dr. Mariam Al Hosani</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{dedicatedDoctor}</span>
                   <span style={{ fontSize: 12, color: '#64748B' }}>· Available for premarital booking</span>
                 </div>
                 <Badge tone="green">Available</Badge>
@@ -213,7 +215,7 @@ export default function Home() {
                   </span>
                 </div>
                 <span style={{ fontSize: 12.5, fontWeight: 600, color: '#0F172A' }}>
-                  {activeAppt.doctor || 'Dr. Mariam Al Hosani'}
+                  {activeAppt.doctor || dedicatedDoctor}
                 </span>
               </div>
 
@@ -251,11 +253,11 @@ export default function Home() {
               {/* Notice */}
               {activeAppt.confirmed === false || activeAppt.priority === 'pending' ? (
                 <p style={{ margin: 0, fontSize: 12.5, color: '#92400E', lineHeight: 1.4 }}>
-                  ⏳ Your request has been forwarded to Dr. Mariam for clinical confirmation. Meeting room activates upon acceptance.
+                  ⏳ Your request has been forwarded to {activeAppt.doctor || dedicatedDoctor} for clinical confirmation. Meeting room activates upon acceptance.
                 </p>
               ) : (
                 <p style={{ margin: 0, fontSize: 12.5, color: '#047857', lineHeight: 1.4 }}>
-                  ✓ Clinically verified by Dr. Mariam. Your encrypted Google Meet room is ready for you and your partner.
+                  ✓ Clinically verified by {activeAppt.doctor || dedicatedDoctor}. Your encrypted Google Meet room is ready for you and your partner.
                 </p>
               )}
 
@@ -328,7 +330,7 @@ export default function Home() {
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: 16, color: '#0F172A' }}>Book Premarital Consultation</h3>
-                  <small style={{ color: '#64748B' }}>With Dr. Mariam Al Hosani · Genetic Counsellor</small>
+                  <small style={{ color: '#64748B' }}>With {dedicatedDoctor} · Genetic Counsellor</small>
                 </div>
               </div>
               <button

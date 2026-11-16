@@ -22,6 +22,7 @@ import {
   logNewbornMilestone,
 } from '../web/src/app/shared/carePlanService.js';
 import { set } from '../web/src/app/shared/store.js';
+import { addReferral, selectCounsellor } from '../web/src/app/shared/db.js';
 
 describe('Personalised Care Plan Tracker Unit Tests (7 Stages)', () => {
   beforeEach(() => {
@@ -61,7 +62,7 @@ describe('Personalised Care Plan Tracker Unit Tests (7 Stages)', () => {
     // Verify Stage 7 (Journey milestone)
     const stage7 = CARE_PLAN_STAGES[6];
     assert.equal(stage7.tag, 'Journey milestone');
-    assert.equal(stage7.items.length, 4);
+    assert.equal(stage7.items.length, 5);
   });
 
   it('2. Retrieves default plan for couple c1 with baseline progress', () => {
@@ -70,9 +71,14 @@ describe('Personalised Care Plan Tracker Unit Tests (7 Stages)', () => {
     assert.equal(plan.condition, 'Beta-thalassaemia (HBB)');
     assert.equal(plan.tier, 2);
     assert.ok(plan.completedItems.length > 0);
-    assert.equal(plan.referrals[0].destination, 'IVF / PGT-M');
+    assert.ok(Array.isArray(plan.referrals));
 
-    const progress = computeCarePlanProgress(plan);
+    // When counsellor adds a referral, it synchronizes with care plan
+    addReferral('c1', { destination: 'IVF / PGT-M', facility: 'Cleveland Clinic', priority: 'high', status: 'DISPATCHED' });
+    const planWithRef = getCoupleCarePlan('c1');
+    assert.equal(planWithRef.referrals[0].destination, 'IVF / PGT-M');
+
+    const progress = computeCarePlanProgress(planWithRef);
     assert.ok(progress > 0 && progress < 100);
   });
 
@@ -127,5 +133,13 @@ describe('Personalised Care Plan Tracker Unit Tests (7 Stages)', () => {
     assert.ok(custom);
     assert.equal(custom.activeStageId, 1);
     assert.equal(custom.completedItems.length, 1);
+  });
+
+  it('7. Locks and preserves dedicated counsellor per couple across all 7 stages', () => {
+    selectCounsellor('c3', 'Dr. Tariq Al Nuaimi');
+    assert.equal(getCoupleCarePlan('c3').counsellor, 'Dr. Tariq Al Nuaimi');
+    selectCounsellor('c2', 'Dr. Fatima Al Zaabi');
+    assert.equal(getCoupleCarePlan('c2').counsellor, 'Dr. Fatima Al Zaabi');
+    assert.equal(getCoupleCarePlan('c1').counsellor, 'Dr. Mariam Al Hosani');
   });
 });

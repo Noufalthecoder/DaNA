@@ -59,6 +59,8 @@ const initial = {
   dbError: null,
   reports: {},        // person id -> validated report (live)
   cases: {},          // couple id -> { id, tier, counsellor } (live)
+  coupleCounsellors: { c1: 'Dr. Mariam Al Hosani' }, // couple id -> permanently selected dedicated counsellor
+  carePlans: {},      // couple id -> 7-stage longitudinal care plan
   referrals: {},      // couple id -> [referral]
   invites: [],
   slots: [],          // live: free slots of my counsellor [{ id, label, counsellor }]
@@ -226,6 +228,8 @@ function load() {
       ...saved,
       appointments: saved.appointments !== undefined ? saved.appointments : initial.appointments,
       scheduleAppointments: saved.scheduleAppointments !== undefined ? saved.scheduleAppointments : initial.scheduleAppointments,
+      coupleCounsellors: saved.coupleCounsellors !== undefined ? saved.coupleCounsellors : initial.coupleCounsellors,
+      carePlans: saved.carePlans !== undefined ? saved.carePlans : initial.carePlans,
     };
   } catch {
     return { ...initial };
@@ -388,6 +392,7 @@ export function resetDemo() {
     booked: null,
     appointments: {},
     reports: {},
+    coupleCounsellors: { c1: 'Dr. Mariam Al Hosani' },
     carePlans: {
       c1: {
         activeStageId: 1,
