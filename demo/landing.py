@@ -47,47 +47,37 @@ def main():
         show.js('([id, u]) => stage.load(id, u)', ['L', f'{R.L_URL}/#/']); show.wait(4)
         show.cut_end()
 
-        # hero: the title animates in
-        show.wait(0.8)
-        show.cap('Meet <b>DaNA</b>: premarital genetic screening for every couple in the UAE.'); show.wait(3.2)
-        show.look(F.locator('.hero .lead'), 'It explains a genetic result in <b>plain, calm words</b>, in Arabic, English and Urdu.', zoom=1.6, hold=4)
-        show.look(F.locator('.hero .chips'), '<b>Private by design.</b> Data stays in the UAE. Real genetic counsellors.', zoom=1.8, hold=3.6)
+        # ~32 seconds: the strongest moments only
+        # 1. hero (title animates in)
+        show.wait(0.4)
+        show.cap('Meet <b>DaNA</b>: premarital genetic screening for every couple in the UAE.'); show.wait(2.4)
+        show.look(F.locator('.hero .lead'), 'One test result, explained in <b>plain, calm words</b>: Arabic, English and Urdu.', zoom=1.6, hold=4.5)
 
-        # statement: words light up while scrolling
-        show.cap('Most people carry a gene change. <b>Carriers are healthy</b>: it is common, and nothing to fear.')
-        scroll_to('.statement', offset=-120, ms=1600); scroll_by(700, 3800); show.wait(0.8)
+        # 2. the key message (words light up while scrolling)
+        show.cap('Carrying a gene is common. <b>Carriers are healthy</b>, and there is always a plan.')
+        scroll_to('.statement', offset=-120, ms=1000); scroll_by(520, 2300); show.wait(0.5)
 
-        # how it works: cards stack as you scroll
-        show.cap('<b>How it works</b>: get screened, understand the result together, plan with a counsellor.')
-        scroll_to('#how', offset=-40, ms=1600); show.wait(0.6)
-        scroll_by(2600, 7500); show.wait(0.8)
+        # 3. three journeys (cards stack)
+        show.cap('<b>Roots</b>: understand it. <b>Bonds</b>: plan together. <b>Branches</b>: protect the family.')
+        scroll_to('#how', offset=-40, ms=900); scroll_by(2500, 4300); show.wait(0.3)
 
-        # the journey sections
-        show.cap('One journey, from the premarital test to a <b>healthy family</b>, with every choice left to the couple.')
-        scroll_by(2400, 7000); show.wait(0.8)
+        # 4. one result protects a whole family
+        show.cap('One result can protect a <b>whole family</b>: private, anonymous invitations for relatives.')
+        scroll_to('#tree', offset=120, ms=1300); show.wait(3.0)
 
-        # family protection (Sila)
-        show.cap('<b>Protect your family</b>: relatives get a private, anonymous invitation to screen. No names shared.')
-        scroll_to('#tree', offset=-30, ms=2200); show.wait(3.4)
+        # 5. trust
+        show.cap('<b>Private by design</b>: consent first, data stays in the UAE, real genetic counsellors.')
+        scroll_to('#trust', offset=-30, ms=1000); show.wait(1.9)
 
-        # trust + faith
-        show.cap('Built on <b>trust</b>: consent first, every view logged, and guidance that respects faith and family.')
-        scroll_to('#trust', offset=-30, ms=2000); show.wait(3.8)
-
-        # FAQ
-        show.cap('Honest answers to the questions couples <b>really ask</b>.')
-        scroll_to('#faq', offset=-30, ms=1800); show.wait(3.2)
-
-        # back to the top and sign in
-        show.cap('Ready? Start with <b>UAE PASS</b>, the national digital identity.')
-        body.evaluate(SCROLL, [0, 2400]); show.wait(1.2)
+        # 6. back to the top (cut) and sign in with UAE PASS
+        show.cut_start(); body.evaluate(SCROLL, [0, 600]); show.wait(1.2); show.cut_end()
         btn = F.locator('.hero a.btn-green').first
-        show.act(btn, 'Ready? Start with <b>UAE PASS</b>, the national digital identity.', zoom=2.0, hold=0.05, name='login')
+        show.act(btn, 'Start with <b>UAE PASS</b>, the national digital identity.', zoom=2.0, hold=0.05, name='login')
         show.cut_start(); R.first_visible(F, 'button:has-text("Sign in with UAE PASS")', timeout=20000); show.wait(1.8); show.cut_end()
         show.act(F.locator('button:has-text("Sign in with UAE PASS")'), 'One tap: <b>Sign in with UAE PASS</b>.', zoom=2.0, hold=1.2, name='uaepass')
-        show.wait(1.5)
-        show.look(R.first_visible(F, '.login-card'), 'Verified identity, ready to begin the premarital journey.', zoom=1.4, hold=3)
-        show.cap(''); show.wait(0.5)
+        show.wait(1.2)
+        show.look(R.first_visible(F, '.login-card'), 'Verified identity. The journey begins.', zoom=1.4, hold=2.6)
+        show.cap(''); show.wait(0.3)
 
         video = pg.video.path()
         ctx.close(); b.close()
