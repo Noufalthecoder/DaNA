@@ -10,6 +10,7 @@ import AvatarPicker from '../shared/AvatarPicker.jsx';
 import { setMySex } from '../shared/db.js';
 import { PEOPLE } from '../shared/data.js';
 import { Avatar } from '../shared/ui.jsx';
+import HomeLocation from '../shared/HomeLocation.jsx';
 
 const RELATIONS = [
   'Mother', 'Father', 'Brother', 'Sister',
@@ -256,6 +257,8 @@ export default function Profile() {
           {sexErr && <p className="err">{sexErr}</p>}
         </Card>
       )}
+
+      {account.role === 'couple' && <HomeLocation />}
 
       {/* Profile Overview Card */}
       <Card>

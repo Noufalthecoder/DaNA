@@ -33,7 +33,10 @@ export default function Home() {
 
   const session = useStore((s) => s.session);
   const cid = session?.couple || couple?.id || 'c1';
-  const dedicatedDoctor = useStore((s) => s.coupleCounsellors?.[cid]) || useStore((s) => s.cases?.[cid]?.counsellor) || 'Dr. Mariam Al Hosani';
+  // hooks must run on every render, so read both values first, then pick
+  const lockedCounsellor = useStore((s) => s.coupleCounsellors?.[cid]);
+  const caseCounsellor = useStore((s) => s.cases?.[cid]?.counsellor);
+  const dedicatedDoctor = lockedCounsellor || caseCounsellor || 'Dr. Mariam Al Hosani';
 
   const handleBookSlot = (slot) => {
     const isOnline = bookModality === 'online';
@@ -63,7 +66,9 @@ export default function Home() {
   const sent = useStore((s) => s.alertsSent) || EMPTY_ARR;
   const plan = useStore((s) => (couple?.id ? s.plans[couple.id] : null) || s.plan);
   const scheduleAppointments = useStore((s) => s.scheduleAppointments) || EMPTY_ARR;
-  const bookedLabel = useStore((s) => s.appointments[cid]) || useStore((s) => s.booked);
+  const apptLabel = useStore((s) => s.appointments?.[cid]);
+  const demoBooked = useStore((s) => s.booked);
+  const bookedLabel = apptLabel || demoBooked;
 
   const formatDateLabel = (d) => {
     if (!d) return '';
