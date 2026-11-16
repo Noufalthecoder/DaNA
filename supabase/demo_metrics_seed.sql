@@ -28,7 +28,7 @@ on conflict (id) do nothing;
 -- all 5 couples share a carrier gene (tier 2: needs counselling)
 insert into clinical_cases (couple_id, clinical_urgency, triage_tier, created_at)
 select id, 'high', 2, screened_on::timestamptz from couples where id like 'demo_mc%'
-on conflict (couple_id) do nothing;
+on conflict (couple_id) do update set created_at = excluded.created_at, triage_tier = 2, clinical_urgency = 'high';
 
 -- 4 of 5 couples booked a counsellor, 1 to 9 days after the result
 insert into appointments (couple_id, starts_at, status)
