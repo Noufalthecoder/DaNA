@@ -9,6 +9,8 @@ import { Brand } from './Logo.jsx';
 import { signOut as supabaseSignOut } from './supabase.js';
 import { loadAll, logAudit, resetDemoDataBackend } from './db.js';
 import NotificationBell from './NotificationBell.jsx';
+import Assistant from './Assistant.jsx';
+import { LangSwitch } from './Translator.jsx';
 import { isLinked, NEEDS_PARTNER } from './journey.js';
 import { syncRequestsFromSupabase } from './connectionsService.js';
 import { syncConsultationsFromSupabase, subscribeConsultationRealtime } from './consultationService.js';
@@ -19,7 +21,6 @@ export default function Shell({ menu, path, children }) {
   const [open, setOpen] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetting, setResetting] = useState(false);
-  useEffect(() => { document.documentElement.dir = 'ltr'; document.documentElement.lang = 'en'; }, []);
   useEffect(() => setOpen(false), [path]);
 
   useEffect(() => {
@@ -72,30 +73,24 @@ export default function Shell({ menu, path, children }) {
         <nav>
           {menu.items.filter((m) => isLinked(session) || !NEEDS_PARTNER.includes(m.to)).map((m) => (
             <a key={m.to} href={`#${m.to}`} className={active(m.to) ? 'on' : ''}>
-              <span className="ic" aria-hidden="true">{m.icon}</span>{m.label}
+              <span className="ic" aria-hidden="true">{m.icon}</span>
+              <span>{m.label}</span>
+              {m.badge && <span className="nav-pill-new">{m.badge}</span>}
             </a>
           ))}
         </nav>
-        <div className="side-foot">
-          {session?.backend ? (
-            <>
-              <button onClick={() => loadAll()}>Refresh data</button>
-              <span className="live"><i />Live · shared database</span>
-            </>
-          ) : (
-            <>
-              <button onClick={() => setShowResetConfirm(true)}>Reset demo data</button>
-              <span>Offline demo · this browser only</span>
-            </>
-          )}
-          <span>Synthetic data · simulated UAE PASS</span>
-        </div>
+        {!session?.backend && (
+          <div className="side-foot">
+            <button onClick={() => setShowResetConfirm(true)}>Reset demo data</button>
+          </div>
+        )}
       </aside>
 
       <div className="main">
         <header className="top">
           <button className="burger" onClick={() => setOpen(!open)} aria-label="Menu">☰</button>
           <div className="top-r">
+            <LangSwitch />
             <NotificationBell />
             <ProfileMenu session={session} onSwitch={switchAccount} onSignOut={logout} />
           </div>
@@ -103,6 +98,7 @@ export default function Shell({ menu, path, children }) {
         {dbError && <div className="db-err">{dbError} <button className="link" onClick={() => { set({ dbError: null }); loadAll(); }}>Try again</button></div>}
         <main className="content">{children}</main>
       </div>
+      {session?.role === 'couple' && <Assistant />}
       {open && <div className="scrim" onClick={() => setOpen(false)} />}
 
       {showResetConfirm && (

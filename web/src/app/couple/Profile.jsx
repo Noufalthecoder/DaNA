@@ -292,18 +292,7 @@ export default function Profile() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-            <Badge tone={isIntakeCompleted ? 'green' : 'amber'}>
-              {isIntakeCompleted
-                ? (existingIntake?.mode === 'uae_pass' ? 'UAE PASS Verified' : 'Self-Reported')
-                : 'Intake Pending'}
-            </Badge>
-            <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
-              {existingIntake?.updatedAt
-                ? `Last modified: ${new Date(existingIntake.updatedAt).toLocaleDateString('en-GB')}`
-                : existingIntake?.submittedAt
-                  ? `Submitted: ${new Date(existingIntake.submittedAt).toLocaleDateString('en-GB')}`
-                  : 'Sync via Profile'}
-            </span>
+            <Badge tone="green">✓ Verified with UAE PASS</Badge>
           </div>
         </div>
       </Card>
@@ -721,143 +710,10 @@ export default function Profile() {
           </div>
         </Card>
 
-        {/* Section 4: Consents & Malaffi Connectivity */}
-        <Card title="Privacy, Consent & Exchange Settings" style={{ marginTop: 16 }}>
-          <div style={{ display: 'grid', gap: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
-              <div>
-                <b style={{ fontSize: 14, display: 'block' }}>Malaffi Health Information Exchange Sync</b>
-                <small style={{ color: 'var(--ink2)' }}>
-                  Permit Abu Dhabi Department of Health (DoH) Malaffi records to securely cross-verify blood traits.
-                </small>
-              </div>
-              <div>
-                {isEditing ? (
-                  <input
-                    type="checkbox"
-                    checked={consent.malaffiSync}
-                    onChange={(e) => setConsent({ ...consent, malaffiSync: e.target.checked })}
-                    style={{ width: 18, height: 18, accentColor: 'var(--green)' }}
-                  />
-                ) : (
-                  <Badge tone={consent.malaffiSync ? 'green' : 'grey'}>
-                    {consent.malaffiSync ? 'Connected' : 'Disconnected'}
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
-              <div>
-                <b style={{ fontSize: 14, display: 'block' }}>Partner Result Sharing</b>
-                <small style={{ color: 'var(--ink2)' }}>
-                  Share joint compatibility results and recommended care options with fiancé/fiancée ({partner.name}).
-                </small>
-              </div>
-              <div>
-                {isEditing ? (
-                  <input
-                    type="checkbox"
-                    checked={consent.partnerShare}
-                    onChange={(e) => setConsent({ ...consent, partnerShare: e.target.checked })}
-                    style={{ width: 18, height: 18, accentColor: 'var(--green)' }}
-                  />
-                ) : (
-                  <Badge tone={consent.partnerShare ? 'green' : 'amber'}>
-                    {consent.partnerShare ? 'Authorized' : 'Restricted'}
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
-              <div>
-                <b style={{ fontSize: 14, display: 'block' }}>Assigned Genetic Counsellor Access</b>
-                <small style={{ color: 'var(--ink2)' }}>
-                  Allow licensed DoH medical genetic counsellors to review your pedigree and discuss reproductive choices.
-                </small>
-              </div>
-              <div>
-                {isEditing ? (
-                  <input
-                    type="checkbox"
-                    checked={consent.counsellorAccess}
-                    onChange={(e) => setConsent({ ...consent, counsellorAccess: e.target.checked })}
-                    style={{ width: 18, height: 18, accentColor: 'var(--green)' }}
-                  />
-                ) : (
-                  <Badge tone={consent.counsellorAccess ? 'green' : 'amber'}>
-                    {consent.counsellorAccess ? 'Authorized' : 'Restricted'}
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0' }}>
-              <div>
-                <b style={{ fontSize: 14, display: 'block' }}>Anonymized Genomic Research Participation</b>
-                <small style={{ color: 'var(--ink2)' }}>
-                  Contribute de-identified variant data to UAE National Genomic Studies under strict ethical review.
-                </small>
-              </div>
-              <div>
-                {isEditing ? (
-                  <input
-                    type="checkbox"
-                    checked={consent.anonymizedResearch}
-                    onChange={(e) => setConsent({ ...consent, anonymizedResearch: e.target.checked })}
-                    style={{ width: 18, height: 18, accentColor: 'var(--green)' }}
-                  />
-                ) : (
-                  <Badge tone={consent.anonymizedResearch ? 'green' : 'grey'}>
-                    {consent.anonymizedResearch ? 'Enrolled' : 'Opted Out'}
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </div>
+        <Card title="Sharing and consent" style={{ marginTop: 16 }}>
+          <p className="muted" style={{ margin: '0 0 12px' }}>Who can see your result, who opened your data, and your Malaffi consent are all on one page.</p>
+          <a className="btn-line" href="#/app/privacy">Open Privacy →</a>
         </Card>
-
-        {/* Wizard Rerun Banner */}
-        <div
-          style={{
-            marginTop: 24,
-            padding: '16px 20px',
-            background: '#F8F9FA',
-            border: '1px dashed var(--line)',
-            borderRadius: 14,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 16,
-            flexWrap: 'wrap',
-          }}
-        >
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 14 }}>Need to redo the full guided intake?</div>
-            <div style={{ fontSize: 13, color: 'var(--ink2)' }}>
-              You can reopen the complete step-by-step premarital screening wizard at any time.
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className="ghost"
-              onClick={() => go('/app/report')}
-              style={{ fontSize: 13 }}
-            >
-              View Medical Report →
-            </button>
-            <button
-              type="button"
-              className="ghost"
-              onClick={() => go('/app/screening')}
-              style={{ fontSize: 13 }}
-            >
-              Open Guided Screening Wizard →
-            </button>
-          </div>
-        </div>
       </form>
     </Page>
   );

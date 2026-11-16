@@ -1,0 +1,39 @@
+/* Combined couple report: extends the .rp report styles in app.css */
+.cr-aud{font-size:13px;color:var(--ink2,#555)}
+.cr-banner{border-radius:8px;padding:16px 18px;border:1px solid #d9dcd6;background:#f3f8f5}
+.cr-banner.cr-calm{background:#fdf6e3;border-color:#efd9a0}
+.cr-banner.cr-amber{background:#fdecea;border-color:#f0c2bb}
+.cr-eyebrow{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#555}
+.rp .cr-h2{font-size:22px;margin:4px 0 6px;background:none;color:#1a1a1a;padding:0}
+.cr-banner p{margin:0 0 10px}
+.cr-chips{display:flex;gap:8px;flex-wrap:wrap}
+.cr-chip{display:inline-block;padding:3px 11px;border-radius:999px;font-size:12.5px;font-weight:700;background:#fff;border:1px solid #c9cfc6}
+.cr-p1{background:#fbe0dc;color:#9b2216;border-color:#f0b4ab}
+.cr-p2{background:#fdf0cf;color:#8a5a00;border-color:#ecd18a}
+.cr-p3{background:#e2e7f2;color:#36446a;border-color:#bcc6de}
+.cr-p4{background:#dff3e6;color:#13693c;border-color:#a9d9bb}
+.cr-odds{display:grid;gap:10px;margin:10px 0}
+.cr-odds-4{grid-template-columns:repeat(4,1fr)}
+.cr-odds-2{grid-template-columns:repeat(2,1fr)}
+.cr-odd{border:1px solid #d9dcd6;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.cr-odd b{font-size:18px}
+.cr-odd span{font-size:13px;color:#444}
+.cr-odd-clear{background:#e9f6ee}
+.cr-odd-carrier{background:#fdf6e3}
+.cr-odd-affected{background:#fdecea}
+.cr-note{font-size:13px;color:#555}
+.cr-two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cr-col{border:1px solid #d9dcd6;border-radius:8px;padding:12px 14px}
+.cr-col h3{margin:0 0 2px}
+.cr-col h4{margin:12px 0 4px;font-size:13.5px}
+.cr-src{font-size:12.5px;color:#666;margin:0 0 8px}
+.cr-blood td{font-size:12.5px;padding:5px 7px}
+.cr-opts{padding-inline-start:18px}
+.cr-opts li{margin-bottom:8px}
+.cr-opts li.on{background:#e9f6ee;border-radius:4px;padding:4px 6px}
+.cr-pick{font-weight:700;color:#13693c}
+@media (max-width:700px){.cr-odds-4{grid-template-columns:1fr 1fr}.cr-two{grid-template-columns:1fr}}
+@media print{
+  .cr-banner,.cr-odd,.cr-chip,.cr-col,.cr-opts li.on,.cr-h2{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .cr-col,.cr-odd,.cr-banner{break-inside:avoid}
+}

@@ -12,9 +12,11 @@ import { useStore, signOut, EMPTY_OBJ } from './app/shared/store.js';
 import { Brand } from './app/shared/Logo.jsx';
 import { watchAuth, signOut as supabaseSignOut } from './app/shared/supabase.js';
 import { loadAll } from './app/shared/db.js';
-import Welcome from './app/couple/Welcome.jsx';
 import MyReport from './app/couple/MyReport.jsx';
-import { isLinked, NEEDS_PARTNER } from './app/shared/journey.js';
+import { MyCoupleReport, CaseCoupleReport } from './app/shared/CoupleReportPage.jsx';
+import { isLinked, NEEDS_PARTNER, useJourney } from './app/shared/journey.js';
+import { isUserScreened } from './app/shared/screeningPersistence.js';
+import Onboarding from './app/onboarding/Onboarding.jsx';
 import { PENDING_CODE_KEY } from './app/shared/PartnerCode.jsx';
 import './app/app.css';
 
@@ -75,9 +77,12 @@ export default function Root() {
   const intakes = useStore((s) => s.screeningIntakes) || EMPTY_OBJ;
   const inApp = path.startsWith('/app');
   const [ready, setReady] = useState(false);
+  const journey = useJourney();
+  const dataLoaded = useStore((s) => s.dataLoaded);
+  const obReview = useStore((s) => s.obReview);
 
   const isCouple = session?.role === 'couple';
-  const isScreened = session ? (!!session.intakeDone || !!intakes[session.id]?.completed || !!intakes[session.personId]?.completed) : false;
+  const isScreened = session ? (!!session.intakeDone || !!intakes[session.id]?.completed || !!intakes[session.personId]?.completed || isUserScreened(session.id)) : false;
 
   useEffect(() => {
     const unsub = watchAuth(() => setReady(true));
@@ -89,6 +94,15 @@ export default function Root() {
       go('/login');
     }
   }, [ready, inApp, session]);
+
+  // the gate: unverified couple members go to /onboarding; verified ones never stay on it
+  const mustOnboard = !!session && isCouple && (obReview || (!isScreened && !journey.verified));
+  const gateReady = !session?.backend || dataLoaded;
+  useEffect(() => {
+    if (!gateReady) return;
+    if (mustOnboard && path.startsWith('/app')) go('/onboarding');
+    else if (!mustOnboard && path === '/onboarding' && session) go('/app');
+  }, [mustOnboard, gateReady, path, session]);
 
   useEffect(() => {
     document.body.classList.toggle('in-app', path !== '/');
@@ -113,6 +127,13 @@ export default function Root() {
   }, [path, session]);
 
   // Route matching
+  // onboarding: its own page before the app; only signed-in couple members who are not yet verified
+  if (path === '/onboarding') {
+    if (!session) return <ErrorBoundary><Login /></ErrorBoundary>;
+    if (session.backend && !dataLoaded) return <div className="ob-loading">Loading your account…</div>;
+    return <ErrorBoundary><Onboarding key={session.id} /></ErrorBoundary>;
+  }
+
   if (path === '/login') {
     return (
       <ErrorBoundary>
@@ -139,14 +160,35 @@ export default function Root() {
       );
     }
 
-    // No forced redirect to the intake: Home shows the journey and its one next step
-    // (profile -> consent & results -> details -> result). Agreed product decision.
+    // Only verified couple members enter the app: profile, UAE PASS identity, consent, details and
+    // results first. Until then every /app page shows the onboarding (outside the app shell).
+    // unverified couple members never see an app page: they are sent to /onboarding (outside the app)
+    if (isCouple && (obReview || !journey.verified)) {
+      return <div className="ob-loading">{session.backend && !dataLoaded ? 'Loading your account…' : 'Opening your setup…'}</div>;
+    }
 
     // Full standalone layout for individual medical report
     if (isCouple && path === '/app/my-report') {
       return (
         <ErrorBoundary>
           <MyReport />
+        </ErrorBoundary>
+      );
+    }
+
+    // combined couple report: standalone page so it prints cleanly (the couple's copy and the counsellor's copy)
+    if (isCouple && path === '/app/bonds/report') {
+      return (
+        <ErrorBoundary>
+          <MyCoupleReport />
+        </ErrorBoundary>
+      );
+    }
+    const caseReport = /^\/app\/case\/([^/]+)\/report$/.exec(path || '');
+    if (caseReport && (session.role === 'counsellor' || session.role === 'clinical_supervisor')) {
+      return (
+        <ErrorBoundary>
+          <CaseCoupleReport id={caseReport[1]} />
         </ErrorBoundary>
       );
     }
@@ -187,17 +229,6 @@ export default function Root() {
               <Screening key={`${session?.id || 'anon'}-${session?.authMethod || 'def'}-${session?.email || ''}`} />
             </main>
           </div>
-        </ErrorBoundary>
-      );
-    }
-
-    if (session.role === 'couple' && !isLinked(session) && path === '/app') {
-      const menu = MENUS[session.role] || MENUS.couple;
-      return (
-        <ErrorBoundary>
-          <Shell menu={menu} path={path}>
-            <Welcome />
-          </Shell>
         </ErrorBoundary>
       );
     }

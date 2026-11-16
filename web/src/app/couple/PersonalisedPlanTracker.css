@@ -1,0 +1,1142 @@
+/* Personal Tracker Styles (Matching Image 1, 2, and 3) */
+
+/* ─── 6-Section Navigation Tabs (Image 3) ─── */
+.cpt-nav-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 14px 2px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--line, #E2E8F0);
+  scrollbar-width: none;
+}
+
+.cpt-nav-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.cpt-nav-btn {
+  background: #ffffff;
+  border: 1px solid var(--line, #E2E8F0);
+  border-radius: 9999px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink2, #475569);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.cpt-nav-btn:hover {
+  background: #F8FAFC;
+  color: var(--ink, #0F172A);
+  border-color: #CBD5E1;
+}
+
+.cpt-nav-btn.is-active {
+  background: var(--ink, #0F172A);
+  color: #ffffff;
+  border-color: var(--ink, #0F172A);
+}
+
+/* ─── Section Card Wrapper ─── */
+.cpt-section-card {
+  background: #ffffff;
+  border: 1px solid var(--line, #E2E8F0);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.04);
+}
+
+.cpt-sec-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cpt-sec-tag {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #00843D;
+  background: #E8F5E9;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 6px;
+  letter-spacing: 0.04em;
+}
+
+.cpt-sec-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink, #0F172A);
+  margin: 0 0 4px 0;
+}
+
+.cpt-sec-sub {
+  font-size: 13px;
+  color: #64748B;
+  margin: 0;
+}
+
+/* ─── Section 1: Lifecycle Overview ─── */
+.cpt-couple-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--ink2, #475569);
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: #F8FAFC;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+}
+
+.cpt-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green, #00843D);
+  box-shadow: 0 0 0 3px rgba(0, 132, 61, 0.2);
+}
+
+.cpt-cond-pill {
+  font-weight: 600;
+  color: var(--ink, #0F172A);
+  background: #ffffff;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+}
+
+.cpt-divider {
+  color: #CBD5E1;
+}
+
+/* Progress Container */
+.cpt-progress-container {
+  background: #ffffff;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.cpt-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.cpt-progress-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.cpt-progress-value {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--green, #00843D);
+}
+
+.cpt-progress-track {
+  width: 100%;
+  height: 10px;
+  background: #E2E8F0;
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.cpt-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00843D 0%, #10B981 100%);
+  border-radius: 5px;
+  transition: width 0.4s ease;
+}
+
+.cpt-stage-breadcrumbs {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  color: #64748B;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cpt-muted-hint {
+  color: #94A3B8;
+  font-size: 12px;
+}
+
+/* Lifecycle Stepper Strip */
+.cpt-strip-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 12px 6px;
+  background: #F8FAFC;
+  border-radius: 12px;
+  border: 1px solid #E2E8F0;
+}
+
+.cpt-strip-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  flex: 1;
+  min-width: 70px;
+  transition: transform 0.15s ease;
+}
+
+.cpt-strip-node:hover {
+  transform: translateY(-2px);
+}
+
+.cpt-strip-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: #E2E8F0;
+  color: #64748B;
+}
+
+.cpt-strip-node.done .cpt-strip-circle {
+  background: #10B981;
+  color: #ffffff;
+}
+
+.cpt-strip-node.current .cpt-strip-circle {
+  background: #00843D;
+  color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 132, 61, 0.25);
+}
+
+.cpt-strip-lbl {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.cpt-strip-node.current .cpt-strip-lbl {
+  color: #00843D;
+  font-weight: 700;
+}
+
+/* ─── Section 2: Milestone Timeline ─── */
+.cpt-expand-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+}
+
+.cpt-btn-text {
+  background: none;
+  border: none;
+  color: #00843D;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+
+.cpt-btn-text:hover {
+  text-decoration: underline;
+}
+
+.cpt-sep {
+  color: #CBD5E1;
+}
+
+.cpt-stages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cpt-stage-card {
+  background: #ffffff;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.cpt-stage-card.is-current {
+  border-color: #00843D;
+  box-shadow: 0 0 0 2px rgba(0, 132, 61, 0.15);
+}
+
+.cpt-stage-card.is-completed {
+  border-left: 4px solid #16A34A;
+}
+
+.cpt-stage-header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  background: #ffffff;
+  transition: background 0.15s ease;
+  user-select: none;
+}
+
+.cpt-stage-header:hover {
+  background: #F8FAFC;
+}
+
+.cpt-stage-num-wrap {
+  flex-shrink: 0;
+}
+
+.cpt-stage-num {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #F1F5F9;
+  color: #475569;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cpt-stage-card.is-current .cpt-stage-num {
+  background: #E8F5E9;
+  color: #00843D;
+}
+
+.cpt-stage-current-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #00843D;
+}
+
+.cpt-stage-titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.cpt-stage-top-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 3px;
+  flex-wrap: wrap;
+}
+
+.cpt-stage-seq {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748B;
+  letter-spacing: 0.04em;
+}
+
+.cpt-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.cpt-tag-roots {
+  background: #ECFDF5;
+  color: #047857;
+  border: 1px solid #A7F3D0;
+}
+
+.cpt-tag-bonds {
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+}
+
+.cpt-tag-journey-milestone {
+  background: #FAF5FF;
+  color: #7E22CE;
+  border: 1px solid #E9D5FF;
+}
+
+.cpt-stage-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+}
+
+.cpt-stage-ar {
+  font-weight: 500;
+  color: #64748B;
+  font-size: 14.5px;
+  margin-left: 6px;
+}
+
+.cpt-stage-desc {
+  font-size: 13px;
+  color: #64748B;
+  margin: 3px 0 0 0;
+}
+
+.cpt-stage-toggle-btn {
+  color: #94A3B8;
+  padding: 4px;
+}
+
+.cpt-stage-body {
+  border-top: 1px solid #F1F5F9;
+  background: #FAFAFA;
+  padding: 16px 20px 20px 20px;
+}
+
+.cpt-items-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.cpt-check-item {
+  background: #ffffff;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cpt-check-item:hover {
+  border-color: #CBD5E1;
+  background: #F8FAFC;
+}
+
+.cpt-check-item.checked {
+  background: #F0FDF4;
+  border-color: #BBF7D0;
+}
+
+.cpt-check-box {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.cpt-item-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.cpt-item-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1E293B;
+  margin-bottom: 2px;
+}
+
+.cpt-item-ar {
+  font-size: 12.5px;
+  color: #64748B;
+  font-weight: 500;
+}
+
+.cpt-check-item.checked .cpt-item-label {
+  color: #166534;
+}
+
+.cpt-item-hint {
+  font-size: 12px;
+  color: #64748B;
+  line-height: 1.4;
+}
+
+.cpt-stage-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px dashed #E2E8F0;
+}
+
+/* ─── Section 3: Next Actions ─── */
+.cpt-action-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+.cpt-action-item {
+  background: #ffffff;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  transition: border-color 0.15s ease;
+}
+
+.cpt-action-item.done {
+  background: #F0FDF4;
+  border-color: #BBF7D0;
+}
+
+.cpt-action-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.cpt-action-check {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  margin-top: 2px;
+}
+
+.cpt-action-title {
+  font-size: 14px;
+  color: #0F172A;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.cpt-action-desc {
+  font-size: 12.5px;
+  color: #64748B;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.cpt-action-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ─── Section 4: Appointments & Referrals ─── */
+.cpt-appts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.cpt-detail-card {
+  background: #ffffff;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cpt-card-top-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 12px;
+}
+
+.cpt-card-h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 12px 0;
+}
+
+.cpt-dl {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 8px 12px;
+  font-size: 13px;
+  margin: 0 0 12px 0;
+}
+
+.cpt-dl dt {
+  color: #64748B;
+  font-weight: 500;
+}
+
+.cpt-dl dd {
+  margin: 0;
+  color: #0F172A;
+}
+
+/* ─── Section 5: Pregnancy Journey ─── */
+.cpt-preg-dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.cpt-preg-stat-box {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cpt-preg-stat-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #64748B;
+  letter-spacing: 0.03em;
+}
+
+.cpt-preg-stat-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.cpt-preg-stat-note {
+  font-size: 12px;
+  color: #64748B;
+}
+
+.cpt-trimester-timeline {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.cpt-tri-col {
+  background: #ffffff;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.cpt-tri-col.active {
+  border-color: #00843D;
+  background: #F0FDF4;
+}
+
+.cpt-tri-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 13.5px;
+}
+
+.cpt-tri-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #475569;
+}
+
+/* ─── Section 6: Birth & Newborn Records ─── */
+.cpt-birth-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+/* ─── Buttons & Common Utilities ─── */
+.btn-clean-sm {
+  background: #ffffff;
+  border: 1px solid #CBD5E1;
+  padding: 7px 13px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1E293B;
+  text-decoration: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.btn-clean-sm:hover {
+  background: #F1F5F9;
+  border-color: #94A3B8;
+}
+
+.btn-green-subtle {
+  background: #ECFDF5;
+  border-color: #A7F3D0;
+  color: #065F46;
+}
+
+.btn-green-subtle:hover {
+  background: #D1FAE5;
+  border-color: #6EE7B7;
+}
+
+.cpt-status-pill {
+  font-size: 12px;
+  color: #475569;
+  background: #F1F5F9;
+  padding: 6px 11px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+/* Modals */
+.cpt-modal-intro {
+  font-size: 13.5px;
+  color: #475569;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.cpt-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cpt-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.cpt-input {
+  padding: 9px 12px;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #0F172A;
+  outline: none;
+}
+
+.cpt-input:focus {
+  border-color: #00843D;
+  box-shadow: 0 0 0 3px rgba(0, 132, 61, 0.15);
+}
+
+.btn-outline-clean {
+  background: #ffffff;
+  border: 1px solid #CBD5E1;
+  color: #1E293B;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-outline-clean:hover {
+  background: #F8FAFC;
+}
+
+.btn-green-primary {
+  background: #00843D;
+  color: #ffffff;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-green-primary:hover {
+  background: #006E33;
+}
+
+/* Print Slip */
+.cpt-print-slip {
+  background: #ffffff;
+  color: #0F172A;
+}
+
+.cpt-slip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+/* ─── Locked / Milestone-Gated Cards (Sections 4, 5, 6) ─── */
+.cpt-detail-card-pending {
+  background: #FAFAFA;
+  border: 1px dashed #CBD5E1;
+}
+
+.cpt-pending-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #FEF3C7;
+  color: #92400E;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-top: auto;
+}
+
+.cpt-locked-card {
+  background: #F8FAFC;
+  border: 1px dashed #CBD5E1;
+  border-radius: 14px;
+  padding: 36px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.cpt-locked-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #E2E8F0;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
+}
+
+.cpt-locked-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0;
+}
+
+.cpt-locked-desc {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #64748B;
+  max-width: 580px;
+  margin: 0;
+}
+
+.cpt-locked-btn-row {
+  margin-top: 8px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ─── Stage 4: Family Planning Situation Cards (Image 3) ─── */
+.cpt-situation-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cpt-situation-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.cpt-situation-card:hover {
+  border-color: #00843D;
+  background: rgba(0, 132, 61, 0.02);
+  transform: translateY(-1px);
+}
+
+.cpt-situation-card.is-selected {
+  border-color: #00843D;
+  background: rgba(0, 132, 61, 0.04);
+  box-shadow: 0 0 0 1px #00843D;
+}
+
+.cpt-situation-icon-wrap {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #F8FAFC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid #E2E8F0;
+}
+
+.cpt-situation-card.is-selected .cpt-situation-icon-wrap {
+  background: rgba(0, 132, 61, 0.1);
+  border-color: rgba(0, 132, 61, 0.3);
+}
+
+.cpt-situation-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0F172A;
+  margin-bottom: 2px;
+}
+
+.cpt-situation-desc {
+  font-size: 13px;
+  color: #64748B;
+  margin: 0;
+}
+
+/* ─── Stage Relationship & Clinical Handover Pathway ─── */
+.cpt-relationship-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 24px;
+}
+
+.cpt-relationship-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cpt-rel-pathway {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cpt-rel-row {
+  display: flex;
+  align-items: stretch;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #F8FAFC;
+  border: 1px solid #F1F5F9;
+  transition: all 0.2s ease;
+}
+
+.cpt-rel-row:hover {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+  transform: translateX(2px);
+}
+
+.cpt-rel-badge-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 90px;
+  flex-shrink: 0;
+}
+
+.cpt-rel-step-pill {
+  font-size: 11px;
+  font-weight: 700;
+  color: #00843D;
+  background: rgba(0, 132, 61, 0.1);
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.cpt-rel-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94A3B8;
+  margin-top: 4px;
+}
+
+.cpt-rel-content {
+  flex: 1;
+}
+
+.cpt-rel-title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.cpt-rel-stage-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.cpt-rel-handover-tag {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #2563EB;
+  background: #EFF6FF;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.cpt-rel-desc {
+  font-size: 12.5px;
+  color: #475569;
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ─── Stages 5, 6, 7 Wireframe Spec Cards (Images 1, 2, 3) ─── */
+.cpt-spec-box {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 24px 28px;
+  margin-top: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.cpt-spec-subhead {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #64748B;
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+
+.cpt-spec-hero-text {
+  font-size: 26px;
+  font-weight: 800;
+  color: #00843D;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.01em;
+}
+
+.cpt-spec-hero-note {
+  font-size: 13px;
+  color: #64748B;
+  margin: 0 0 20px 0;
+}
+
+.cpt-spec-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 20px 0 12px 0;
+}
+
+.cpt-spec-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cpt-spec-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #F8FAFC;
+  border: 1px solid #F1F5F9;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #1E293B;
+}
+
+.cpt-spec-item-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cpt-spec-bullet {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #64748B;
+  flex-shrink: 0;
+}
+
+.cpt-spec-divider {
+  height: 1px;
+  background: #E2E8F0;
+  margin: 20px 0;
+}
+
+.cpt-spec-records-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cpt-spec-record-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  color: #334155;
+}
+
+.cpt-spec-footer-note {
+  font-size: 12.5px;
+  color: #64748B;
+  font-style: italic;
+  padding-top: 14px;
+  border-top: 1px dashed #E2E8F0;
+  margin: 0;
+}

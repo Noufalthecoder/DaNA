@@ -5,7 +5,8 @@ import { COUPLES, PEOPLE, GENES, REFERRAL_DESTINATIONS } from '../shared/data.js
 import { assess, TIER_PRIORITY } from '../shared/genetics.js';
 import Report from '../shared/Report.jsx';
 import { useStore } from '../shared/store.js';
-import { addNote as saveNote, approvePlan, approveNote, addReferral } from '../shared/db.js';
+import { addNote as saveNote, approvePlan, approveNote, addReferral, loadAll } from '../shared/db.js';
+import { CarePathControls, escalation } from '../shared/CarePath.jsx';
 
 export default function CaseView({ id }) {
   const couple = COUPLES.find((c) => c.id === id);
@@ -35,7 +36,7 @@ export default function CaseView({ id }) {
 
   return (
     <Page title={`${PEOPLE[couple.a].short} & ${PEOPLE[couple.b].short}`} sub={`Case ${id.toUpperCase()} · screened ${couple.screened}`}
-      actions={<a className="ghost" href="#/app">← Queue</a>}>
+      actions={<><a className="btn secondary" href={`#/app/case/${id}/report`}>Couple report</a> <a className="ghost" href="#/app">← Queue</a></>}>
       <div className="grid2">
         <Card title="Assessment" aside={<Priority p={r.priority} />}>
           <dl className="dl">
@@ -67,7 +68,33 @@ export default function CaseView({ id }) {
         {!done && chosen && <button className="btn" onClick={approve}>Approve plan</button>}
       </Card>
 
+
+      <Card title="Personalised Care Plan (7 Stages)" aside={<a className="open" href="#/app/plan">Full Tracker →</a>}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Active Milestone: <b>Stage 3 — Genetic Counselling & Protocol Sign-off</b></span>
+            <Badge tone={done ? 'green' : 'amber'}>{done ? '✓ Care Protocol Approved' : 'Review Required'}</Badge>
+          </div>
+          <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+            Continuous care roadmap: 1. Screening & discovery ➔ 2. Couple assessment ➔ 3. Genetic counselling ➔ 4. Family planning ➔ 5. Pregnancy ➔ 6. Birth preparation ➔ 7. Childbirth & newborn care.
+          </p>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
+            {!done && chosen && (
+              <button className="btn" onClick={approve}>Approve Protocol & Unlock Stage 4 (Family Planning)</button>
+            )}
+            <a className="btn-clean-sm" href="#/app/plan" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
+              Inspect Couple's 7-Stage Care Roadmap →
+            </a>
+          </div>
+        </div>
+      </Card>
+
       <Card title="Referrals">
+
+      <Card title="Care path & referrals" aside={escalation({ type: r.type }, couple) ? <Badge tone="amber">Needs counselling</Badge> : null}>
+        <p className="muted" style={{ marginTop: 0 }}>The couple sees this path on their home page. Each change is recorded in the audit log.</p>
+        <CarePathControls coupleId={id} refs={refs} onChanged={loadAll} />
+      </Card>
         <div className="ref-form">
           <select value={ref.destination} onChange={(e) => setRef({ ...ref, destination: e.target.value })}>{REFERRAL_DESTINATIONS.map((d) => <option key={d}>{d}</option>)}</select>
           <select value={ref.priority} onChange={(e) => setRef({ ...ref, priority: e.target.value })}>{['urgent', 'high', 'routine'].map((p) => <option key={p}>{p}</option>)}</select>

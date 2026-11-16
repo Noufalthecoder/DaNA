@@ -9,6 +9,7 @@ import { GENES } from '../shared/data.js';
 import { set } from '../shared/store.js';
 import { useCouple } from './useCouple.js';
 import Quiz from '../shared/Quiz.jsx';
+import { EscalationNote } from '../shared/CarePath.jsx';
 import { isLinked, isRealReport, personalStatus } from '../shared/journey.js';
 
 /* one child figure: outline = does not carry, half = healthy carrier, full = has the condition */
@@ -111,6 +112,8 @@ export default function Result() {
           {g.facts.map((f) => <li key={f}><span aria-hidden="true">✓</span>{f}</li>)}
         </ul>
       </section>
+
+      {stage === 'couple' && <EscalationNote result={result} couple={couple} />}
 
       {stage === 'couple' && status === 'xl_male' && (() => {
         const own = guide({ stage: 'individual', status, gene: me.carrier });

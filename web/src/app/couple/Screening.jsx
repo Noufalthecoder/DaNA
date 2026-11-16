@@ -6,6 +6,7 @@ import { set, useStore, signOut, EMPTY_OBJ } from '../shared/store.js';
 import { supabase, signOut as supabaseSignOut } from '../shared/supabase.js';
 import { saveScreeningIntake } from '../shared/db.js';
 import { buildTreeFromIntake } from '../shared/family.js';
+import { setUserScreened } from '../shared/screeningPersistence.js';
 import { go } from '../shared/router.js';
 
 const STEPS = [
@@ -403,6 +404,7 @@ export default function Screening() {
     };
 
     saveScreeningIntake(me.id, payload);
+    setUserScreened(me.id, true, payload);
 
     // Sync to Family Tree (Branches)
     set((s) => ({
@@ -410,6 +412,7 @@ export default function Screening() {
         ...s.family,
         [me.id]: buildTreeFromIntake(me, partner, payload),
       },
+      session: s.session ? { ...s.session, intakeDone: true, fresh: false } : s.session,
     }));
 
     // live: the intake counts on every device (018)
@@ -467,7 +470,7 @@ export default function Screening() {
 
       <div className="sheet-head">
         <h1>Premarital Screening Intake</h1>
-        <p>Journey step 2 of 7: your health history, family history and consent. About 5 minutes.</p>
+        <p>Your health history, family history and consent. About 5 minutes.</p>
       </div>
 
       {/* Workday-style Stepper (Reference Image 2) */}

@@ -1,0 +1,51 @@
+/* Location scope: picker, clinic and slots dialog, slot finder, admin coverage */
+.loc-picker{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.loc-picker select{width:100%;padding:10px 12px;border:1px solid #D5DBD7;border-radius:8px;background:#fff;font:14px var(--body);color:var(--ink)}
+.loc-picker select:disabled{background:var(--bg);color:var(--ink3)}
+.loc-label{font-size:13px;font-weight:600;color:var(--ink);display:block;margin-bottom:6px}
+.loc-hint{font-size:12.5px;color:var(--ink3);line-height:1.45}
+.loc-err{background:#FDECEE;color:#A30E20;border-radius:8px;padding:9px 12px;font-size:13px}
+.loc-ok{background:var(--green-l);color:var(--green);border-radius:8px;padding:9px 12px;font-size:13px}
+.loc-section{display:grid;gap:10px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.loc-section:last-child{border-bottom:0;padding-bottom:0}
+.loc-section h3{font:700 14px var(--head);color:var(--ink)}
+.loc-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.loc-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.loc-days{display:flex;flex-wrap:wrap;gap:6px}
+.loc-day{border:1px solid var(--line);background:#fff;border-radius:20px;padding:6px 12px;font:600 13px var(--body);color:var(--ink2);cursor:pointer}
+.loc-day.on{background:var(--green);border-color:var(--green);color:#fff}
+.loc-slotlist{display:grid;gap:6px;max-height:220px;overflow-y:auto}
+.loc-slot{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:13.5px}
+.loc-slot small{color:var(--ink3)}
+.loc-slot .loc-x{border:0;background:none;color:var(--red);cursor:pointer;font:600 12.5px var(--body)}
+
+/* couple: slot finder */
+.finder{display:grid;gap:14px}
+.finder-home{display:grid;gap:8px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+.finder-home b{font-size:13.5px}
+.finder-group{display:grid;gap:8px}
+.finder-group h4{font:700 13px var(--head);color:var(--ink2);display:flex;align-items:center;gap:8px}
+.finder-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.finder-slot{display:grid;gap:3px;text-align:left;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer;font:13.5px var(--body);color:var(--ink)}
+.finder-slot:hover{border-color:var(--green);background:var(--green-l)}
+.finder-slot:disabled{opacity:.5;cursor:wait}
+.finder-slot b{font-size:14px}
+.finder-slot span{color:var(--ink2);font-size:12.5px}
+.finder-slot small{color:var(--green);font-weight:600;font-size:12px}
+.finder-empty{font-size:14px;color:var(--ink2);padding:14px;border:1px dashed var(--line);border-radius:12px;line-height:1.5}
+
+/* admin: coverage */
+.cov-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.cov-warn{color:#A30E20;font-weight:600}
+.cov-actions{display:flex;gap:6px}
+.cov-scope{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+@media (max-width:640px){
+  .loc-picker,.loc-grid2{grid-template-columns:1fr}
+  .finder-grid{grid-template-columns:1fr}
+  .cov-scope{grid-template-columns:1fr}
+}
+
+/* counsellor: clinic prompt */
+.loc-prompt{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+.loc-prompt p{flex:1 1 320px;font-size:14px;line-height:1.5;color:var(--ink2)}
+.cov-status{display:inline-flex;gap:6px}

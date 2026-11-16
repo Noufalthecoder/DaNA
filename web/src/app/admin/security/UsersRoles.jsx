@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import SecurityNav from './SecurityNav.jsx';
 import { Page, Card, Badge, Dialog } from '../../shared/ui.jsx';
-import { useStore } from '../../shared/store.js';
+import { useStore, get, set } from '../../shared/store.js';
 import { supabase } from '../../shared/supabase.js';
 import { logAudit } from '../../shared/db.js';
 import { ROLES } from '../../shared/auth/authorizationEngine.js';
@@ -240,6 +240,8 @@ export default function UsersRoles() {
     Boolean(selectedCity);
 
   // Status toggle handler (Suspend / Reactivate)
+  // Verifying counsellors happens in Counsellors & areas, on the real counsellor records and inside the admin's own area.
+
   const handleStatusToggle = async () => {
     if (!selectedUser) return;
     const targetStatus = actionType === 'suspend' ? 'suspended' : 'active';
@@ -899,7 +901,17 @@ export default function UsersRoles() {
                   </td>
                   <td className="right">
                     {canModify ? (
-                      <div style={{ display: 'inline-flex', gap: 8 }}>
+                      <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+                        {acc.title?.toLowerCase().includes('pending') && (
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            onClick={() => { window.location.hash = '/app/coverage'; }}
+                            title="Counsellors are verified in Counsellors & areas, inside your own area"
+                          >
+                            Verify in Counsellors &amp; areas
+                          </button>
+                        )}
                         {acc.status === 'suspended' ? (
                           <button
                             className="btn btn-sm"

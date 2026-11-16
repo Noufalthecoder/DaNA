@@ -7,10 +7,12 @@ import { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { ACCOUNTS, getSyntheticIntake } from './data.js';
 import { set, get, useStore, signOut } from './store.js';
+import { isUserScreened, getSavedIntake, DEFAULT_SCREENING_INTAKES, DEFAULT_REPORTS } from './screeningPersistence.js';
 import { go } from './router.js';
 import { Avatar } from './ui.jsx';
 import { Brand } from './Logo.jsx';
 import { supabase, hasBackend } from './supabase.js';
+import { LangSwitch } from './Translator.jsx';
 
 const ROLE = { couple: 'Couple', counsellor: 'Counsellor', admin: 'DoH admin' };
 
@@ -109,12 +111,20 @@ export default function Login() {
     }
     setTimeout(() => {
       const s = get();
-      const existingIntake = s.screeningIntakes?.[acc.id];
-      const isAlreadyCompleted = !!existingIntake?.completed;
+      const screened = isUserScreened(acc.id);
+      const existingIntake = s.screeningIntakes?.[acc.id] || (screened ? getSavedIntake(acc.id) : null);
+      const isAlreadyCompleted = screened || !!existingIntake?.completed;
 
       // If already completed, preserve it; otherwise prepare pre-fed intake with completed: false so user must complete & eSign
       const feedIntake = isAlreadyCompleted
-        ? (s.screeningIntakes || {})
+        ? {
+            ...(s.screeningIntakes || {}),
+            [acc.id]: existingIntake || DEFAULT_SCREENING_INTAKES[acc.id] || {
+              ...getSyntheticIntake(acc.id),
+              completed: true,
+              mode: 'uae_pass',
+            },
+          }
         : (acc.role === 'couple'
             ? {
                 ...(s.screeningIntakes || {}),
@@ -135,7 +145,36 @@ export default function Login() {
                   },
                 },
               }
-            : {});
+            : (s.screeningIntakes || {}));
+
+      const defaultRep = s.reports?.[acc.id] || DEFAULT_REPORTS[acc.id];
+      const partnerId = acc.id === 'khalid' ? 'fatima' : (acc.id === 'fatima' ? 'khalid' : null);
+      const partnerRep = partnerId ? (s.reports?.[partnerId] || DEFAULT_REPORTS[partnerId]) : null;
+
+      const coupleSession = isAlreadyCompleted ? {
+        fresh: false,
+        needsProfile: false,
+        sexConfirmed: true,
+        uaepassLinked: true,
+        malaffiConsent: true,
+        consentScopes: { identity: true, results: true, contact: true },
+        details: existingIntake?.personal || { marital_status: 'married', related_to_partner: 'second_cousin' },
+        intakeDone: true,
+        partnerId,
+      } : {
+        fresh: true,
+        needsProfile: true,
+        sexConfirmed: false,
+        details: null,
+        intakeDone: false,
+        partnerId,
+      };
+
+      const updatedReports = isAlreadyCompleted ? {
+        ...(s.reports || {}),
+        ...(defaultRep ? { [acc.id]: defaultRep } : {}),
+        ...(partnerId && partnerRep ? { [partnerId]: partnerRep } : {}),
+      } : (s.reports || {});
 
       set({
         session: {
@@ -146,13 +185,11 @@ export default function Login() {
           couple: acc.couple || (acc.id === 'khalid' || acc.id === 'fatima' ? 'c1' : null),
           authMethod: 'uae_pass',
           via: 'uaepass',
-          ...(acc.role === 'couple' ? { fresh: true, needsProfile: true, sexConfirmed: false, details: null, intakeDone: false } : {}),
+          ...(acc.role === 'couple' ? coupleSession : {}),
         },
-        // a fresh journey every time: nothing fetched, seen or chosen yet
-        ...(acc.role === 'couple' ? { reports: {}, resultSeen: {}, demoLab: {}, plans: {}, alertsSent: [] } : {}),
+        reports: updatedReports,
         screeningIntakes: feedIntake,
-        plan: null,
-        booked: null,
+        ...(isAlreadyCompleted ? {} : { plan: null, booked: null }),
       }, `Signed in via UAE PASS as ${ROLE[acc.role]}`);
 
       go('/app'); // Home shows the journey and the one next step
@@ -229,6 +266,7 @@ export default function Login() {
   return (
     <div className="login">
       <a className="login-back" href="#/">← Back to home</a>
+      <div className="login-lang"><LangSwitch /></div>
       <div className="login-card">
         <div className="login-brand" style={{ marginBottom: 22 }}>
           <Brand size={36} withArabic={true} href="#/" />

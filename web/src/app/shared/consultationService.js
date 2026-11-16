@@ -28,11 +28,14 @@ export async function syncConsultationsFromSupabase(coupleId, counsellorUserId =
   if (!supabase) return;
   try {
     // 1. Fetch pending & confirmed consultation requests
-    let query = supabase.from('consultation_requests').select('*');
-    if (coupleId) {
-      query = query.eq('couple_id', coupleId);
-    }
-    const { data: requests, error: reqErr } = await query.order('created_at', { ascending: false });
+    // with the counsellor and clinic joined (needs 030_location_scope.sql); plain rows until it is run
+    const fetchRows = (cols) => {
+      let q = supabase.from('consultation_requests').select(cols);
+      if (coupleId) q = q.eq('couple_id', coupleId);
+      return q.order('created_at', { ascending: false });
+    };
+    let { data: requests, error: reqErr } = await fetchRows('*, counsellors(name), locations(city, state_name)');
+    if (reqErr) ({ data: requests, error: reqErr } = await fetchRows('*'));
 
     if (!reqErr && Array.isArray(requests) && requests.length > 0) {
       const state = get();
@@ -42,7 +45,10 @@ export async function syncConsultationsFromSupabase(coupleId, counsellorUserId =
 
       for (const row of requests) {
         const existingIdx = updatedList.findIndex(
-          (a) => a.id === row.id || (row.appointment_id && (a.id === String(row.appointment_id) || a.id === row.appointment_id)) || (a.requestId === row.id)
+          (a) => a.id === row.id
+            || a.requestId === row.id
+            || (row.appointment_id && (a.id === String(row.appointment_id) || a.id === row.appointment_id))
+            || (a.cid && a.cid === row.couple_id)
         );
 
         if (row.status === 'CANCELLED' || row.status === 'DECLINED') {
@@ -68,24 +74,21 @@ export async function syncConsultationsFromSupabase(coupleId, counsellorUserId =
           requestedAt: row.created_at,
           confirmedAt: row.responded_at,
           tone: row.status === 'CONFIRMED' ? 'green' : 'amber',
-          doctor: 'Dr. Mariam Al Hosani',
+          doctor: row.counsellors?.name || 'Dr. Mariam Al Hosani',
           mode: row.modality || 'online',
           type: row.modality === 'offline' ? 'Clinic' : 'Video',
           meetLink: row.meet_link || (row.modality === 'offline' ? null : `https://meet.google.com/dan-${row.couple_id}-0224`),
-          clinicName: row.modality === 'offline' ? 'DaNA Partner Clinic' : null,
-          clinicRoom: row.modality === 'offline' ? 'Abu Dhabi · Building A · Room 204' : null,
-          clinicAddress: row.modality === 'offline' ? 'Cleveland Clinic Abu Dhabi, Al Maryah Island' : null,
+          clinicName: row.modality === 'offline' ? (row.counsellors?.name ? `${row.counsellors.name}'s clinic` : 'DaNA Partner Clinic') : null,
+          clinicRoom: row.modality === 'offline' ? (row.locations?.city || 'Abu Dhabi') : null,
+          clinicAddress: row.modality === 'offline' ? (row.locations ? [row.locations.city, row.locations.state_name].filter((x, i, a) => x && a.indexOf(x) === i).join(', ') : 'Abu Dhabi') : null,
           notes: row.patient_notes || '',
         };
 
         if (existingIdx >= 0) {
-          // Update if changed
-          if (updatedList[existingIdx].confirmed !== apptObj.confirmed || updatedList[existingIdx].status !== apptObj.status) {
-            updatedList[existingIdx] = { ...updatedList[existingIdx], ...apptObj };
-            modified = true;
-          }
+          updatedList[existingIdx] = { ...updatedList[existingIdx], ...apptObj };
+          modified = true;
         } else {
-          updatedList.push(apptObj);
+          updatedList.unshift(apptObj);
           modified = true;
         }
 
@@ -196,6 +199,18 @@ export async function confirmConsultationByCounsellor(requestId, coupleId) {
       if (!error) return { ok: true, appointmentId: data };
     } catch (e) {
       console.warn('RPC confirm_consultation_request notice:', e?.message);
+    }
+    // Direct table update fallback if RPC didn't match or failed
+    try {
+      await supabase
+        .from('consultation_requests')
+        .update({
+          status: 'CONFIRMED',
+          responded_at: new Date().toISOString(),
+        })
+        .or(`id.eq.${requestId},couple_id.eq.${coupleId}`);
+    } catch (e) {
+      console.warn('Direct consultation_requests update notice:', e?.message);
     }
   }
 

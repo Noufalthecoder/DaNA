@@ -5,6 +5,7 @@ import { Page, Badge } from '../shared/ui.jsx';
 import { useStore, EMPTY_OBJ } from '../shared/store.js';
 import { choosePlan } from '../shared/db.js';
 import { CONDITIONS, guide } from '../shared/explain.js';
+import { ODDS } from '../shared/coupleReport.js';
 import { isRealReport } from '../shared/journey.js';
 import { useCouple } from './useCouple.js';
 
@@ -30,13 +31,6 @@ const OPTIONS = {
     good: 'No procedures; specialist care is planned in advance.',
     think: 'You learn the result at or after birth.',
   },
-};
-
-/* figures for one pregnancy, per result type */
-const ODDS = {
-  plan: [['clear', 'Does not carry it', '1 in 4'], ['carrier', 'Healthy carrier', '1 in 4'], ['carrier', 'Healthy carrier', '1 in 4'], ['affected', 'Has the condition', '1 in 4']],
-  xlinked: [['clear', 'Son: does not have it', '1 in 2 sons'], ['affected', 'Son: has the condition', '1 in 2 sons'], ['clear', 'Daughter: does not carry it', '1 in 2 daughters'], ['carrier', 'Daughter: healthy carrier', '1 in 2 daughters']],
-  carrier: [['clear', 'Does not carry it', '1 in 2'], ['carrier', 'Healthy carrier', '1 in 2']],
 };
 
 function Kid({ kind }) {
@@ -91,12 +85,25 @@ export default function Bonds() {
   const choose = (id) => { if (id !== plan) choosePlan(coupleId, id); };
 
   return (
-    <Page title="Bonds" sub={`Your combined result · ${me.short} & ${partner.short}`}>
+    <Page
+      title="Bonds"
+      sub={`Your combined result · ${me.short} & ${partner.short}`}
+      actions={
+        <a
+          href="#/app/plan"
+          className="btn"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+        >
+          View 7-Stage Care Plan →
+        </a>
+      }
+    >
       <section className={`rs-hero rs-${g.tone}`}>
         <span className="rs-eyebrow">Your combined result</span>
         <h2>{g.title}</h2>
         <p>{g.line}</p>
         <div className="bd-tags">
+          <a className="btn-soft rs-soft" href="#/app/bonds/report">View and download couple report</a>
           <Badge tone={result.type === 'clear' || result.type === 'carrier' ? 'green' : result.type === 'uncertain' ? 'grey' : 'amber'}>{result.label}</Badge>
           {cond && <Badge>{cond.name}</Badge>}
         </div>
