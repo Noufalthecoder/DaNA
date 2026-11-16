@@ -41,19 +41,6 @@ export const ACCOUNT_CATEGORIES = {
   COUPLE: 'couple',
 };
 
-/* Baseline fallback countries */
-const FALLBACK_COUNTRIES = [
-  { name: 'United Arab Emirates', code: 'AE' },
-  { name: 'India', code: 'IN' },
-  { name: 'Saudi Arabia', code: 'SA' },
-  { name: 'Oman', code: 'OM' },
-  { name: 'Bahrain', code: 'BH' },
-  { name: 'Kuwait', code: 'KW' },
-  { name: 'Qatar', code: 'QA' },
-  { name: 'United Kingdom', code: 'GB' },
-  { name: 'United States', code: 'US' },
-];
-
 export default function UsersRoles() {
   const session = useStore((s) => s.session);
   const currentRole = session?.role || ROLES.ADMIN;
@@ -91,8 +78,8 @@ export default function UsersRoles() {
   const [selectedState, setSelectedState] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
 
-  // Dropdown reference options
-  const [countriesList, setCountriesList] = useState(FALLBACK_COUNTRIES);
+  // Dropdown reference options (populated purely from database)
+  const [countriesList, setCountriesList] = useState([]);
   const [statesList, setStatesList] = useState([]);
   const [citiesList, setCitiesList] = useState([]);
   const [loadingLocations, setLoadingLocations] = useState(false);
@@ -117,7 +104,7 @@ export default function UsersRoles() {
     }
   }, []);
 
-  // 2. Fetch Available Countries
+  // 2. Fetch Available Countries from Database
   useEffect(() => {
     let mounted = true;
     async function fetchCountries() {
@@ -125,15 +112,19 @@ export default function UsersRoles() {
         const res = await api('/admin/locations/countries');
         if (mounted && Array.isArray(res) && res.length > 0) {
           setCountriesList(res);
+          // Auto-select jurisdiction country if single country returned
+          if (res.length === 1 && !selectedCountry) {
+            setSelectedCountry(res[0].name);
+          }
         }
       } catch (err) {
-        // Fallback maintained
+        if (mounted) setCountriesList([]);
       }
     }
     fetchCountries();
     loadSummary();
     return () => { mounted = false; };
-  }, [loadSummary]);
+  }, [loadSummary, selectedCountry]);
 
   // 3. Cascading State Fetch when Country changes
   useEffect(() => {
@@ -163,9 +154,9 @@ export default function UsersRoles() {
     return () => { mounted = false; };
   }, [selectedCountry]);
 
-  // 4. Cascading City Fetch when Country & State change
+  // 4. Cascading City Fetch when Country & optional State change
   useEffect(() => {
-    if (!selectedCountry || !selectedState) {
+    if (!selectedCountry) {
       setCitiesList([]);
       setSelectedCity('');
       return;
@@ -175,8 +166,9 @@ export default function UsersRoles() {
     async function fetchCities() {
       setLoadingLocations(true);
       try {
+        const stateParam = selectedState ? `&state=${encodeURIComponent(selectedState)}` : '';
         const res = await api(
-          `/admin/locations/cities?country=${encodeURIComponent(selectedCountry)}&state=${encodeURIComponent(selectedState)}&limit=100`
+          `/admin/locations/cities?country=${encodeURIComponent(selectedCountry)}${stateParam}&limit=100`
         );
         if (mounted && res && Array.isArray(res.cities)) {
           setCitiesList(res.cities);
@@ -609,7 +601,8 @@ export default function UsersRoles() {
               }}
               style={{ width: '100%', padding: '7px 10px', borderRadius: 8, fontSize: 13, border: '1px solid var(--line)' }}
             >
-              <option value="">All Countries (Worldwide)</option>
+              {countriesList.length === 0 && <option value="">Loading countries from database...</option>}
+              {countriesList.length > 1 && <option value="">All Countries</option>}
               {countriesList.map((c) => (
                 <option key={c.name} value={c.name}>
                   {c.name} ({c.code || c.iso2})
@@ -642,7 +635,7 @@ export default function UsersRoles() {
               }}
             >
               <option value="">
-                {!selectedCountry ? 'Select Country First' : 'All States / Regions'}
+                {!selectedCountry ? 'Select Country First' : 'All States / Emirates'}
               </option>
               {statesList.map((s) => (
                 <option key={s} value={s}>
@@ -659,7 +652,7 @@ export default function UsersRoles() {
             <select
               className="form-control"
               value={selectedCity}
-              disabled={!selectedState}
+              disabled={!selectedCountry}
               onChange={(e) => {
                 setSelectedCity(e.target.value);
                 setPage(1);
@@ -670,12 +663,12 @@ export default function UsersRoles() {
                 borderRadius: 8,
                 fontSize: 13,
                 border: '1px solid var(--line)',
-                background: !selectedState ? '#F1F5F9' : '#fff',
-                cursor: !selectedState ? 'not-allowed' : 'default',
+                background: !selectedCountry ? '#F1F5F9' : '#fff',
+                cursor: !selectedCountry ? 'not-allowed' : 'default',
               }}
             >
               <option value="">
-                {!selectedState ? 'Select State First' : 'All Cities'}
+                {!selectedCountry ? 'Select Country First' : 'All Cities'}
               </option>
               {citiesList.map((ct) => (
                 <option key={ct} value={ct}>

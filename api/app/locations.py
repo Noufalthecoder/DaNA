@@ -87,25 +87,32 @@ def _unwrap_int(val: Any, default: int) -> int:
 # =============================================================================
 
 def get_admin_countries(search: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Retrieve distinct countries available in location reference data."""
+    """
+    Retrieve distinct countries available in location reference data.
+    Scoped to the programme jurisdiction (United Arab Emirates / Dubai country).
+    """
     search = _unwrap_str(search)
     with get_db() as conn:
         cur = conn.cursor()
-        if search:
-            q = f"%{search}%"
-            cur.execute("""
-                SELECT DISTINCT country AS name, country_code AS code
-                FROM locations
-                WHERE country LIKE ? OR country_code LIKE ?
-                ORDER BY country ASC
-            """, (q, q))
-        else:
+        cur.execute("""
+            SELECT DISTINCT country AS name, country_code AS code
+            FROM locations
+            WHERE country_code = 'AE' OR country LIKE '%Emirates%' OR country LIKE '%Dubai%'
+            ORDER BY country ASC
+        """)
+        rows = [dict(r) for r in cur.fetchall()]
+        if not rows:
             cur.execute("""
                 SELECT DISTINCT country AS name, country_code AS code
                 FROM locations
                 ORDER BY country ASC
             """)
-        return [dict(r) for r in cur.fetchall()]
+            rows = [dict(r) for r in cur.fetchall()]
+
+        if search:
+            norm_q = normalize_text(search)
+            rows = [c for c in rows if norm_q in normalize_text(c["name"]) or norm_q in normalize_text(c["code"])]
+        return rows
 
 
 def get_admin_states(country: str, search: Optional[str] = None) -> List[str]:
@@ -116,19 +123,30 @@ def get_admin_states(country: str, search: Optional[str] = None) -> List[str]:
         raise HTTPException(status_code=400, detail="Query parameter 'country' is required.")
 
     norm_country = normalize_text(country)
+    is_uae = norm_country in ("dubai", "uae", "ae", "united arab emirates")
+
     with get_db() as conn:
         cur = conn.cursor()
-        cur.execute("""
-            SELECT DISTINCT state_name
-            FROM locations
-            WHERE state_name IS NOT NULL AND state_name != ''
-              AND (LOWER(country) = ? OR LOWER(country_code) = ?)
-            ORDER BY state_name ASC
-        """, (norm_country, norm_country))
+        if is_uae:
+            cur.execute("""
+                SELECT DISTINCT state_name
+                FROM locations
+                WHERE state_name IS NOT NULL AND state_name != ''
+                  AND (country_code = 'AE' OR LOWER(country) LIKE '%emirates%' OR LOWER(country) LIKE '%dubai%')
+                ORDER BY state_name ASC
+            """)
+        else:
+            cur.execute("""
+                SELECT DISTINCT state_name
+                FROM locations
+                WHERE state_name IS NOT NULL AND state_name != ''
+                  AND (LOWER(country) = ? OR LOWER(country_code) = ?)
+                ORDER BY state_name ASC
+            """, (norm_country, norm_country))
         rows = [r["state_name"] for r in cur.fetchall()]
 
         # Fallback to normalized comparison if direct lower() yielded no rows
-        if not rows:
+        if not rows and not is_uae:
             cur.execute("SELECT DISTINCT country, state_name FROM locations WHERE state_name IS NOT NULL AND state_name != ''")
             candidates = cur.fetchall()
             matching = []
@@ -158,14 +176,22 @@ def get_admin_cities(country: str, state: Optional[str] = None, search: Optional
 
     norm_country = normalize_text(country)
     norm_state = normalize_text(state) if state else None
+    is_uae = norm_country in ("dubai", "uae", "ae", "united arab emirates")
 
     with get_db() as conn:
         cur = conn.cursor()
-        cur.execute("""
-            SELECT id, city, state_name, country, country_code, latitude, longitude
-            FROM locations
-            WHERE (LOWER(country) = ? OR LOWER(country_code) = ?)
-        """, (norm_country, norm_country))
+        if is_uae:
+            cur.execute("""
+                SELECT id, city, state_name, country, country_code, latitude, longitude
+                FROM locations
+                WHERE (country_code = 'AE' OR LOWER(country) LIKE '%emirates%' OR LOWER(country) LIKE '%dubai%')
+            """)
+        else:
+            cur.execute("""
+                SELECT id, city, state_name, country, country_code, latitude, longitude
+                FROM locations
+                WHERE (LOWER(country) = ? OR LOWER(country_code) = ?)
+            """, (norm_country, norm_country))
         candidates = [dict(r) for r in cur.fetchall()]
 
         # Accent-insensitive filter for country & state
@@ -330,7 +356,10 @@ def get_admin_accounts(
                 norm_c = normalize_text(country)
                 loc_c = normalize_text(r["country"])
                 loc_code = normalize_text(r["country_code"])
-                if norm_c != loc_c and norm_c != loc_code:
+                if norm_c in ("dubai", "uae", "ae", "united arab emirates"):
+                    if loc_code != "ae" and "emirates" not in loc_c and "dubai" not in loc_c:
+                        continue
+                elif norm_c != loc_c and norm_c != loc_code:
                     continue
 
             # State filter check
@@ -443,14 +472,23 @@ def get_admin_account_filters() -> Dict[str, Any]:
     with get_db() as conn:
         cur = conn.cursor()
 
-        # Countries with registered accounts or location records
+        # Countries with registered accounts or location records (scoped to UAE / Dubai)
         cur.execute("""
             SELECT DISTINCT country
             FROM locations
-            WHERE country IS NOT NULL AND country != ''
+            WHERE (country_code = 'AE' OR country LIKE '%Emirates%' OR country LIKE '%Dubai%')
+              AND country IS NOT NULL AND country != ''
             ORDER BY country ASC
         """)
         countries = [r["country"] for r in cur.fetchall()]
+        if not countries:
+            cur.execute("""
+                SELECT DISTINCT country
+                FROM locations
+                WHERE country IS NOT NULL AND country != ''
+                ORDER BY country ASC
+            """)
+            countries = [r["country"] for r in cur.fetchall()]
 
         # States with registered accounts
         cur.execute("""
