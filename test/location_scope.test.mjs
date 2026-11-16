@@ -134,6 +134,36 @@ await ok('an Abu Dhabi emirate admin can', async () => { await db.exec(`update a
 await ok('manage actions are audited', async () => (await db.query(`select count(*)::int c from audit_log where action like 'Verified counsellor:%' or action like 'Paused counsellor:%' or action like 'Activated counsellor:%'`)).rows[0].c >= 4);
 // re-run safe
 await ok('030 is re-runnable', async () => { for (const f of ['030_location_scope.sql','031_admin_manages_counsellors.sql']) await db.exec(fs.readFileSync(DIR+f,'utf8')); return true; });
+// ---- 035: home location from UAE PASS fills people.location_id, never over the person's choice ----
+await db.exec(`delete from uaepass_identity where person_id in ('omar','khalid'); update people set location_id = null where id = 'omar'; update people set location_id = 3 where id = 'khalid';`);
+const ident = async (pid) => (await db.query(`select home_location_id, home_area, home_emirate from uaepass_identity where person_id = $1`, [pid])).rows[0];
+const homeOf = async (pid) => (await db.query(`select location_id from people where id = $1`, [pid])).rows[0].location_id;
+let omarHome;
+await ok('UAE PASS link stores a home area on the identity', async () => {
+  await as(U.c2, `select link_uaepass(false)`);
+  const i = await ident('omar'); omarHome = i.home_location_id;
+  const l = (await db.query(`select city, coalesce(nullif(trim(state_name),''), city) em from locations where id = $1`, [omarHome])).rows[0];
+  return omarHome != null && i.home_area === l.city && i.home_emirate === l.em;
+});
+await ok('... and fills the empty location column with it', async () => (await homeOf('omar')) === omarHome);
+await ok('my_identity() returns the home area to the app', async () => (await as(U.c2, `select my_identity() j`)).rows[0].j.home_location_id === omarHome);
+await ok('the person can change it, and linking again keeps their choice', async () => {
+  const other = omarHome === 2 ? 3 : 2;
+  await as(U.c2, `select set_my_location(${other})`);
+  await as(U.c2, `select link_uaepass(false)`);
+  return (await homeOf('omar')) === other && (await ident('omar')).home_location_id === omarHome;
+});
+await ok('a location chosen before linking is not overwritten', async () => {
+  await as(U.c1, `select link_uaepass(false)`);
+  return (await homeOf('khalid')) === 3 && (await ident('khalid')).home_location_id != null;
+});
+await ok('the UAE PASS home area is stable for an account', async () => {
+  await db.exec(`delete from uaepass_identity where person_id = 'omar'; update people set location_id = null where id = 'omar';`);
+  await as(U.c2, `select link_uaepass(false)`);
+  return (await ident('omar')).home_location_id === omarHome && (await homeOf('omar')) === omarHome;
+});
+await bad('the internal fill function cannot be called by a user', () => as(U.c2, `select _apply_uaepass_home('khalid')`), /permission denied/);
+await ok('035 is re-runnable', async () => { await db.exec(fs.readFileSync(DIR+'035_location_from_uaepass.sql','utf8')); return (await homeOf('khalid')) === 3; });
 // 029 after 030 (fresh-database order)
 assert.equal(fail, 0, `${fail} of ${pass + fail} checks failed`);
 
