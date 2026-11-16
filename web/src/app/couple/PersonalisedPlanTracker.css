@@ -1034,3 +1034,109 @@
   line-height: 1.55;
   margin: 0;
 }
+
+/* ─── Stages 5, 6, 7 Wireframe Spec Cards (Images 1, 2, 3) ─── */
+.cpt-spec-box {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 24px 28px;
+  margin-top: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.cpt-spec-subhead {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #64748B;
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+
+.cpt-spec-hero-text {
+  font-size: 26px;
+  font-weight: 800;
+  color: #00843D;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.01em;
+}
+
+.cpt-spec-hero-note {
+  font-size: 13px;
+  color: #64748B;
+  margin: 0 0 20px 0;
+}
+
+.cpt-spec-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 20px 0 12px 0;
+}
+
+.cpt-spec-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cpt-spec-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #F8FAFC;
+  border: 1px solid #F1F5F9;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #1E293B;
+}
+
+.cpt-spec-item-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cpt-spec-bullet {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #64748B;
+  flex-shrink: 0;
+}
+
+.cpt-spec-divider {
+  height: 1px;
+  background: #E2E8F0;
+  margin: 20px 0;
+}
+
+.cpt-spec-records-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cpt-spec-record-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  color: #334155;
+}
+
+.cpt-spec-footer-note {
+  font-size: 12.5px;
+  color: #64748B;
+  font-style: italic;
+  padding-top: 14px;
+  border-top: 1px dashed #E2E8F0;
+  margin: 0;
+}
