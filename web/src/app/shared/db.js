@@ -8,7 +8,7 @@ import { SCENARIOS, pickScenario, scenarioBlood } from './scenarios.js';
 import { supabase } from './supabase.js';
 import { get, set } from './store.js';
 import { SLOTS, PEOPLE, COUPLES, GENES, PANEL, relativesFor, generateDanaId } from './data.js';
-import { fromDb, toDb } from './family.js';
+import { fromDb, toDb, dbId } from './family.js';
 import { api } from './api.js';
 
 export const isLive = () => !!(supabase && get().session?.backend);
@@ -272,7 +272,7 @@ export function renameRelative(ownerId, id, name) {
   const s = get();
   return act(familyPatch(s, ownerId, familyOf(s, ownerId).map((r) => (r.id === id ? { ...r, name } : r))),
     'Edited a relative in the family tree',
-    () => supabase.from('family_members').update({ display_name: name }).eq('id', id));
+    () => supabase.from('family_members').update({ display_name: name }).eq('id', dbId(id, ownerId)));
 }
 
 export function removeRelative(ownerId, id) {
@@ -288,7 +288,7 @@ export function removeRelative(ownerId, id) {
         const { error } = await supabase.from('family_members').upsert(children.map((r) => toDb(r, ownerId)));
         if (error) return { error };
       }
-      return supabase.from('family_members').delete().eq('id', id);
+      return supabase.from('family_members').delete().eq('id', dbId(id, ownerId));
     });
 }
 
