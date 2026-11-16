@@ -241,7 +241,7 @@
   flex-shrink: 0;
 }
 
-.patient-provider-icon.clinic {
+.patient-provider-icon.is-clinic {
   color: #16A34A;
   border-color: #86EFAC;
   background: #ffffff;
@@ -871,3 +871,8 @@
   color: #B45309;
   border-color: #FDE68A;
 }
+
+/* buttons that are links: keep their own text colour (the app sets `.shell a { color: inherit }`) */
+.shell a.patient-btn-join, .shell a.patient-btn-join:hover { color: #ffffff; }
+.patient-btn-maps { background: #0F172A; box-shadow: none; }
+.patient-btn-maps:hover { background: #1E293B; }

@@ -38,7 +38,8 @@ export default function Counsellor() {
   const caseCounsellor = useStore((s) => s.cases?.[cid]?.counsellor);
   const dedicatedCounsellor = lockedCounsellor || caseCounsellor || 'Dr. Mariam Al Hosani';
   const counsellorName = dedicatedCounsellor;
-  const counsellorObj = COUNSELLORS.find((c) => c.name === dedicatedCounsellor) || COUNSELLORS[0];
+  // the demo roster only describes its own demo counsellors; a live counsellor is never shown as someone else
+  const counsellorObj = COUNSELLORS.find((c) => c.name === dedicatedCounsellor) || null;
 
   const [toastMessage, setToastMessage] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -100,6 +101,12 @@ export default function Counsellor() {
     }
     return null;
   }, [scheduleAppointments, cid, bookedLabel, session, counsellorName]);
+
+  // clinic details: the appointment's real location first, then the demo roster; never invented
+  const clinicName = activeAppt?.clinicName || counsellorObj?.clinicName || counsellorObj?.clinic || '';
+  const clinicRoom = activeAppt?.clinicRoom || counsellorObj?.clinicRoom || '';
+  const clinicAddress = activeAppt?.clinicAddress || counsellorObj?.clinicAddress || '';
+  const mapQuery = [clinicName, clinicAddress].filter(Boolean).join(', ');
 
   useEffect(() => {
     if (cid) {
@@ -166,9 +173,9 @@ export default function Counsellor() {
       requestedAt: new Date().toISOString(),
       tone: 'amber',
       meetLink: isOnline ? `https://meet.google.com/dan-${cid}-${Date.now().toString().slice(-4)}` : null,
-      clinicName: isOnline ? null : (counsellorObj?.clinicName || counsellorObj?.clinic || 'DaNA Partner Clinic'),
-      clinicRoom: isOnline ? null : (counsellorObj?.clinicRoom || counsellorObj?.room || 'Abu Dhabi · Building A · Room 204'),
-      clinicAddress: isOnline ? null : (counsellorObj?.clinicAddress || counsellorObj?.address || 'Cleveland Clinic Abu Dhabi, Al Maryah Island'),
+      clinicName: isOnline ? null : (counsellorObj?.clinicName || null),
+      clinicRoom: isOnline ? null : (counsellorObj?.clinicRoom || null),
+      clinicAddress: isOnline ? null : (counsellorObj?.clinicAddress || null),
     });
     showToast(`Appointment request forwarded to ${counsellorName} for confirmation.`);
   };
@@ -186,10 +193,10 @@ export default function Counsellor() {
             </div>
             <div className="counsellor-bio-info">
               <h2>{counsellorName}</h2>
-              <div className="counsellor-role-title">{counsellorObj?.title || 'Genetic Counsellor'} · {counsellorObj?.languages?.join(' & ') || 'Arabic & English'}</div>
+              <div className="counsellor-role-title">{counsellorObj?.title || 'Genetic counsellor'}{counsellorObj?.languages?.length ? ` · ${counsellorObj.languages.join(' & ')}` : ''}</div>
               <div className="counsellor-license-tag">
                 <ShieldCheck size={13} color="#059669" />
-                <span>{counsellorObj?.license || 'DoH Licensed (DOH-GC-88412)'} · {counsellorObj?.clinicName || counsellorObj?.clinic || 'Cleveland Clinic Abu Dhabi Partner'}</span>
+                <span>{[counsellorObj?.license || 'Verified counsellor', clinicName].filter(Boolean).join(' · ')}</span>
               </div>
             </div>
           </div>
@@ -289,7 +296,9 @@ export default function Counsellor() {
                       ✓ Appointment Verified & Confirmed
                     </h4>
                     <p style={{ margin: 0, fontSize: 13, color: '#047857', lineHeight: 1.45 }}>
-                      <b>{activeAppt.doctor || counsellorName}</b> has confirmed your consultation. This appointment is verified across both portals and your encrypted video meeting room is active.
+                      <b>{activeAppt.doctor || counsellorName}</b> {activeAppt.mode === 'online'
+                        ? 'has confirmed your consultation. Your video call link is below.'
+                        : 'has confirmed your consultation. The clinic address and directions are below.'}
                     </p>
                   </div>
                 </div>
@@ -348,13 +357,14 @@ export default function Counsellor() {
               <div className="patient-modality-box offline-box">
                 <div className="patient-modality-row">
                   <div className="patient-provider-info">
-                    <div className="patient-provider-icon clinic">
+                    <div className="patient-provider-icon is-clinic">
                       <MapPin size={22} />
                     </div>
                     <div className="patient-clinic-location">
-                      <div className="patient-clinic-name">{activeAppt.clinicName || counsellorObj?.clinicName || counsellorObj?.clinic || 'DaNA Partner Clinic'}</div>
-                      <div className="patient-clinic-room">{activeAppt.clinicRoom || counsellorObj?.clinicRoom || counsellorObj?.room || 'Abu Dhabi · Building A · Room 204'}</div>
-                      <div className="patient-clinic-address">{activeAppt.clinicAddress || counsellorObj?.clinicAddress || counsellorObj?.address || 'Cleveland Clinic Abu Dhabi, Al Maryah Island'}</div>
+                      {/* only real details: no invented room or hospital */}
+                      <div className="patient-clinic-name">{clinicName || 'Clinic location not set yet'}</div>
+                      {clinicRoom && !clinicAddress.startsWith(clinicRoom) && <div className="patient-clinic-room">{clinicRoom}</div>}
+                      {clinicAddress && <div className="patient-clinic-address">{clinicAddress}</div>}
                     </div>
                   </div>
 
@@ -367,23 +377,24 @@ export default function Counsellor() {
                       <Navigation size={14} />
                       View directions
                     </button>
-                    <a
-                      href={counsellorObj?.mapUrl || `https://maps.google.com/?q=${encodeURIComponent(counsellorObj?.clinicAddress || counsellorObj?.clinicName || 'Cleveland Clinic Abu Dhabi')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="patient-btn-join"
-                      style={{ background: '#0F172A' }}
-                    >
-                      <ExternalLink size={14} />
-                      Open in Maps
-                    </a>
+                    {mapQuery && (
+                      <a
+                        href={counsellorObj?.mapUrl || `https://maps.google.com/?q=${encodeURIComponent(mapQuery)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="patient-btn-join patient-btn-maps"
+                      >
+                        <ExternalLink size={14} />
+                        Open in Maps
+                      </a>
+                    )}
                   </div>
                 </div>
 
                 <div className="patient-privacy-notice">
                   <Info size={17} />
                   <div>
-                    <b>Arrival Instructions:</b> Please arrive 15 minutes before your scheduled appointment with your Emirates ID. Complimentary valet parking is available at the main hospital entrance.
+                    <b>Arrival Instructions:</b> Please arrive 15 minutes before your appointment and bring your Emirates ID.
                   </div>
                 </div>
               </div>
@@ -625,33 +636,23 @@ export default function Counsellor() {
 
             <div className="patient-modal-body">
               <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                <div className="patient-provider-icon clinic" style={{ width: 44, height: 44 }}>
+                <div className="patient-provider-icon is-clinic">
                   <MapPin size={24} />
                 </div>
                 <div>
                   <h4 style={{ margin: '0 0 4px 0', fontSize: 16, color: '#0F172A' }}>
-                    {activeAppt?.clinicName || counsellorObj?.clinicName || counsellorObj?.clinic || 'DaNA Partner Clinic'}
+                    {clinicName || 'Clinic location not set yet'}
                   </h4>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#15803D', marginBottom: 4 }}>
-                    {activeAppt?.clinicRoom || counsellorObj?.clinicRoom || counsellorObj?.room || 'Abu Dhabi · Building A · Room 204'}
-                  </div>
-                  <div style={{ fontSize: 13, color: '#475569' }}>
-                    {activeAppt?.clinicAddress || counsellorObj?.clinicAddress || counsellorObj?.address || 'Cleveland Clinic Abu Dhabi, Al Maryah Island, Abu Dhabi, UAE'}
-                  </div>
+                  {clinicRoom && !clinicAddress.startsWith(clinicRoom) && <div className="patient-clinic-room">{clinicRoom}</div>}
+                  {clinicAddress && <div className="patient-clinic-address">{clinicAddress}</div>}
                 </div>
               </div>
 
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 10, padding: 14 }}>
-                <h5 style={{ margin: '0 0 8px 0', fontSize: 13.5, color: '#0F172A' }}>Parking & Entry Information</h5>
-                <p style={{ margin: '0 0 6px 0', fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
-                  • <b>Complimentary Valet Parking:</b> Available at the Main Hospital Entrance.
-                </p>
-                <p style={{ margin: '0 0 6px 0', fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
-                  • <b>Self Parking:</b> Park in P1 Visitor Parking; take Elevator B to Level 2.
-                </p>
-                <p style={{ margin: 0, fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
-                  • <b>Reception Desk:</b> Present your Emirates ID at the Level 2 Genetics Specialty Desk.
-                </p>
+              <div className="patient-privacy-notice">
+                <Info size={17} />
+                <div>
+                  <b>Arrival Instructions:</b> Please arrive 15 minutes before your appointment and bring your Emirates ID. At reception, ask for the genetic counselling clinic.
+                </div>
               </div>
             </div>
 
@@ -663,16 +664,17 @@ export default function Counsellor() {
               >
                 Close
               </button>
-              <a
-                href="https://maps.google.com/?q=Cleveland+Clinic+Abu+Dhabi"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="patient-btn-join"
-                style={{ background: '#0F172A' }}
-              >
-                <ExternalLink size={14} />
-                Open Google Maps
-              </a>
+              {mapQuery && (
+                <a
+                  href={counsellorObj?.mapUrl || `https://maps.google.com/?q=${encodeURIComponent(mapQuery)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="patient-btn-join patient-btn-maps"
+                >
+                  <ExternalLink size={14} />
+                  Open Google Maps
+                </a>
+              )}
             </div>
           </div>
         </div>

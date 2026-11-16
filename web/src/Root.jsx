@@ -19,6 +19,7 @@ import { isUserScreened } from './app/shared/screeningPersistence.js';
 import Onboarding from './app/onboarding/Onboarding.jsx';
 import { PENDING_CODE_KEY } from './app/shared/PartnerCode.jsx';
 import './app/app.css';
+import './app/polish.css';
 
 /* Catch-all error boundary to eliminate white screens */
 export class ErrorBoundary extends Component {

@@ -11,6 +11,7 @@ import { isUserScreened } from '../shared/screeningPersistence.js';
 import { SLOTS } from '../shared/data.js';
 import './counsellor.css';
 import CarePath, { EscalationNote } from '../shared/CarePath.jsx';
+import { getCoupleCarePlan, CARE_PLAN_STAGES } from '../shared/carePlanService.js';
 
 export default function Home() {
   const { me, partner, result, couple } = useCouple();
@@ -64,6 +65,11 @@ export default function Home() {
   };
 
   const sent = useStore((s) => s.alertsSent) || EMPTY_ARR;
+  // the tracker tile shows the same stage as the journey card above (one source: the care plan)
+  const carePlans = useStore((s) => s.carePlans);
+  const trackerPlanId = session?.couple || 'c1';
+  const trackerStageId = (carePlans?.[trackerPlanId] || getCoupleCarePlan(trackerPlanId))?.activeStageId || 1;
+  const trackerStage = CARE_PLAN_STAGES.find((x) => x.id === trackerStageId) || CARE_PLAN_STAGES[0];
   const plan = useStore((s) => (couple?.id ? s.plans[couple.id] : null) || s.plan);
   const scheduleAppointments = useStore((s) => s.scheduleAppointments) || EMPTY_ARR;
   const coupleBooking = useStore((s) => s.appointments[cid]);
@@ -319,10 +325,10 @@ export default function Home() {
 {counsellorReady && <CarePath result={result} couple={couple} booking={activeAppt} />}
 
       <div className="tiles">
-        <a className="tile" href="#/app/tracker" style={{ borderColor: '#00843D', background: '#F0FDF4' }}>
-          <small style={{ color: '#00843D', fontWeight: 600 }}>Personal Tracker</small>
-          <b style={{ color: '#0F172A' }}>7-Stage Care Roadmap</b>
-          <span style={{ color: '#00843D' }}>Stage 3: Counselling active →</span>
+        <a className="tile is-feature" href="#/app/tracker">
+          <small>Personal Tracker</small>
+          <b>7-stage care roadmap</b>
+          <span>Stage {trackerStage.id}: {trackerStage.title} →</span>
         </a>
         <a className="tile" href="#/app/bonds"><small>Your plan</small><b>{plan ? plan.split(':')[0] : 'Not chosen yet'}</b><span>{plan ? 'Change any time' : 'Take your time →'}</span></a>
         <a className="tile" href="#/app/roots"><small>Relatives invited</small><b>{sent.length}</b><span>Anonymous alerts →</span></a>

@@ -157,10 +157,14 @@ export function buildMember(rows, form, ownerId) {
 */
 const dbLabel = (r) => (r.person_id ? 'self' : relationLabel(r).toLowerCase().replace(/cousin$/, 'first cousin'));
 
+/* the id as the database stores it: a uuid. Older trees kept in a browser may still hold 'fa_2'-style ids;
+   they map to the same uuid buildTreeFromIntake gives them now. */
+export const dbId = (id, ownerId) => (id == null || UUID_RE.test(String(id)) ? id : stableUuid(`${ownerId}:${id}`));
+
 export const toDb = (r, ownerId) => ({
-  id: r.id, owner_id: ownerId, display_name: r.name, gender: r.sex,
+  id: dbId(r.id, ownerId), owner_id: ownerId, display_name: r.name, gender: r.sex,
   relationship: dbLabel(r),
-  parent_ids: [r.father_id, r.mother_id].filter(Boolean),
+  parent_ids: [r.father_id, r.mother_id].filter(Boolean).map((x) => dbId(x, ownerId)),
 });
 
 function fromLabel(label, ownerId) {
@@ -450,5 +454,26 @@ export function buildTreeFromIntake(me, partner, intake) {
     }
   });
 
-  return rows;
+  return withStableIds(rows, me?.id || 'me');
+}
+
+/* family_members.id is a uuid. The tree built from the intake names its people 'fa_2', 'mo_3', ...;
+   give each one a uuid that is the same every time for this person and slot (so re-renders and saves
+   agree), and keep the parent links pointing at the new ids. */
+export function stableUuid(seed) {
+  const h = (salt) => {
+    let x = 0x811c9dc5 ^ salt;
+    for (let i = 0; i < seed.length; i++) { x ^= seed.charCodeAt(i); x = Math.imul(x, 0x01000193) >>> 0; }
+    return (x >>> 0).toString(16).padStart(8, '0');
+  };
+  const hex = h(1) + h(2) + h(3) + h(4);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-${((parseInt(hex[16], 16) & 3) | 8).toString(16)}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function withStableIds(rows, ownerId) {
+  const map = new Map(rows.map((r) => [r.id, UUID_RE.test(String(r.id)) ? r.id : stableUuid(`${ownerId}:${r.id}`)]));
+  const to = (id) => (id == null ? id : map.get(id) ?? id);
+  return rows.map((r) => ({ ...r, id: to(r.id), father_id: to(r.father_id), mother_id: to(r.mother_id) }));
 }
