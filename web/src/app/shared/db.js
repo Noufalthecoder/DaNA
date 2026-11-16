@@ -783,7 +783,7 @@ async function doLoad() {
     supabase.from('content_cards').select('id, status'),
     supabase.from('audit_log').select('at, actor_name, action').order('at', { ascending: false }).limit(200),
     supabase.from('genetic_reports').select('person_id, report_id, laboratory_name, accreditation_id, panel_coverage, limitations, report_date, validation_status, genetic_variants(gene_symbol, hgvs_c, hgvs_p, zygosity, clinical_significance, significance_source)'),
-    supabase.from('clinical_cases').select('id, couple_id, triage_tier, case_assignments(counsellors(name))'),
+    supabase.from('clinical_cases').select('id, couple_id, triage_tier, case_status, case_assignments(counsellors(name))'),
   ]);
   // a real report wins over an old automatic SAMPLE- one (later entries overwrite earlier ones)
   const isSample = (r) => (String(r.report_id).startsWith('SAMPLE-') ? 1 : 0);
@@ -799,7 +799,7 @@ async function doLoad() {
     PEOPLE[pid].vus = rep.variants.find((v) => v.significance === 'vus')?.gene || undefined;
   }
   patch.cases = Object.fromEntries((cases.data || []).map((c) => [c.couple_id, {
-    id: c.id, tier: c.triage_tier, counsellor: c.case_assignments?.[0]?.counsellors?.name || null,
+    id: c.id, tier: c.triage_tier, closed: c.case_status === 'closed', counsellor: c.case_assignments?.[0]?.counsellors?.name || null,
   }]));
   patch.plans = Object.fromEntries((plans.data || []).map((p) => [p.couple_id, p.choice]));
   patch.approved = (plans.data || []).filter((p) => p.approved_at).map((p) => p.couple_id);

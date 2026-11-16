@@ -20,7 +20,8 @@ export default function Queue() {
   const live = useStore((s) => s.cases);
   const [filter, setFilter] = useState('open');
   const all = cases(live);
-  const list = all.filter((c) => (filter === 'open' ? !approved.includes(c.id) : filter === 'done' ? approved.includes(c.id) : true));
+  // open = still needs the counsellor: not approved and the case is not closed
+  const list = all.filter((c) => (filter === 'open' ? !approved.includes(c.id) && !live[c.id]?.closed : filter === 'done' ? approved.includes(c.id) : true));
 
   return (
     <Page title="Case queue" sub="Sorted by priority. Urgent cases are contacted first.">
