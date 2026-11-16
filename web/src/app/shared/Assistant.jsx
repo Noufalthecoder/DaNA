@@ -87,6 +87,38 @@ function useTopics() {
   ], [g, status, cond, linked, theirs, partner.short]);
 }
 
+/* ---- voice: the browser's own speech recognition and speech output (free, no key) ---- */
+const SR = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
+const canSpeak = typeof window !== 'undefined' && 'speechSynthesis' in window;
+const LISTEN_LANGS = [['en-US', 'English'], ['ar-AE', 'العربية'], ['ur-PK', 'اردو']];
+
+/* the most natural English voice on this device (neural/online voices sound far better) */
+function pickVoice(sex) {
+  const vs = window.speechSynthesis.getVoices().filter((v) => v.lang?.toLowerCase().startsWith('en'));
+  if (!vs.length) return null;
+  const female = /female|zira|aria|jenny|samantha|sonia|libby|natasha|emma|ava|google us english/i;
+  const male = /\bmale\b|david|guy|ryan|daniel|thomas|george|christopher|andrew|google uk english male/i;
+  const natural = (v) => (/natural|neural|online|google/i.test(v.name) ? 2 : 0) + (/en-(gb|us)/i.test(v.lang) ? 1 : 0);
+  const fits = (v) => ((sex === 'F' ? female.test(v.name) : male.test(v.name) && !/female/i.test(v.name)) ? 3 : 0);
+  return [...vs].sort((a, b) => (fits(b) + natural(b)) - (fits(a) + natural(a)))[0];
+}
+
+function speak(text, sex) {
+  if (!canSpeak) return;
+  window.speechSynthesis.cancel();
+  // sentence by sentence: smoother, and long answers are not cut off by some browsers
+  const parts = text.replace(/\n+/g, ' ').match(/[^.!?]+[.!?]*/g) || [text];
+  const voice = pickVoice(sex);
+  for (const part of parts) {
+    const u = new SpeechSynthesisUtterance(part.trim());
+    if (voice) u.voice = voice;
+    u.lang = voice?.lang || 'en-GB';
+    u.rate = 0.97;
+    u.pitch = sex === 'F' ? 1.05 : 0.95;
+    window.speechSynthesis.speak(u);
+  }
+}
+
 function match(topics, q) {
   const t = q.toLowerCase();
   let best = null; let score = 0;
@@ -106,7 +138,40 @@ export default function Assistant() {
   const [msgs, setMsgs] = useState([]);
   const [q, setQ] = useState('');
   const end = useRef(null);
+  const rec = useRef(null);
   const sex = PEOPLE[session?.id]?.sex === 'F' ? 'F' : 'M';
+  const [voiceOn, setVoiceOn] = useState(() => { try { return localStorage.getItem('dana.guideVoice') !== 'off'; } catch { return true; } });
+  const [listening, setListening] = useState(false);
+  const [lang, setLang] = useState('en-US');
+  const [voiceErr, setVoiceErr] = useState('');
+  useEffect(() => { if (canSpeak) window.speechSynthesis.getVoices(); }, []); // loads the voice list early
+  useEffect(() => { if (!open && canSpeak) window.speechSynthesis.cancel(); }, [open]);
+  const toggleVoice = () => {
+    const v = !voiceOn;
+    setVoiceOn(v);
+    try { localStorage.setItem('dana.guideVoice', v ? 'on' : 'off'); } catch {}
+    if (!v && canSpeak) window.speechSynthesis.cancel();
+  };
+  const listen = () => {
+    if (!SR) { setVoiceErr('Voice input works in Chrome, Edge and Safari.'); return; }
+    if (listening) { rec.current?.stop(); return; }
+    setVoiceErr('');
+    if (canSpeak) window.speechSynthesis.cancel();
+    const r = new SR();
+    r.lang = lang; r.interimResults = true; r.maxAlternatives = 1;
+    let finalText = '';
+    r.onresult = (e) => {
+      const t = Array.from(e.results).map((x) => x[0].transcript).join(' ');
+      setQ(t);
+      if (e.results[e.results.length - 1].isFinal) finalText = t;
+    };
+    r.onerror = (e) => setVoiceErr(e.error === 'not-allowed' ? 'Allow the microphone in your browser to ask by voice.'
+      : e.error === 'no-speech' ? 'I did not hear anything. Tap the mic and try again.' : 'Voice input stopped. Try again or type your question.');
+    r.onend = () => { setListening(false); if (finalText.trim()) ask(finalText.trim()); };
+    rec.current = r;
+    setListening(true);
+    r.start();
+  };
   const first = (session?.name || '').split(' ')[0];
 
   useEffect(() => { end.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs, open]);
@@ -119,6 +184,7 @@ export default function Assistant() {
     };
     setMsgs((m) => [...m, { from: 'me', text }, { from: 'dana', ...a }]);
     setQ('');
+    if (voiceOn) speak(a.text, sex);
     logAudit(`Asked the DaNA guide (${tp ? tp.id : 'unmatched'})`).catch(() => {}); // the topic only, never the words typed
   };
 
@@ -129,6 +195,12 @@ export default function Assistant() {
           <header className="as-head">
             <CounsellorFace sex={sex} size={44} />
             <div><b>DaNA guide</b><small>Answers from your own result · not medical advice</small></div>
+            {canSpeak && (
+              <button className={`as-sp${voiceOn ? ' on' : ''}`} onClick={toggleVoice} aria-pressed={voiceOn}
+                aria-label={voiceOn ? 'Stop reading answers aloud' : 'Read answers aloud'} title={voiceOn ? 'Voice on' : 'Voice off'}>
+                {voiceOn ? '🔊' : '🔇'}
+              </button>
+            )}
             <button className="as-x" onClick={() => setOpen(false)} aria-label="Close">×</button>
           </header>
           <div className="as-body">
@@ -137,6 +209,7 @@ export default function Assistant() {
               <div key={i} className={`as-msg ${m.from}`}>
                 {m.text.split('\n').map((l, j) => (l ? <p key={j}>{l}</p> : null))}
                 {m.link && <a className="as-link" href={m.link[0]} onClick={() => setOpen(false)}>{m.link[1]} →</a>}
+                {m.from === 'dana' && canSpeak && <button type="button" className="as-replay" onClick={() => speak(m.text, sex)} aria-label="Play this answer">▶ Listen</button>}
               </div>
             ))}
             <div className="as-chips">
@@ -146,8 +219,19 @@ export default function Assistant() {
             </div>
             <div ref={end} />
           </div>
+          {voiceErr && <p className="as-verr" role="status">{voiceErr}</p>}
           <form className="as-input" onSubmit={(e) => { e.preventDefault(); if (q.trim()) ask(q.trim()); }}>
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask about your result…" aria-label="Your question" maxLength={300} />
+            {SR && (
+              <select className="as-lang" value={lang} onChange={(e) => setLang(e.target.value)} aria-label="Language you speak">
+                {LISTEN_LANGS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+            )}
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={listening ? 'Listening…' : 'Ask or tap the mic…'} aria-label="Your question" maxLength={300} dir="auto" />
+            {SR && (
+              <button type="button" className={`as-mic${listening ? ' on' : ''}`} onClick={listen} aria-pressed={listening} aria-label={listening ? 'Stop listening' : 'Ask by voice'}>
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2Z" /></svg>
+              </button>
+            )}
             <button className="btn" disabled={!q.trim()}>Ask</button>
           </form>
           <a className="as-human" href="#/app/counsellor" onClick={() => setOpen(false)}>Prefer a person? Talk to a counsellor</a>
