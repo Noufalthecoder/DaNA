@@ -472,6 +472,37 @@ export const grantMalaffiConsent = (viaUaePass) => {
   set({ session: { ...s, malaffiConsent: true, malaffiConsentAt: new Date().toISOString() } }, 'Gave consent to read Malaffi (demo)');
   return Promise.resolve(true);
 };
+/* UAE PASS identity (029). Offline demo: the same kind of synthetic attributes, kept in the browser. */
+function demoIdentity(s) {
+  let h = 0; for (const ch of s.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const yr = 1988 + (h % 15);
+  return {
+    full_name_en: s.name, emirates_id: `784-${yr}-${String(h % 10000000).padStart(7, '0')}-${h % 10}`,
+    date_of_birth: `${yr}-${String(1 + (h % 12)).padStart(2, '0')}-${String(1 + (h % 28)).padStart(2, '0')}`,
+    sex: PEOPLE[s.id]?.sex || null, nationality: 'United Arab Emirates', mobile: `+9715${String(h % 100000000).padStart(8, '0')}`,
+    email: s.email || null, source: 'uaepass_simulated',
+  };
+}
+export async function myIdentity() {
+  if (isLive()) return rpc('my_identity');
+  return get().identity?.[get().session.id] || null;
+}
+export async function linkUaePass(viaSignIn) {
+  if (isLive()) { const r = await rpc('link_uaepass', { p_via_uaepass_signin: !!viaSignIn }); return r; }
+  const s = get().session;
+  const ident = demoIdentity(s);
+  set((st) => ({ identity: { ...(st.identity || {}), [s.id]: ident }, session: { ...st.session, uaepassLinked: true } }),
+    viaSignIn ? 'Signed in with UAE PASS (simulated)' : 'Linked UAE PASS (simulated)');
+  return ident;
+}
+export async function submitIntake(scopes, details) {
+  if (isLive()) return rpc('submit_intake', { p_scopes: scopes, p_details: details });
+  const s = get().session;
+  set({ session: { ...s, malaffiConsent: true, malaffiConsentAt: new Date().toISOString(), consentScopes: scopes, details, intakeDone: true } },
+    'Gave consent and saved screening details (demo)');
+  return new Date().toISOString();
+}
+
 export const saveMyDetails = (details) => (isLive() ? rpc('save_my_details', { p: details }) : demoDetails(details));
 export async function setMySex(sex) {
   if (!isLive()) return demoProfile(sex);

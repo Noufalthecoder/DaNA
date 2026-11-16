@@ -5,8 +5,7 @@ import { useStore, EMPTY_OBJ, EMPTY_ARR } from './store.js';
 
 export const STEPS = [
   { key: 'profile',  label: 'Your profile' },
-  { key: 'malaffi',  label: 'Get results' },
-  { key: 'details',  label: 'Your details' },
+  { key: 'malaffi',  label: 'Consent & results' },
   { key: 'result',   label: 'Result & report' },
   { key: 'together', label: 'Couple result' },
   { key: 'options',  label: 'Choose together' },
@@ -15,7 +14,7 @@ export const STEPS = [
 
 const NEXT = {
   profile:  { t: 'Create your profile', p: 'Tell us if you are female or male, so your result can be read correctly.', to: '#/app' },
-  malaffi:  { t: 'Connect UAE PASS and get your results', p: 'Malaffi is reached through UAE PASS. Give your consent once, and we fetch and check your premarital lab report.', to: '#/app' },
+  malaffi:  { t: 'Confirm your details and get your results', p: 'Your UAE PASS details are filled in for you. Choose what to share, add a few details, and we fetch your premarital results from Malaffi.', to: '#/app' },
   details:  { t: 'Add your details', p: 'A few things Malaffi does not hold: marital status, pregnancy, family history. About 2 minutes.', to: '#/app/details' },
   result:   { t: 'See your result and download your report', p: 'Your result in plain words, and a standard report in English, Arabic or Urdu.', to: '#/app/result' },
   partner:  { t: 'Link your partner', p: 'Send an invitation, or find your partner by full name or DaNA ID.', to: '#/app/connections' },
@@ -58,8 +57,7 @@ export function useJourney() {
   const partnerId = session?.partnerId;
   const done = {
     profile: !tracked || (!session?.needsProfile && session?.sexConfirmed !== false),
-    malaffi: !tracked || isRealReport(reports[session?.id]),
-    details: !tracked || !!session?.details || !!session?.intakeDone || (!session?.fresh && !!intakes[session?.id]?.completed),
+    malaffi: !tracked || (isRealReport(reports[session?.id]) && (!!session?.details || !!session?.intakeDone || (!session?.fresh && !!intakes[session?.id]?.completed))),
     result: !tracked || !!seen[session?.id],
     together: linked && (!tracked || (isRealReport(reports[session?.id]) && (!live || !!(partnerId && isRealReport(reports[partnerId]))))),
     options: !!(session?.couple && plans[session.couple]),

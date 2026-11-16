@@ -1760,7 +1760,7 @@ body.in-app{background:#F6F7F5}
 .jr{margin-bottom:16px}
 .jr-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:14px}
 .jr-head h2{margin:0;font-size:17px}
-.jr-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.jr-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
 .jr-steps li{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;position:relative;font-size:12.5px;color:var(--ink2)}
 .jr-steps li::before{content:'';position:absolute;top:14px;left:-50%;width:100%;height:2px;background:var(--line);z-index:0}
 .jr-steps li:first-child::before{display:none}
@@ -2003,3 +2003,24 @@ body.in-app{background:#F6F7F5}
 .qz-wrong .qz-b.on{border-color:var(--amber);background:#FFF7ED;color:var(--amber)}
 .qz-why{margin:8px 0 0!important;font-size:14.5px!important;color:var(--ink2)}
 .qz-score{margin:16px 0 0;font-weight:600;color:var(--green)}
+
+/* ===== Intake: UAE PASS details + consent + extras (029) ===== */
+.ik{display:grid;gap:14px;margin-top:14px;width:100%}
+.ik-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 22px}
+.ik-card h3{font:700 17px var(--head);margin:0 0 6px}
+.ik-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.ik-verified{font:700 12.5px var(--body);color:var(--green);background:var(--green-l);border-radius:999px;padding:5px 12px}
+.ik-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:12px}
+.ik-f{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.ik-f small{color:var(--ink3);font-size:12px}
+.ik-f b{font-size:15px;word-break:break-word}
+.ik-c{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line);cursor:pointer;line-height:1.5}
+.ik-c:first-of-type{border-top:0}
+.ik-c input{width:20px;height:20px;margin-top:2px;accent-color:var(--green);flex:none}
+.ik-c em{font-style:normal;font-size:12px;color:var(--ink3);margin-left:6px}
+.ik-c span{color:var(--ink2);font-size:14.5px}
+.ik-c b{color:var(--ink)}
+.ik-link{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+.ik-link p{margin:4px 0 0;color:var(--ink2);max-width:60ch}
+.ik-submit{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.ik-go{padding:13px 22px;font-size:15px}

@@ -443,7 +443,7 @@ export default function Screening() {
 
       <div className="sheet-head">
         <h1>Premarital Screening Intake</h1>
-        <p>Journey step 2 of 7: your health history, family history and consent. About 5 minutes.</p>
+        <p>Your health history, family history and consent. About 5 minutes.</p>
       </div>
 
       {/* Workday-style Stepper (Reference Image 2) */}
