@@ -114,3 +114,59 @@ export function Accordion({ title, hint, defaultOpen = false, children }) {
     </details>
   );
 }
+
+/* ---------- richer building blocks (polish.css) ---------- */
+
+/* A labelled read-only value. `source` says where it came from (e.g. "UAE PASS"). */
+export function Field({ label, value, source, mono = false, dir }) {
+  const empty = value == null || value === '';
+  return (
+    <div className="fld">
+      <span className="fld-l">{label}{source && <em className="fld-src">{source}</em>}</span>
+      <span className={`fld-v${mono ? ' is-mono' : ''}${empty ? ' is-empty' : ''}`} dir={dir}>{empty ? 'Not provided' : value}</span>
+    </div>
+  );
+}
+
+/* A grid of Fields. */
+export function FieldGrid({ cols = 2, children }) {
+  return <div className={`fld-grid cols-${cols}`}>{children}</div>;
+}
+
+/* A labelled form control: label, control, hint or error below. */
+export function FormRow({ label, hint, error, children, full = false }) {
+  return (
+    <label className={`frow${full ? ' is-full' : ''}${error ? ' has-err' : ''}`}>
+      <span className="frow-l">{label}</span>
+      {children}
+      {error ? <span className="frow-e">{error}</span> : hint ? <span className="frow-h">{hint}</span> : null}
+    </label>
+  );
+}
+
+/* A calm one-line message: tone = info | ok | warn | err */
+export function Notice({ tone = 'info', title, children, action }) {
+  return (
+    <div className={`notice n-${tone}`} role={tone === 'err' ? 'alert' : 'status'}>
+      <div>{title && <b>{title}</b>}{children && <span>{children}</span>}</div>
+      {action}
+    </div>
+  );
+}
+
+/* Nothing to show yet, with the next step. */
+export function EmptyState({ icon, title, children, action }) {
+  return (
+    <div className="empty-state">
+      {icon && <div className="empty-state-i" aria-hidden="true">{icon}</div>}
+      <b>{title}</b>
+      {children && <p>{children}</p>}
+      {action}
+    </div>
+  );
+}
+
+/* Placeholder lines while data loads. */
+export function Skeleton({ lines = 3 }) {
+  return <div className="skel" aria-busy="true" aria-label="Loading">{Array.from({ length: lines }, (_, i) => <span key={i} />)}</div>;
+}

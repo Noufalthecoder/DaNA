@@ -62,9 +62,9 @@ export default function Journey({ action }) {
   const storePlans = useStore((s) => s.carePlans);
   const plan = useMemo(() => storePlans?.[cid] || getCoupleCarePlan(cid), [storePlans, cid]);
 
-  // Read active stage from plan (defaults to Stage 3 Counselling for demo)
-  const activeStageId = plan?.activeStageId || 3;
-  const currentStage = STAGES.find((s) => s.id === activeStageId) || STAGES[2];
+  // the active stage comes from the care plan; with no plan yet the couple is at Stage 1
+  const activeStageId = plan?.activeStageId || 1;
+  const currentStage = STAGES.find((s) => s.id === activeStageId) || STAGES[0];
 
   // Legacy fallback support for unlinked/fresh profile onboarding
   const { steps, current } = useJourney();
