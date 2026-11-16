@@ -591,7 +591,7 @@ async function doLoad() {
   patch.faith = Object.fromEntries((cards.data || []).map((c) => [c.id, c.status]));
   patch.audit = (audit.data || []).map((a) => ({ t: a.at, who: a.actor_name, what: a.action }));
 
-  if (s.role === 'couple' && s.couple) {
+  if (s && s.role === 'couple' && s.couple) {
     const [alerts, cons, family] = await Promise.all([
       supabase.from('sila_alerts').select('relationship'),
       supabase.from('consents').select('kind, granted').eq('person_id', s.id),
@@ -638,7 +638,7 @@ async function doLoad() {
       }
     } catch { }
   }
-  if (s.role === 'counsellor') {
+  if (s && s.role === 'counsellor') {
     const [{ data }, refs] = await Promise.all([
       supabase.from('notes').select('id, couple_id, body, created_at, approved_at').order('created_at', { ascending: false }),
       supabase.from('referrals').select('destination, priority, reason, status, created_at, clinical_cases(couple_id)').order('created_at', { ascending: false }),
@@ -648,7 +648,7 @@ async function doLoad() {
     patch.referrals = {};
     (refs.data || []).forEach((r) => { const cid = r.clinical_cases?.couple_id; if (cid) (patch.referrals[cid] ||= []).push({ destination: r.destination, priority: r.priority, reason: r.reason, status: r.status, t: r.created_at }); });
   }
-  if (s.role === 'admin') {
+  if (s && s.role === 'admin') {
     const [st, tiers, br] = await Promise.all([supabase.rpc('programme_stats'), supabase.rpc('programme_tiers'), supabase.rpc('programme_breakdown')]);
     patch.stats = st.data && st.data[0] ? st.data[0] : null;
     patch.tiers = tiers.data || null;

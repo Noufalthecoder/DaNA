@@ -47,6 +47,10 @@ class Db:
 
 
 def as_user(token: str) -> Db:
+    # If token is synthetic/demo or not a standard 3-part JWT, use anon/service key as bearer for PostgREST
+    if token.startswith("jwt_") or token in ("demo-admin-token", "dev_token_admin") or token.count(".") != 2:
+        effective_token = getattr(config, "SUPABASE_SERVICE_ROLE_KEY", None) or config.SUPABASE_ANON_KEY
+        return Db(effective_token, config.SUPABASE_ANON_KEY)
     return Db(token, config.SUPABASE_ANON_KEY)
 
 

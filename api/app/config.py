@@ -1,7 +1,15 @@
 """Settings from environment variables (api/.env locally, host settings in production)."""
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
+# Load from api/.env directly relative to this file, then fallback to current working directory
+_env_file = Path(__file__).resolve().parent.parent / ".env"
+if _env_file.exists():
+    load_dotenv(_env_file)
+_root_env = Path(__file__).resolve().parent.parent.parent / ".env"
+if _root_env.exists():
+    load_dotenv(_root_env)
 load_dotenv()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
