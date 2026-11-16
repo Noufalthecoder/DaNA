@@ -1,0 +1,23 @@
+/* Profile page (Profile.jsx) */
+.pf-hero { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow-1); padding: 22px 24px; margin-bottom: 16px; }
+.pf-hero-main { flex: 1; min-width: 260px; display: grid; gap: 10px; }
+.pf-hero-name { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.pf-hero-name h2 { font: 700 22px var(--head); margin: 0; letter-spacing: -.01em; }
+.pf-hero-name span { font-family: var(--ar); font-size: 18px; color: var(--ink2); }
+.pf-hero-meta { display: flex; flex-wrap: wrap; gap: 8px; }
+.pf-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: 13px; color: var(--ink2); }
+.pf-chip b { color: var(--ink); font-weight: 600; }
+.pf-chip svg { color: var(--green); }
+.pf-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; margin-bottom: 16px; }
+.pf-cols > .card { margin-bottom: 0; }
+.pf-ct { display: inline-flex; align-items: center; gap: 8px; }
+.pf-ct svg { color: var(--green); }
+.pf-aside { font-size: 12px; font-weight: 600; color: var(--green); background: var(--green-l); border-radius: 999px; padding: 3px 10px; }
+.pf-note { margin: 16px 0 0; font-size: 12.5px; color: var(--ink3); }
+.pf-sex { margin: 16px 0; display: grid; gap: 8px; }
+.pf-sex .seg { margin: 0; width: max-content; }
+.pf-form { display: grid; gap: 14px; }
+.pf-actions { display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px; }
+.pf-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.pf-row p { margin: 0; }
+@media (max-width: 900px) { .pf-cols { grid-template-columns: 1fr; } }

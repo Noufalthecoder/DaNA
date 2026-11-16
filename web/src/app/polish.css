@@ -1,0 +1,146 @@
+/* ===== DaNA enterprise polish. Loaded after app.css.
+   Base rules use :where() (zero specificity), so any screen-specific style still wins;
+   they only lift elements that had browser defaults. ===== */
+
+:root, .shell, .login, .focused-intake-shell, .ob {
+  --line-strong: #D5DBD7;
+  --focus: 0 0 0 3px rgba(0, 132, 61, .18);
+  --shadow-1: 0 1px 2px rgba(16, 24, 40, .04), 0 1px 3px rgba(16, 24, 40, .03);
+  --shadow-2: 0 8px 24px -12px rgba(16, 24, 40, .14);
+  --radius: 12px;
+}
+
+/* ---------- form controls ----------
+   Element-level specificity (0,0,1): beats the global `* { padding: 0 }` reset, loses to any class rule. */
+:where(.shell, .ob, .dialog) input:where(:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color])),
+:where(.shell, .ob, .dialog) select,
+:where(.shell, .ob, .dialog) textarea {
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  font: 400 14px/1.45 var(--body);
+  transition: border-color .15s, box-shadow .15s;
+  box-sizing: border-box;
+}
+:where(.shell, .ob, .dialog) textarea { resize: vertical; min-height: 64px; }
+:where(.shell, .ob, .dialog) select {
+  appearance: none;
+  padding-inline-end: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2356625B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+[dir=rtl] :where(.shell, .ob, .dialog) select { background-position: left 12px center; }
+:where(.shell, .ob, .dialog) :where(input, select, textarea):hover:not(:disabled) { border-color: #B9C3BD; }
+:where(.shell, .ob, .dialog) :where(input, select, textarea):focus { outline: none; border-color: var(--green); box-shadow: var(--focus); }
+:where(.shell, .ob, .dialog) :where(input, select, textarea):disabled { background: var(--bg); color: var(--ink3); cursor: not-allowed; }
+:where(.shell, .ob, .dialog) ::placeholder { color: #9AA59F; }
+:where(.shell, .ob) :where(input[type=checkbox], input[type=radio]) { accent-color: var(--green); width: 16px; height: 16px; }
+
+/* ---------- focus for keyboard users ---------- */
+:where(.shell, .ob, .login) :where(button, a, [role=button], summary):focus-visible { outline: none; box-shadow: var(--focus); border-radius: 8px; }
+
+/* ---------- buttons ---------- */
+.shell .btn, .ob .btn { transition: background .15s, transform .05s; }
+.shell .btn:active, .ob .btn:active { transform: translateY(1px); }
+.shell .btn:disabled, .ob .btn:disabled, .btn-soft:disabled, .btn-line:disabled, .ghost:disabled { opacity: .55; cursor: not-allowed; }
+.btn-soft { display: inline-flex; align-items: center; gap: 6px; }
+.btn-line { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+
+/* ---------- page, cards ---------- */
+.shell .page-h { padding-bottom: 4px; }
+.shell .page-h h1 { font-size: 26px; letter-spacing: -.015em; }
+.shell .page-h p { max-width: 760px; line-height: 1.5; }
+.shell .card { border-radius: 14px; box-shadow: var(--shadow-1); }
+.shell .card-h h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; }
+
+/* ---------- plain tables in cards ---------- */
+.shell .card :where(table:not([class])) { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13.5px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.shell .card :where(table:not([class])) :where(th) { background: #F8FAF9; text-align: start; font-weight: 600; color: var(--ink2); padding: 9px 12px; border-bottom: 1px solid var(--line); }
+.shell .card :where(table:not([class])) :where(td) { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.shell .card :where(table:not([class])) :where(tr:last-child td) { border-bottom: 0; }
+
+/* ---------- badges ---------- */
+.badge { line-height: 1.2; }
+.badge svg { flex: none; }
+.b-blue { background: #E8F0FB; color: #1F4E8C; }
+.b-grey { background: #EEF1EF; color: var(--ink2); }
+
+/* ---------- Field / FieldGrid (ui.jsx) ---------- */
+.fld-grid { display: grid; gap: 16px 20px; }
+.fld-grid.cols-1 { grid-template-columns: 1fr; }
+.fld-grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fld-grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.fld { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.fld-l { font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--ink3); text-transform: uppercase; display: flex; gap: 6px; align-items: center; }
+.fld-src { font-style: normal; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--green); background: var(--green-l); border-radius: 999px; padding: 1px 7px; font-size: 11px; }
+.fld-v { font-size: 14.5px; font-weight: 500; color: var(--ink); overflow-wrap: anywhere; }
+.fld-v.is-mono, .is-mono { font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+.fld-v.is-empty { color: var(--ink3); font-weight: 400; font-style: italic; }
+
+/* ---------- FormRow (ui.jsx) ---------- */
+.frow { display: flex; flex-direction: column; gap: 6px; }
+.frow-l { font-size: 13px; font-weight: 600; color: var(--ink); }
+.frow-h { font-size: 12.5px; color: var(--ink3); }
+.frow-e { font-size: 12.5px; color: #A30E20; }
+.frow.has-err :where(input, select, textarea) { border-color: #E5A3AB; }
+
+/* ---------- Notice (ui.jsx) ---------- */
+.notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; font-size: 14px; border: 1px solid; }
+.notice > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.notice.n-info { background: #F2F7FD; border-color: #D6E4F5; color: #1F4E8C; }
+.notice.n-ok { background: var(--green-l); border-color: #BFDDC9; color: #0B5D30; }
+.notice.n-warn { background: #FFF7E8; border-color: #F2D9A8; color: #7A4B00; }
+.notice.n-err { background: #FDECEE; border-color: #F3C2C8; color: #A30E20; }
+.card .notice:last-child { margin-bottom: 0; }
+
+/* ---------- EmptyState / Skeleton (ui.jsx) ---------- */
+.empty-state { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 28px 16px; color: var(--ink2); }
+.empty-state-i { width: 44px; height: 44px; border-radius: 50%; background: var(--green-l); color: var(--green); display: grid; place-items: center; margin-bottom: 4px; }
+.empty-state b { color: var(--ink); font-size: 15px; }
+.empty-state p { margin: 0; font-size: 13.5px; max-width: 420px; }
+.skel { display: grid; gap: 10px; }
+.skel span { height: 14px; border-radius: 6px; background: linear-gradient(90deg, #EEF1EF 25%, #F6F8F7 50%, #EEF1EF 75%); background-size: 200% 100%; animation: skel 1.2s ease-in-out infinite; }
+.skel span:nth-child(2n) { width: 70%; }
+.skel span:nth-child(3n) { width: 85%; }
+@keyframes skel { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .skel span { animation: none; } }
+
+/* ---------- responsive ---------- */
+@media (max-width: 760px) {
+  .fld-grid.cols-2, .fld-grid.cols-3 { grid-template-columns: 1fr; }
+  .shell .page-h { flex-direction: column; align-items: flex-start; }
+}
+
+/* ---------- table toolbar and pager (lists such as the case queue) ---------- */
+.tbl-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+.tbl-tools > select { width: auto; min-width: 190px; }
+.tbl-search { position: relative; flex: 1; min-width: 240px; display: block; }
+.tbl-search svg { position: absolute; inset-inline-start: 12px; top: 50%; transform: translateY(-50%); color: var(--ink3); pointer-events: none; }
+.shell .tbl-search input { padding-inline-start: 36px; }
+.tbl-count { margin-inline-start: auto; font-size: 13px; color: var(--ink3); white-space: nowrap; }
+.tbl-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 14px; font-size: 13px; color: var(--ink2); }
+.tbl-pager { display: flex; align-items: center; gap: 10px; }
+
+/* small notes on the right of a card header */
+.shell .card-h > .muted, .shell .card-h > small { font-size: 13px; color: var(--ink3); text-align: end; }
+
+/* featured shortcut tile (Home) */
+.tile.is-feature { border-color: var(--green); background: #F2FAF5; }
+.tile.is-feature small { color: var(--green); font-weight: 600; }
+
+/* every single-choice dropdown keeps a visible arrow, even where a screen resets the background */
+:is(.shell, .ob, .dialog) select:not([multiple]) {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-inline-end: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2356625B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+}
+[dir=rtl] :is(.shell, .ob, .dialog) select:not([multiple]) { background-position: left 12px center; }
