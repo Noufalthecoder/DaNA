@@ -44,3 +44,8 @@
   .finder-grid{grid-template-columns:1fr}
   .cov-scope{grid-template-columns:1fr}
 }
+
+/* counsellor: clinic prompt */
+.loc-prompt{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+.loc-prompt p{flex:1 1 320px;font-size:14px;line-height:1.5;color:var(--ink2)}
+.cov-status{display:inline-flex;gap:6px}

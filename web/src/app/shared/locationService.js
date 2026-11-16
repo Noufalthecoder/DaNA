@@ -116,3 +116,6 @@ export async function counsellorsNear(placeId, modality = 'any') {
   const { api } = await import('./api.js');
   return api(`/places/${placeId}/counsellors?modality=${modality}`);
 }
+
+/* verify / pause / activate a counsellor in the admin's own area */
+export const manageCounsellor = (id, action, reason = null) => call('manage_counsellor', { p_counsellor: id, p_action: action, p_reason: reason });

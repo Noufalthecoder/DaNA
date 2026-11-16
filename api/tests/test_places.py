@@ -340,3 +340,14 @@ def test_python_ranking_equals_sql_find_slots_from_every_real_place(mode, sql_mo
     for origin in ROWS:
         got = [c["id"] for c in places.rank_counsellors(origin, ks, BY_ID, slots, mode)]
         assert got == GOLDEN["orders"][f"{origin['id']}-{mode}"], (origin["city"], mode)
+
+
+def test_only_admins_manage_counsellors_and_only_known_actions(api):
+    for role in ("couple", "counsellor"):
+        client, db = api(role)
+        assert client.post("/counsellors/k1/manage", json={"action": "verify"}).status_code == 403 and db.rpcs == []
+    client, db = api("admin")
+    assert client.post("/counsellors/k1/manage", json={"action": "verify", "reason": "licence checked"}).status_code == 200
+    assert db.rpcs == [("manage_counsellor", {"p_counsellor": "k1", "p_action": "verify", "p_reason": "licence checked"})]
+    assert client.post("/counsellors/k1/manage", json={"action": "delete"}).status_code == 422
+    assert client.post("/counsellors/k1/manage", json={"action": "pause", "extra": 1}).status_code == 422
