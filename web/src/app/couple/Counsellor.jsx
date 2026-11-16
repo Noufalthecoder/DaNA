@@ -15,14 +15,17 @@ import {
   FileText,
   Navigation,
   Info,
-  CheckCircle
+  CheckCircle,
+  Sparkles,
+  Star
 } from 'lucide-react';
-import { Page, Card, Avatar } from '../shared/ui.jsx';
+import { Page, Card, Avatar, Badge } from '../shared/ui.jsx';
 import { useStore } from '../shared/store.js';
-import { SLOTS, INITIAL_SCHEDULE } from '../shared/data.js';
+import { SLOTS, INITIAL_SCHEDULE, COUNSELLORS } from '../shared/data.js';
 import { book as bookSlot, cancelBooking, rescheduleAppointment, confirmAppointment, isLive } from '../shared/db.js';
 import SlotFinder from './SlotFinder.jsx';
 import { syncConsultationsFromSupabase } from '../shared/consultationService.js';
+import { getRecommendedCounsellors } from '../shared/counsellorMatcher.js';
 import './counsellor.css';
 
 export default function Counsellor() {
