@@ -23,7 +23,7 @@ DRY = '--dry' in sys.argv
 ACC = json.load(open(HERE / 'accounts.json'))
 L_URL, R_URL = 'http://localhost:5173', 'https://dana-gamma-seven.vercel.app'
 STAGE_PORT = 5199
-PACE = 0.75          # scales every 'hold' (reading time); lower = shorter video
+PACE = 0.42          # scales every 'hold' (reading time); lower = shorter video
 log = lambda *a: print(time.strftime('%H:%M:%S'), *a, flush=True)
 
 
@@ -139,8 +139,19 @@ def go(show, side, path):
     own = show._cut is None
     if own:
         show.cut_start()
-    show.js('([id, u]) => stage.load(id, u)', [side, f'{base}/#{path}'])
-    show.wait(3.2)
+    fr = frame(show.pg, side)
+    for attempt in range(3):
+        if attempt:  # a full fresh load of the page
+            show.js('([id, u]) => stage.load(id, u)', [side, 'about:blank']); show.wait(0.4)
+        show.js('([id, u]) => stage.load(id, u)', [side, f'{base}/#{path}'])
+        show.wait(3.0)
+        try:
+            here = fr.locator('body').evaluate('() => location.hash')
+        except Exception:
+            here = ''
+        if not path.startswith('/app') or here.split('?')[0] == '#' + path:
+            break
+        log('page check:', side, 'wanted', path, 'got', here)
     if own:
         show.cut_end()
 
@@ -236,12 +247,27 @@ def english_wav(text, path):
     subprocess.run(['powershell', '-NoProfile', '-Command', ps], check=False)
 
 
+def arabic_wav(text, path):
+    """the same Arabic voice the app plays, straight from the DaNA voice server"""
+    import urllib.request
+    try:
+        req = urllib.request.Request('https://dana-api-589n.onrender.com/tts', method='POST',
+                                     data=json.dumps({'text': text, 'lang': 'ar', 'voice': 'M'}).encode(),
+                                     headers={'Authorization': 'Bearer ' + TOKENS['male'], 'Content-Type': 'application/json'})
+        with urllib.request.urlopen(req, timeout=90) as r:
+            path.write_bytes(r.read())
+        return path.stat().st_size > 1000
+    except Exception as e:
+        log('arabic voice not fetched:', e)
+        return False
+
+
 # ------------------------------------------------------------------ the storyboard
 def run(show, ctx):
     pg = show.pg
     L, R = frame(pg, 'L'), frame(pg, 'R')
     last_tts = {}
-    ctx.on('response', lambda r: last_tts.update(body=r.body(), url=r.url) if '/tts' in r.url and r.status == 200 and r.request.method == 'POST' else None)
+    ctx.on('response', lambda r: last_tts.update(resp=r) if '/tts' in r.url and r.request.method == 'POST' else None)
 
     # --- pre-roll (cut): both people signed in
     show.cut_start()
@@ -252,7 +278,7 @@ def run(show, ctx):
     show.cut_end()
 
     # 1. title
-    show.card('DaNA', 'Premarital genetic screening, explained in plain words', 'Abu Dhabi · Future Health Challenge 2026', secs=4)
+    show.card('DaNA', 'Premarital genetic screening, explained in plain words', 'Abu Dhabi · Future Health Challenge 2026', secs=3)
 
     # 2. Fatima sets up (onboarding outside the app)
     show.layout('R'); go(show, 'R', '/onboarding'); show.wait(2.5)
@@ -291,12 +317,13 @@ def run(show, ctx):
             break
         show.act(nxt(), zoom=0, hold=0.3, name='continue')
     show.cut_start(); first_visible(R, 'button:has-text("Enter DaNA")', timeout=90000); show.cut_end()
-    show.look(R.locator('.ob, body').first, 'The record arrives exactly as Malaffi holds it.', zoom=1.0, hold=2.5, name='malaffi')
-    show.act(R.locator('button:has-text("Enter DaNA")'), zoom=1.7, hold=1.2, name='enter')
+    show.act(R.locator('button:has-text("Enter DaNA")'), zoom=1.7, hold=0.8, name='enter')
+    go(show, 'R', '/app/malaffi')
+    show.look(first_visible(R, 'table'), 'Her record arrives <b>exactly as Malaffi holds it</b>: the genetic test and blood tests.', zoom=1.3, hold=2.5, name='malaffi')
 
     # 3. her own result
     show.wait(1.5); go(show, 'R', '/app/result'); show.wait(1)
-    show.look(first_visible(R, '.rs-hero h2', 'h1'), 'Her result in plain words: <b>a carrier is a healthy person</b>, not a patient.', zoom=1.5, hold=3, name='result_f')
+    show.look(first_visible(R, '.rs-hero h2', 'h1'), 'Her result in plain words: <b>a carrier is a healthy person</b>, not a patient.', zoom=1.5, hold=2.5, name='result_f')
 
     # 4. connect the couple
     show.layout('split')
@@ -346,19 +373,21 @@ def run(show, ctx):
     en = L.locator('.as-msg.dana').last.inner_text().split('\n')[0]
     show.act(L.locator('.as-msg.dana').last.locator('.as-play'), 'Every answer can be <b>read aloud</b>…', zoom=1.8, hold=0.3, name='listen_en')
     wav = OUT / 'voice_en.wav'; english_wav(en, str(wav)); show.sounds.append((show.t(), wav))
-    show.wait(min(9, 0.07 * len(en)))
+    show.wait(min(6, 0.06 * len(en)))
     show.act(L.locator('.as-input input'), '…or typed, or asked by voice with the microphone.', zoom=1.8, type_text='Is it my fault?', hold=0.5, name='type')
     L.locator('.as-input input').press('Enter'); show.wait(1.5)
+    last_tts.clear()  # the app prepares the Arabic voice as soon as the tab is chosen
     show.act(L.locator('.as-msg.dana').last.locator('.as-langs button:has-text("العربية")'), 'Every answer also in <b>Arabic and Urdu</b>, with a natural voice.', zoom=1.8, hold=1, name='ar')
-    last_tts.clear()
+    end = time.time() + 30
+    while not last_tts.get('resp') and time.time() < end:
+        show.wait(0.5)
     show.act(L.locator('.as-msg.dana').last.locator('.as-play'), zoom=1.8, hold=0.2, name='listen_ar')
     t_ar = show.t()
-    end = time.time() + 25
-    while not last_tts.get('body') and time.time() < end:
-        show.wait(0.5)
-    if last_tts.get('body'):
-        wav = OUT / 'voice_ar.wav'; wav.write_bytes(last_tts['body']); show.sounds.append((t_ar, wav))
-    show.wait(6)
+    ar_text = L.locator('.as-msg.dana').last.locator('[lang=ar]').first.inner_text()
+    wav = OUT / 'voice_ar.wav'
+    if arabic_wav(ar_text, wav):
+        show.sounds.append((t_ar, wav))
+    show.wait(4.5)
     tap(L.locator('.as-x')); show.wait(0.6)
 
     # 8. the whole app in three languages
@@ -367,17 +396,14 @@ def run(show, ctx):
     show.act(L.locator('.lang-sw button[lang=en]'), zoom=2.0, hold=1, name='lang_en')
 
     # 9. family + privacy
-    go(show, 'L', '/app/privacy'); show.wait(2)
-    show.look(first_visible(L, '.card:has-text("Who saw my data")'), '<b>Privacy</b>: Khalid sees every person who opened his data, and can withdraw consent.', zoom=1.5, hold=3, name='privacy')
 
     # 10. the health system view
     show.cut_start(); show.layout('R'); sign_in(show, 'R', 'admin'); show.tag('R', 'DoH programme team'); go(show, 'R', '/app/metrics'); show.cut_end()
-    show.look(first_visible(R, '.stats'), 'The DoH measures <b>understanding, counselling uptake and fairness across languages</b>.', zoom=1.35, hold=3.5, name='metrics')
-    show.look(first_visible(R, '.mt-why'), 'Success is understanding and access, <b>never whether a marriage goes ahead</b>.', zoom=1.5, hold=3, name='why')
+    show.look(first_visible(R, '.stats'), 'The DoH measures <b>understanding, counselling uptake and fairness across languages</b>, never marriages.', zoom=1.35, hold=4, name='metrics')
 
     # 11. end
     show.cap('')
-    show.card('DaNA', 'Understand. Choose. Together.', 'Private by design · Arabic · English · Urdu', secs=4)
+    show.card('DaNA', 'Understand. Choose. Together.', 'Private by design · Arabic · English · Urdu', secs=3)
 
 
 # ------------------------------------------------------------------ build the final video
