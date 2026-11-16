@@ -1,0 +1,335 @@
+[
+{
+"id": 1,
+"city": "Downtown Dubai",
+"city_ascii": "Downtown Dubai",
+"state_name": "Dubai",
+"country_code": "AE",
+"latitude": 25.1972,
+"longitude": 55.2744
+},
+{
+"id": 2,
+"city": "Dubai Marina",
+"city_ascii": "Dubai Marina",
+"state_name": "Dubai",
+"country_code": "AE",
+"latitude": 25.0805,
+"longitude": 55.1403
+},
+{
+"id": 3,
+"city": "Jumeirah",
+"city_ascii": "Jumeirah",
+"state_name": "Dubai",
+"country_code": "AE",
+"latitude": 25.2048,
+"longitude": 55.238
+},
+{
+"id": 4,
+"city": "Deira",
+"city_ascii": "Deira",
+"state_name": "Dubai",
+"country_code": "AE",
+"latitude": 25.2697,
+"longitude": 55.3095
+},
+{
+"id": 5,
+"city": "Bur Dubai",
+"city_ascii": "Bur Dubai",
+"state_name": "Dubai",
+"country_code": "AE",
+"latitude": 25.2582,
+"longitude": 55.2972
+},
+{
+"id": 6,
+"city": "Business Bay",
+"city_ascii": "Business Bay",
+"state_name": "Dubai",
+"country_code": "AE",
+"latitude": 25.185,
+"longitude": 55.263
+},
+{
+"id": 7,
+"city": "Al Barsha",
+"city_ascii": "Al Barsha",
+"state_name": "Dubai",
+"country_code": "AE",
+"latitude": 25.111,
+"longitude": 55.2
+},
+{
+"id": 8,
+"city": "Palm Jumeirah",
+"city_ascii": "Palm Jumeirah",
+"state_name": "Dubai",
+"country_code": "AE",
+"latitude": 25.1124,
+"longitude": 55.139
+},
+{
+"id": 9,
+"city": "Jumeirah Beach Residence",
+"city_ascii": "Jumeirah Beach Residence",
+"state_name": "Dubai",
+"country_code": "AE",
+"latitude": 25.078,
+"longitude": 55.133
+},
+{
+"id": 10,
+"city": "DIFC",
+"city_ascii": "DIFC",
+"state_name": "Dubai",
+"country_code": "AE",
+"latitude": 25.213,
+"longitude": 55.282
+},
+{
+"id": 11,
+"city": "Mirdif",
+"city_ascii": "Mirdif",
+"state_name": "Dubai",
+"country_code": "AE",
+"latitude": 25.217,
+"longitude": 55.42
+},
+{
+"id": 12,
+"city": "Al Quoz",
+"city_ascii": "Al Quoz",
+"state_name": "Dubai",
+"country_code": "AE",
+"latitude": 25.14,
+"longitude": 55.235
+},
+{
+"id": 13,
+"city": "International City",
+"city_ascii": "International City",
+"state_name": "Dubai",
+"country_code": "AE",
+"latitude": 25.166,
+"longitude": 55.407
+},
+{
+"id": 14,
+"city": "Dubai Silicon Oasis",
+"city_ascii": "Dubai Silicon Oasis",
+"state_name": "Dubai",
+"country_code": "AE",
+"latitude": 25.121,
+"longitude": 55.381
+},
+{
+"id": 15,
+"city": "Jumeirah Village Circle",
+"city_ascii": "Jumeirah Village Circle",
+"state_name": "Dubai",
+"country_code": "AE",
+"latitude": 25.058,
+"longitude": 55.208
+},
+{
+"id": 16,
+"city": "Jumeirah Village Triangle",
+"city_ascii": "Jumeirah Village Triangle",
+"state_name": "Dubai",
+"country_code": "AE",
+"latitude": 25.044,
+"longitude": 55.171
+},
+{
+"id": 17,
+"city": "Arabian Ranches",
+"city_ascii": "Arabian Ranches",
+"state_name": "Dubai",
+"country_code": "AE",
+"latitude": 25.058,
+"longitude": 55.27
+},
+{
+"id": 18,
+"city": "Discovery Gardens",
+"city_ascii": "Discovery Gardens",
+"state_name": "Dubai",
+"country_code": "AE",
+"latitude": 25.036,
+"longitude": 55.147
+},
+{
+"id": 19,
+"city": "Dubai Sports City",
+"city_ascii": "Dubai Sports City",
+"state_name": "Dubai",
+"country_code": "AE",
+"latitude": 25.046,
+"longitude": 55.218
+},
+{
+"id": 20,
+"city": "Al Karama",
+"city_ascii": "Al Karama",
+"state_name": "Dubai",
+"country_code": "AE",
+"latitude": 25.247,
+"longitude": 55.304
+},
+{
+"id": 21,
+"city": "Abu Dhabi",
+"city_ascii": "Abu Dhabi",
+"state_name": "Abu Dhabi",
+"country_code": "AE",
+"latitude": 24.4539,
+"longitude": 54.3773
+},
+{
+"id": 22,
+"city": "Al Ain",
+"city_ascii": "Al Ain",
+"state_name": "Abu Dhabi",
+"country_code": "AE",
+"latitude": 24.2075,
+"longitude": 55.7447
+},
+{
+"id": 23,
+"city": "Al Maryah Island",
+"city_ascii": "Al Maryah Island",
+"state_name": "Abu Dhabi",
+"country_code": "AE",
+"latitude": 24.5027,
+"longitude": 54.3897
+},
+{
+"id": 24,
+"city": "Al Reem Island",
+"city_ascii": "Al Reem Island",
+"state_name": "Abu Dhabi",
+"country_code": "AE",
+"latitude": 24.4981,
+"longitude": 54.4047
+},
+{
+"id": 25,
+"city": "Khalifa City",
+"city_ascii": "Khalifa City",
+"state_name": "Abu Dhabi",
+"country_code": "AE",
+"latitude": 24.4217,
+"longitude": 54.5767
+},
+{
+"id": 26,
+"city": "Madinat Zayed",
+"city_ascii": "Madinat Zayed",
+"state_name": "Abu Dhabi",
+"country_code": "AE",
+"latitude": 23.6522,
+"longitude": 53.6536
+},
+{
+"id": 27,
+"city": "Mussafah",
+"city_ascii": "Mussafah",
+"state_name": "Abu Dhabi",
+"country_code": "AE",
+"latitude": 24.3575,
+"longitude": 54.4856
+},
+{
+"id": 28,
+"city": "Ruwais",
+"city_ascii": "Ruwais",
+"state_name": "Abu Dhabi",
+"country_code": "AE",
+"latitude": 24.1103,
+"longitude": 52.7306
+},
+{
+"id": 29,
+"city": "Saadiyat Island",
+"city_ascii": "Saadiyat Island",
+"state_name": "Abu Dhabi",
+"country_code": "AE",
+"latitude": 24.5378,
+"longitude": 54.4297
+},
+{
+"id": 30,
+"city": "Yas Island",
+"city_ascii": "Yas Island",
+"state_name": "Abu Dhabi",
+"country_code": "AE",
+"latitude": 24.4672,
+"longitude": 54.6036
+},
+{
+"id": 31,
+"city": "Ajman",
+"city_ascii": "Ajman",
+"state_name": "Ajman",
+"country_code": "AE",
+"latitude": 25.4052,
+"longitude": 55.5136
+},
+{
+"id": 32,
+"city": "Fujairah",
+"city_ascii": "Fujairah",
+"state_name": "Fujairah",
+"country_code": "AE",
+"latitude": 25.1288,
+"longitude": 56.3265
+},
+{
+"id": 33,
+"city": "Ras Al Khaimah",
+"city_ascii": "Ras Al Khaimah",
+"state_name": "Ras Al Khaimah",
+"country_code": "AE",
+"latitude": 25.7895,
+"longitude": 55.9432
+},
+{
+"id": 34,
+"city": "Kalba",
+"city_ascii": "Kalba",
+"state_name": "Sharjah",
+"country_code": "AE",
+"latitude": 25.0513,
+"longitude": 56.3542
+},
+{
+"id": 35,
+"city": "Khor Fakkan",
+"city_ascii": "Khor Fakkan",
+"state_name": "Sharjah",
+"country_code": "AE",
+"latitude": 25.3392,
+"longitude": 56.3561
+},
+{
+"id": 36,
+"city": "Sharjah",
+"city_ascii": "Sharjah",
+"state_name": "Sharjah",
+"country_code": "AE",
+"latitude": 25.3463,
+"longitude": 55.4209
+},
+{
+"id": 37,
+"city": "Umm Al Quwain",
+"city_ascii": "Umm Al Quwain",
+"state_name": "Umm Al Quwain",
+"country_code": "AE",
+"latitude": 25.5647,
+"longitude": 55.5552
+}
+]
