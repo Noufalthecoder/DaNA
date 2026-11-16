@@ -42,6 +42,35 @@ drop policy if exists locations_read on public.locations;
 create policy locations_read on public.locations for select to anon, authenticated using (true);
 grant select on public.locations to anon, authenticated;
 
+-- 1b. Live holds only Dubai areas. Add the other emirates (skips anything already there).
+do $$
+declare has_default boolean; base bigint; src bigint;
+begin
+  select column_default is not null into has_default
+    from information_schema.columns where table_schema = 'public' and table_name = 'locations' and column_name = 'id';
+  select coalesce(max(id), 0) into base from public.locations;
+  select greatest(coalesce(max(source_id), 0), 9000000000) into src from public.locations;  -- DaNA's own range, clear of SimpleMaps ids
+  create temp table _uae (city text, state text, lat double precision, lon double precision) on commit drop;
+  insert into _uae values
+    ('Abu Dhabi', 'Abu Dhabi', 24.4539, 54.3773), ('Al Maryah Island', 'Abu Dhabi', 24.5027, 54.3897),
+    ('Al Reem Island', 'Abu Dhabi', 24.4981, 54.4047), ('Saadiyat Island', 'Abu Dhabi', 24.5378, 54.4297),
+    ('Yas Island', 'Abu Dhabi', 24.4672, 54.6036), ('Khalifa City', 'Abu Dhabi', 24.4217, 54.5767),
+    ('Mussafah', 'Abu Dhabi', 24.3575, 54.4856), ('Al Ain', 'Abu Dhabi', 24.2075, 55.7447),
+    ('Madinat Zayed', 'Abu Dhabi', 23.6522, 53.6536), ('Ruwais', 'Abu Dhabi', 24.1103, 52.7306),
+    ('Sharjah', 'Sharjah', 25.3463, 55.4209), ('Khor Fakkan', 'Sharjah', 25.3392, 56.3561), ('Kalba', 'Sharjah', 25.0513, 56.3542),
+    ('Ajman', 'Ajman', 25.4052, 55.5136), ('Ras Al Khaimah', 'Ras Al Khaimah', 25.7895, 55.9432),
+    ('Fujairah', 'Fujairah', 25.1288, 56.3265), ('Umm Al Quwain', 'Umm Al Quwain', 25.5647, 55.5552);
+  if has_default then
+    insert into public.locations (source_id, city, city_ascii, state_name, country, country_code, latitude, longitude)
+    select src + row_number() over (order by u.state, u.city), u.city, u.city, u.state, 'United Arab Emirates', 'AE', u.lat, u.lon from _uae u
+    where not exists (select 1 from public.locations l where l.country_code = 'AE' and lower(l.city) = lower(u.city) and coalesce(l.state_name, '') = u.state);
+  else
+    insert into public.locations (id, source_id, city, city_ascii, state_name, country, country_code, latitude, longitude)
+    select base + row_number() over (order by u.state, u.city), src + row_number() over (order by u.state, u.city), u.city, u.city, u.state, 'United Arab Emirates', 'AE', u.lat, u.lon from _uae u
+    where not exists (select 1 from public.locations l where l.country_code = 'AE' and lower(l.city) = lower(u.city) and coalesce(l.state_name, '') = u.state);
+  end if;
+end $$;
+
 -- 2. Location columns
 alter table public.counsellors add column if not exists location_id bigint references public.locations (id) on delete set null;
 alter table public.counsellors add column if not exists offers_in_person boolean not null default true;
