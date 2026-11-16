@@ -206,19 +206,6 @@ export function addReferral(coupleId, destination, priority, reason) {
 }
 
 /* Save screening intake (live to screening table, offline to store) */
-/* Map a couple member to a place from the city they typed. Never overwrites a place they already chose, and never
-   guesses: only a name that is exactly one real area is saved ('Sharjah', 'Dubai Marina'). A bare emirate such as
-   'Dubai' is left alone so the slot finder asks which area they live in. */
-async function mapPersonFromCity(city) {
-  if (!isLive() || !city) return;
-  try {
-    const cur = await api('/me/location');
-    if (cur.place) return;
-    const { best } = await api(`/places/resolve?text=${encodeURIComponent(city)}`);
-    if (best && best.precision === 'area') await api('/me/location', { method: 'PUT', body: { location_id: best.id } });
-  } catch { /* best effort */ }
-}
-
 export async function saveScreeningIntake(personId, intakeData) {
   const danaId = intakeData.danaId || generateDanaId(personId);
   const dataToSave = {
@@ -262,8 +249,6 @@ export async function saveScreeningIntake(personId, intakeData) {
           await supabase.from('accounts').update({ dana_id: danaId }).eq('user_id', user.id);
         } catch { }
       }
-      // map the person to a place from the city they typed (only when they have none yet)
-      if (get().session?.role === 'couple') await mapPersonFromCity(dataToSave.personal?.city);
     } catch (e) {
       console.warn('screening live save error (table may not be created yet):', e.message);
     }

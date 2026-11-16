@@ -5,7 +5,7 @@ import { Card } from './ui.jsx';
 import LocationPicker from './LocationPicker.jsx';
 import { myHomeLocation, setMyLocation, loadLocations, locationName } from './locationService.js';
 import { myIdentity, isLive } from './db.js';
-import { get, set } from './store.js';
+import { get, set, useStore } from './store.js';
 import './location.css';
 
 export default function HomeLocation() {
@@ -24,7 +24,7 @@ export default function HomeLocation() {
         loadLocations(),
       ]);
       if (off) return;
-      setSaved(mine); setValue(mine);
+      setSaved(mine); setValue(mine); set({ myHomeLocation: mine ?? null });
       if (ident?.home_location_id) setFromUaePass(locationName(groups, ident.home_location_id));
     })();
     return () => { off = true; };
@@ -35,7 +35,7 @@ export default function HomeLocation() {
     setBusy(true); setMsg(null);
     try {
       const label = isLive() ? await setMyLocation(value) : (set({ session: { ...get().session, homeLocation: value } }), 'Saved');
-      setSaved(value); setMsg({ ok: `Saved: ${label}` });
+      setSaved(value); set({ myHomeLocation: value }); setMsg({ ok: `Saved: ${label}` });
     } catch (e) { setMsg({ err: e.message }); }
     setBusy(false);
   };
@@ -56,4 +56,24 @@ export default function HomeLocation() {
       </div>
     </Card>
   );
+}
+
+/* The saved home area as text, for forms that show it but do not edit it (one place to change it: Profile). */
+export function HomeLocationText({ className }) {
+  const id = useStore((s) => s.myHomeLocation);
+  const [label, setLabel] = useState('');
+  useEffect(() => {
+    let off = false;
+    (async () => {
+      let place = id;
+      if (place === undefined) {
+        place = isLive() ? await myHomeLocation().catch(() => null) : (get().session?.homeLocation ?? null);
+        if (!off) set({ myHomeLocation: place ?? null });
+      }
+      const groups = await loadLocations();
+      if (!off) setLabel(place ? locationName(groups, place) : '');
+    })();
+    return () => { off = true; };
+  }, [id]);
+  return <span className={className}>{label || 'Not set yet'}</span>;
 }

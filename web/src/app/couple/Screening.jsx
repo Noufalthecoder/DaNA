@@ -8,6 +8,7 @@ import { saveScreeningIntake } from '../shared/db.js';
 import { buildTreeFromIntake } from '../shared/family.js';
 import { setUserScreened } from '../shared/screeningPersistence.js';
 import { go } from '../shared/router.js';
+import { HomeLocationText } from '../shared/HomeLocation.jsx';
 
 const STEPS = [
   { id: 1, label: 'User info' },
@@ -67,7 +68,6 @@ export default function Screening() {
           phone: authPhone,
           email: authEmail,
           nationality: 'United Arab Emirates',
-          city: 'Abu Dhabi',
           partnerName: resolvePartnerName(),
           maritalStatus: 'Married',
           pregnancyStatus: '',
@@ -752,20 +752,8 @@ export default function Screening() {
                   )}
                 </div>
                 <div className="form-group">
-                  <label>City / Emirate</label>
-                  <select
-                    className="form-control"
-                    value={personal.city}
-                    onChange={(e) => setPersonal({ ...personal, city: e.target.value })}
-                  >
-                    <option value="Abu Dhabi">Abu Dhabi</option>
-                    <option value="Dubai">Dubai</option>
-                    <option value="Sharjah">Sharjah</option>
-                    <option value="Ajman">Ajman</option>
-                    <option value="Ras Al Khaimah">Ras Al Khaimah</option>
-                    <option value="Fujairah">Fujairah</option>
-                    <option value="Umm Al Quwain">Umm Al Quwain</option>
-                  </select>
+                  <label>Where you live</label>
+                  <div className="form-control pf-readonly"><HomeLocationText /> <a href="#/app/profile">Change in Profile</a></div>
                 </div>
               </div>
 
@@ -1421,7 +1409,7 @@ export default function Screening() {
                   <div><span>Emirates ID</span><b>{personal.emiratesId}</b></div>
                   <div><span>Assigned DaNA ID</span><b style={{ color: 'var(--green)' }}>{personal.danaId || existingIntake?.danaId || generateDanaId(session?.id || me.id)}</b></div>
                   <div><span>Date of Birth / Sex</span><b>{personal.dob} · {personal.gender}</b></div>
-                  <div><span>Contact</span><b>{personal.phone} · {personal.city}</b></div>
+                  <div><span>Contact</span><b>{personal.phone} · <HomeLocationText /></b></div>
                   <div><span>Partner's Legal Name</span><b>{personal.partnerName || 'Not specified'}</b></div>
                   <div><span>Marital Status</span><b>{personal.maritalStatus || 'Not specified'}</b></div>
                   {personal.gender !== 'Male' && (
