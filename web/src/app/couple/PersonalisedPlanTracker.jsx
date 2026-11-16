@@ -444,7 +444,7 @@ export default function PersonalisedPlanTracker() {
                 </tr>
               </thead>
               <tbody>
-                {CARE_PLAN_STAGES.map((stg) => {
+                {CARE_PLAN_STAGES.filter((stg) => isPregnancyActive || stg.id <= 4).map((stg) => {
                   const completedCount = stg.items.filter((it) => plan.completedItems?.includes(it.id)).length;
                   const totalCount = stg.items.length;
                   const isDone = stg.id < (plan.activeStageId || 3);
@@ -592,7 +592,7 @@ export default function PersonalisedPlanTracker() {
         </div>
 
         <div className="cpt-stages-list">
-          {CARE_PLAN_STAGES.map((stage) => {
+          {CARE_PLAN_STAGES.filter((stage) => isPregnancyActive || stage.id <= 4).map((stage) => {
             const isExpanded = !!expandedStages[stage.id];
             const stageItems = stage.items.map((i) => i.id);
             const completedCount = stageItems.filter((id) =>
@@ -709,79 +709,149 @@ export default function PersonalisedPlanTracker() {
                         </>
                       )}
                       {stage.id === 3 && (
-                        <>
-                          <a href="#/app/counsellor" className="btn-clean-sm btn-green-subtle">
-                            Book / Reschedule Counsellor Session →
-                          </a>
-                          {plan.followUp?.meetLink && (
-                            <a
-                              href={plan.followUp.meetLink}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="btn-clean-sm"
-                            >
-                              Join Video Consultation (Meet) <ExternalLink size={12} />
+                        <div style={{ marginTop: 12, padding: 12, background: '#F8FAFC', borderRadius: 8, border: '1px solid #E2E8F0', width: '100%' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                            <Stethoscope size={15} color="#00843D" />
+                            <b style={{ fontSize: '13px', color: '#0F172A' }}>Genetic Counselling with {dedicatedDoctor}</b>
+                            <Badge tone="amber">Mandatory Checkpoints</Badge>
+                          </div>
+                          <p style={{ fontSize: '12px', color: '#64748B', margin: '0 0 10px 0' }}>
+                            All 5 checkpoints (Booking, Session completion, Recommendations, Care plan sign-off, and Referrals) are mandatory before advancing to Family Planning.
+                          </p>
+                          <div className="cpt-stage-footer-actions" style={{ borderTop: 'none', paddingTop: 0 }}>
+                            <a href="#/app/counsellor" className="btn-clean-sm btn-green-subtle">
+                              Book / Manage Counsellor Session →
                             </a>
-                          )}
-                        </>
+                            {plan.followUp?.meetLink && (
+                              <a
+                                href={plan.followUp.meetLink}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn-clean-sm"
+                              >
+                                Join Video Consultation (Meet) <ExternalLink size={12} />
+                              </a>
+                            )}
+                          </div>
+                        </div>
                       )}
                       {stage.id === 4 && (
-                        <>
-                          <a href="#/app/bonds" className="btn-clean-sm">
-                            Confirm Conception Protocol →
-                          </a>
-                          <button
-                            type="button"
-                            className="btn-clean-sm"
-                            onClick={() => setShowPregnancyModal(true)}
-                          >
-                            Declare Pregnancy / Gestational Age →
-                          </button>
-                        </>
+                        <div style={{ marginTop: 12, borderTop: '1px solid #E2E8F0', paddingTop: 12, width: '100%' }}>
+                          <h5 style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A', marginBottom: 8 }}>
+                            Family Planning Pathway · اختيار المسار الإنجابي
+                          </h5>
+                          <div className="cpt-situation-grid">
+                            <div
+                              className={`cpt-situation-card ${plan.familyPlanningChoice === 'planning_to_conceive' ? 'is-selected' : ''}`}
+                              onClick={() => handleSelectSituation('planning_to_conceive')}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <div className="cpt-situation-icon-wrap"><Heart size={18} color="#00843D" /></div>
+                              <div style={{ flex: 1 }}>
+                                <b className="cpt-situation-title">Planning to conceive</b>
+                                <p className="cpt-situation-desc">Track preconception care and relevant appointments.</p>
+                              </div>
+                              {plan.familyPlanningChoice === 'planning_to_conceive' && <CheckCircle2 size={18} color="#00843D" />}
+                            </div>
+
+                            <div
+                              className={`cpt-situation-card ${plan.pregnancy?.isPregnant || plan.familyPlanningChoice === 'pregnant' ? 'is-selected' : ''}`}
+                              onClick={() => handleSelectSituation('pregnant')}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <div className="cpt-situation-icon-wrap"><Baby size={18} color="#00843D" /></div>
+                              <div style={{ flex: 1 }}>
+                                <b className="cpt-situation-title">I'm pregnant</b>
+                                <p className="cpt-situation-desc">Activate pregnancy tracking and record details.</p>
+                              </div>
+                              {(plan.pregnancy?.isPregnant || plan.familyPlanningChoice === 'pregnant') && <CheckCircle2 size={18} color="#00843D" />}
+                            </div>
+
+                            <div
+                              className={`cpt-situation-card ${plan.familyPlanningChoice === 'not_planning' ? 'is-selected' : ''}`}
+                              onClick={() => handleSelectSituation('not_planning')}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <div className="cpt-situation-icon-wrap"><Calendar size={18} color="#475569" /></div>
+                              <div style={{ flex: 1 }}>
+                                <b className="cpt-situation-title">Not planning currently</b>
+                                <p className="cpt-situation-desc">Keep your journey open for later.</p>
+                              </div>
+                              {plan.familyPlanningChoice === 'not_planning' && <CheckCircle2 size={18} color="#00843D" />}
+                            </div>
+
+                            <div
+                              className={`cpt-situation-card ${plan.familyPlanningChoice === 'deferred' ? 'is-selected' : ''}`}
+                              onClick={() => handleSelectSituation('deferred')}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <div className="cpt-situation-icon-wrap"><Clock size={18} color="#475569" /></div>
+                              <div style={{ flex: 1 }}>
+                                <b className="cpt-situation-title">Decision deferred</b>
+                                <p className="cpt-situation-desc">Continue when you are ready.</p>
+                              </div>
+                              {plan.familyPlanningChoice === 'deferred' && <CheckCircle2 size={18} color="#00843D" />}
+                            </div>
+                          </div>
+                        </div>
                       )}
                       {stage.id === 5 && (
-                        <>
-                          <button
-                            type="button"
-                            className="btn-clean-sm btn-green-subtle"
-                            onClick={() => setShowPregnancyModal(true)}
-                          >
-                            Update Gestational Weeks & Ultrasound Checkpoints →
-                          </button>
-                          <span className="cpt-status-pill">
-                            Current: {plan.pregnancy?.weeks ? `${plan.pregnancy.weeks} Weeks` : 'Gestational Tracking Ready'}
-                          </span>
-                        </>
+                        <div style={{ marginTop: 12, borderTop: '1px solid #E2E8F0', paddingTop: 12, width: '100%' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>
+                              {plan.pregnancy?.isPregnant
+                                ? `Gestational Age: ${plan.pregnancy.weeks ? `${plan.pregnancy.weeks} Weeks` : 'Recorded'} · EDD: ${plan.pregnancy.edd ? new Date(plan.pregnancy.edd).toLocaleDateString('en-GB') : 'Not set'}`
+                                : 'No active pregnancy recorded · Tap to enter details'}
+                            </span>
+                            <button
+                              type="button"
+                              className="btn-clean-sm btn-green-subtle"
+                              onClick={() => setShowPregnancyModal(true)}
+                            >
+                              {plan.pregnancy?.isPregnant ? 'Update Pregnancy Record →' : 'Record Pregnancy Details →'}
+                            </button>
+                          </div>
+                        </div>
                       )}
                       {stage.id === 6 && (
-                        <>
-                          <button
-                            type="button"
-                            className="btn-clean-sm"
-                            onClick={() => setShowPregnancyModal(true)}
-                          >
-                            Set Expected Delivery Date & Hospital →
-                          </button>
-                          <span className="cpt-status-pill">
-                            EDD: {plan.pregnancy?.edd || 'Mid 2027'} · {plan.pregnancy?.deliveryHospital?.split(',')[0]}
-                          </span>
-                        </>
+                        <div style={{ marginTop: 12, borderTop: '1px solid #E2E8F0', paddingTop: 12, width: '100%' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>
+                              {plan.pregnancy?.deliveryHospital || plan.pregnancy?.edd
+                                ? `Hospital: ${plan.pregnancy?.deliveryHospital || 'Pending'} · EDD: ${plan.pregnancy?.edd ? new Date(plan.pregnancy.edd).toLocaleDateString('en-GB') : 'Pending'}`
+                                : 'Delivery hospital and EDD pending confirmation'}
+                            </span>
+                            <button
+                              type="button"
+                              className="btn-clean-sm"
+                              onClick={() => setShowPregnancyModal(true)}
+                            >
+                              Set EDD & Delivery Provider →
+                            </button>
+                          </div>
+                        </div>
                       )}
                       {stage.id === 7 && (
-                        <>
-                          <button
-                            type="button"
-                            className="btn-clean-sm btn-green-subtle"
-                            onClick={() => setShowBirthModal(true)}
-                          >
-                            <Baby size={14} /> Log Newborn Delivery & Screening Details →
-                          </button>
-                          <span className="cpt-status-pill">
-                            {plan.childbirth?.delivered
-                              ? `Baby ${plan.childbirth?.babyName || 'Zayed'} · Screen ${plan.childbirth?.newbornScreenStatus}`
-                              : 'Awaiting Delivery Protocol'}
-                          </span>
-                        </>
+                        <div style={{ marginTop: 12, borderTop: '1px solid #E2E8F0', paddingTop: 12, width: '100%' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>
+                              {plan.childbirth?.delivered
+                                ? `Baby: ${plan.childbirth?.babyName || 'Delivered'} · Born: ${plan.childbirth?.birthDate || 'Recorded'} · Screen: ${plan.childbirth?.newbornScreenStatus || 'Pending'}`
+                                : 'Childbirth details and national newborn screening awaiting delivery'}
+                            </span>
+                            <button
+                              type="button"
+                              className="btn-clean-sm btn-green-subtle"
+                              onClick={() => setShowBirthModal(true)}
+                            >
+                              <Baby size={14} /> Log Childbirth Details →
+                            </button>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -792,619 +862,7 @@ export default function PersonalisedPlanTracker() {
         </div>
       </section>
 
-      {/* ═════════════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION 3: Next actions (Image 3 Section 3)                                  */}
-      {/* ═════════════════════════════════════════════════════════════════════════════ */}
-      <section id="section-actions" className="cpt-section-card">
-        <div className="cpt-sec-header">
-          <div>
-            <span className="cpt-sec-tag">Section 3</span>
-            <h3 className="cpt-sec-title">Next Actions · الخطوات والإجراءات القادمة</h3>
-            <p className="cpt-sec-sub">
-              Priority actionable tasks recommended by your clinical team for your active stage.
-            </p>
-          </div>
-        </div>
-
-        <div className="cpt-action-cards-grid">
-          {/* Action 1 */}
-          <div className={`cpt-action-item ${completedActions.consultation ? 'done' : ''}`}>
-            <div className="cpt-action-top">
-              <button
-                type="button"
-                className="cpt-action-check"
-                onClick={() => toggleAction('consultation')}
-                title="Toggle done"
-              >
-                {completedActions.consultation ? <CheckCircle2 size={20} color="#16A34A" /> : <Circle size={20} color="#94A3B8" />}
-              </button>
-              <div style={{ flex: 1 }}>
-                <b className="cpt-action-title">1. Attend Genetic Counselling Consultation</b>
-                <p className="cpt-action-desc">
-                  Scheduled with <b>{dedicatedDoctor}</b> for {activeAppt ? `${formatDateLabel(activeAppt.date)} at ${activeAppt.time} (GST)` : '10 Nov 2026 at 13:30 (GST)'}. Discuss carrier match findings and PGT-M protocol.
-                </p>
-              </div>
-            </div>
-            <div className="cpt-action-links">
-              {plan.followUp?.meetLink && (
-                <a href={plan.followUp.meetLink} target="_blank" rel="noreferrer" className="btn-clean-sm btn-green-subtle">
-                  <Video size={13} /> Open Google Meet Link
-                </a>
-              )}
-              <a href="#/app/counsellor" className="btn-clean-sm">
-                Manage Booking
-              </a>
-            </div>
-          </div>
-
-          {/* Action 2 */}
-          <div className={`cpt-action-item ${completedActions.pgtm_review ? 'done' : ''}`}>
-            <div className="cpt-action-top">
-              <button
-                type="button"
-                className="cpt-action-check"
-                onClick={() => toggleAction('pgtm_review')}
-                title="Toggle done"
-              >
-                {completedActions.pgtm_review ? <CheckCircle2 size={20} color="#16A34A" /> : <Circle size={20} color="#94A3B8" />}
-              </button>
-              <div style={{ flex: 1 }}>
-                <b className="cpt-action-title">2. Review Reproductive Decision Pathway</b>
-                <p className="cpt-action-desc">
-                  Compare IVF with PGT-M against prenatal diagnosis. Review scholar-approved faith cards regarding assisted reproduction.
-                </p>
-              </div>
-            </div>
-            <div className="cpt-action-links">
-              <a href="#/app/bonds" className="btn-clean-sm">
-                Review Options in Bonds →
-              </a>
-            </div>
-          </div>
-
-          {/* Action 3 */}
-          <div className={`cpt-action-item ${completedActions.referral_check ? 'done' : ''}`}>
-            <div className="cpt-action-top">
-              <button
-                type="button"
-                className="cpt-action-check"
-                onClick={() => toggleAction('referral_check')}
-                title="Toggle done"
-              >
-                {completedActions.referral_check ? <CheckCircle2 size={20} color="#16A34A" /> : <Circle size={20} color="#94A3B8" />}
-              </button>
-              <div style={{ flex: 1 }}>
-                <b className="cpt-action-title">3. Confirm {plan.referrals?.[0]?.facility || 'Cleveland Clinic Abu Dhabi'} Referral</b>
-                <p className="cpt-action-desc">
-                  Requisition <b>#{plan.referrals?.[0]?.id || 'REF-2026-HBB-041'}</b> dispatched to Malaffi HIE for {plan.referrals?.[0]?.destination || 'the IVF & PGT-M Unit'}. Download clinical summary slip for your intake visit.
-                </p>
-              </div>
-            </div>
-            <div className="cpt-action-links">
-              <button type="button" className="btn-clean-sm" onClick={() => setShowPrintModal(true)}>
-                <Printer size={13} /> View Referral Slip
-              </button>
-            </div>
-          </div>
-
-          {/* Action 4 */}
-          <div className={`cpt-action-item ${completedActions.sila_outreach ? 'done' : ''}`}>
-            <div className="cpt-action-top">
-              <button
-                type="button"
-                className="cpt-action-check"
-                onClick={() => toggleAction('sila_outreach')}
-                title="Toggle done"
-              >
-                {completedActions.sila_outreach ? <CheckCircle2 size={20} color="#16A34A" /> : <Circle size={20} color="#94A3B8" />}
-              </button>
-              <div style={{ flex: 1 }}>
-                <b className="cpt-action-title">4. Extend Family Cascade Protection (Sila Alerts)</b>
-                <p className="cpt-action-desc">
-                  3 relatives reached anonymously. 2 eligible relatives remaining on your family pedigree. Protect siblings and cousins before marriage.
-                </p>
-              </div>
-            </div>
-            <div className="cpt-action-links">
-              <a href="#/app/roots" className="btn-clean-sm">
-                Send Anonymous Alerts in Roots →
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═════════════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION 4: Appointments & referrals (Image 3 Section 4)                      */}
-      {/* ═════════════════════════════════════════════════════════════════════════════ */}
-      <section id="section-appointments" className="cpt-section-card">
-        <div className="cpt-sec-header">
-          <div>
-            <span className="cpt-sec-tag">Section 4</span>
-            <h3 className="cpt-sec-title">Appointments & Referrals · المواعيد والتحويلات</h3>
-            <p className="cpt-sec-sub">
-              Traceable clinical specialist referrals and scheduled genetic consultations.
-            </p>
-          </div>
-        </div>
-
-        <div className="cpt-appts-grid">
-          {/* Active Consultation Card (Counselling session) */}
-          <div className="cpt-detail-card">
-            <div className="cpt-card-top-badge">
-              <Video size={16} color="#16A34A" />
-              <span>Genetic Counselling Consultation</span>
-              <Badge tone={activeAppt?.confirmed ? 'green' : activeAppt ? 'amber' : 'green'}>
-                {activeAppt?.confirmed ? 'Confirmed' : activeAppt ? 'Pending' : 'Confirmed'}
-              </Badge>
-            </div>
-
-            <h4 className="cpt-card-h4">{dedicatedDoctor} · Licensed Clinical Geneticist</h4>
-            <dl className="cpt-dl">
-              <dt>Session Date</dt>
-              <dd><b>{activeAppt ? `${formatDateLabel(activeAppt.date)} · ${activeAppt.time} (GST)` : 'Sunday, 10 Nov 2026 · 13:30 (GST)'}</b></dd>
-              <dt>Format & Modality</dt>
-              <dd>{activeAppt?.mode === 'offline' ? 'In-Person Clinic Visit' : 'Encrypted Telehealth (Google Meet)'}</dd>
-              <dt>Consultation Topic</dt>
-              <dd>{activeAppt?.what || 'Joint couple result interpretation, PGT-M pre-testing requirements, and Sanger validation.'}</dd>
-              <dt>Physical Clinic</dt>
-              <dd>{activeAppt?.clinicRoom ? `${activeAppt.clinicName} · ${activeAppt.clinicRoom}` : `${counsellorObj?.clinicName || counsellorObj?.clinic || 'Cleveland Clinic Abu Dhabi'} · ${counsellorObj?.clinicRoom || counsellorObj?.room || 'Building A · Room 204'}`}</dd>
-            </dl>
-
-            <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              {plan.followUp?.meetLink && (
-                <a
-                  href={plan.followUp.meetLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn-clean-sm btn-green-subtle"
-                >
-                  <Video size={13} /> Open Google Meet Link
-                </a>
-              )}
-              <a href="#/app/counsellor" className="btn-clean-sm">
-                Reschedule Session
-              </a>
-            </div>
-          </div>
-
-          {/* Specialist Referral Card: ONLY available once Stage 3 is confirmed & completed */}
-          {isStage3Confirmed ? (
-            ((plan.referrals && plan.referrals.length > 0) ? plan.referrals : [{
-              id: 'REF-2026-HBB-041',
-              facility: 'Cleveland Clinic Abu Dhabi · Fertility Center',
-              destination: 'IVF with PGT-M (Embryo Testing)',
-              priority: 'high',
-              reason: 'Both partners confirmed carriers of pathogenic HBB beta-globin gene mutations (c.20A>T & c.92+1G>A).',
-              status: 'dispatched',
-            }]).map((r, idx, arr) => (
-              <div key={r.id || idx} className="cpt-detail-card" style={{ marginTop: idx > 0 ? 14 : 0 }}>
-                <div className="cpt-card-top-badge">
-                  <Hospital size={16} color="#2563EB" />
-                  <span>Specialist Genomics Referral {arr.length > 1 ? `(${idx + 1}/${arr.length})` : ''}</span>
-                  <Badge tone={r.status === 'dispatched' || r.status === 'sent' || r.status === 'DISPATCHED' ? 'blue' : 'green'}>
-                    {r.status ? (r.status.charAt(0).toUpperCase() + r.status.slice(1).toLowerCase()) : 'Dispatched'}
-                  </Badge>
-                </div>
-
-                <h4 className="cpt-card-h4">{r.facility || 'Cleveland Clinic Abu Dhabi · Fertility Center'}</h4>
-                <dl className="cpt-dl">
-                  <dt>Service Destination</dt>
-                  <dd><b>{r.destination || 'IVF with PGT-M (Embryo Testing)'}</b></dd>
-                  <dt>Requisition Ref</dt>
-                  <dd><code>{r.id || 'REF-2026-HBB-041'}</code></dd>
-                  <dt>Clinical Priority</dt>
-                  <dd>
-                    <Badge tone={r.priority === 'urgent' ? 'red' : r.priority === 'high' ? 'amber' : 'blue'}>
-                      {r.priority ? (r.priority.charAt(0).toUpperCase() + r.priority.slice(1) + ' Priority') : 'High Priority (Carrier Match)'}
-                    </Badge>
-                  </dd>
-                  <dt>Clinical Indication</dt>
-                  <dd>{r.reason || 'Both partners confirmed carriers of pathogenic HBB beta-globin gene mutations (c.20A>T & c.92+1G>A).'}</dd>
-                  <dt>HIE Integration</dt>
-                  <dd>Dispatched through Malaffi · Confirmed received by facility</dd>
-                </dl>
-
-                <div style={{ marginTop: 14, display: 'flex', gap: 10 }}>
-                  <button
-                    type="button"
-                    className="btn-clean-sm btn-green-subtle"
-                    onClick={() => {
-                      setSelectedPrintReferral(r);
-                      setShowPrintModal(true);
-                    }}
-                  >
-                    <Printer size={13} /> Print Referral Slip
-                  </button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="cpt-detail-card cpt-detail-card-pending">
-              <div className="cpt-card-top-badge">
-                <Lock size={16} color="#D97706" />
-                <span>Specialist Referral</span>
-                <Badge tone="amber">Pending Stage 3 Consultation</Badge>
-              </div>
-              <h4 className="cpt-card-h4">Specialist Genomics Referral Requisition</h4>
-              <p style={{ fontSize: '13.5px', color: '#475569', lineHeight: 1.55, margin: '0 0 14px 0' }}>
-                Specialist clinical referrals (such as IVF with PGT-M or Prenatal Genetics) are issued by your counsellor {dedicatedDoctor} upon clinical confirmation of your consultation and approval of your joint reproductive care plan.
-              </p>
-              <div className="cpt-pending-hint">
-                <Clock size={13} style={{ color: '#D97706' }} />
-                <span>Unavailable until Stage 3 consultation is confirmed &amp; care plan approved</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ═════════════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION: Stage 4 · Family Planning (Image 3)                                  */}
-      {/* ═════════════════════════════════════════════════════════════════════════════ */}
-      <section id="section-family-planning" className="cpt-section-card">
-        <div className="cpt-sec-header">
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#00843D', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                Stage 4 · Family Planning
-              </span>
-              <Badge tone={isStage3Confirmed ? 'green' : 'grey'}>
-                {isStage3Confirmed ? 'Active' : 'Unavailable 🔒'}
-              </Badge>
-            </div>
-            <h3 className="cpt-sec-title">Your family planning journey · مسار تنظيم وبناء الأسرة</h3>
-            <p className="cpt-sec-sub">
-              {isStage3Confirmed
-                ? "You've completed your genetic counselling. You can now record your family-planning decision and access relevant next steps."
-                : `Complete your genetic counselling consultation with ${dedicatedDoctor} to record your family-planning decision and access tailored next steps.`}
-            </p>
-          </div>
-        </div>
-
-        {isStage3Confirmed ? (
-          <div>
-            <h4 style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A', marginBottom: 14 }}>
-              What's your current situation?
-            </h4>
-            <div className="cpt-situation-grid">
-              {/* Option 1: Planning to conceive */}
-              <div
-                className={`cpt-situation-card ${plan.familyPlanningChoice === 'planning_to_conceive' ? 'is-selected' : ''}`}
-                onClick={() => handleSelectSituation('planning_to_conceive')}
-                role="button"
-                tabIndex={0}
-              >
-                <div className="cpt-situation-icon-wrap">
-                  <Heart size={20} color="#00843D" />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <b className="cpt-situation-title">Planning to conceive</b>
-                  <p className="cpt-situation-desc">Track preconception care and relevant appointments.</p>
-                </div>
-                {plan.familyPlanningChoice === 'planning_to_conceive' && (
-                  <CheckCircle2 size={20} color="#00843D" />
-                )}
-              </div>
-
-              {/* Option 2: I'm pregnant */}
-              <div
-                className={`cpt-situation-card ${plan.pregnancy?.isPregnant || plan.familyPlanningChoice === 'pregnant' ? 'is-selected' : ''}`}
-                onClick={() => handleSelectSituation('pregnant')}
-                role="button"
-                tabIndex={0}
-              >
-                <div className="cpt-situation-icon-wrap">
-                  <Baby size={20} color="#00843D" />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <b className="cpt-situation-title">I'm pregnant</b>
-                  <p className="cpt-situation-desc">Activate pregnancy tracking and record pregnancy details.</p>
-                </div>
-                {(plan.pregnancy?.isPregnant || plan.familyPlanningChoice === 'pregnant') && (
-                  <CheckCircle2 size={20} color="#00843D" />
-                )}
-              </div>
-
-              {/* Option 3: Not planning currently */}
-              <div
-                className={`cpt-situation-card ${plan.familyPlanningChoice === 'not_planning' ? 'is-selected' : ''}`}
-                onClick={() => handleSelectSituation('not_planning')}
-                role="button"
-                tabIndex={0}
-              >
-                <div className="cpt-situation-icon-wrap">
-                  <Calendar size={20} color="#475569" />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <b className="cpt-situation-title">Not planning currently</b>
-                  <p className="cpt-situation-desc">Keep your family-planning journey open for later.</p>
-                </div>
-                {plan.familyPlanningChoice === 'not_planning' && (
-                  <CheckCircle2 size={20} color="#00843D" />
-                )}
-              </div>
-
-              {/* Option 4: Decision deferred */}
-              <div
-                className={`cpt-situation-card ${plan.familyPlanningChoice === 'deferred' ? 'is-selected' : ''}`}
-                onClick={() => handleSelectSituation('deferred')}
-                role="button"
-                tabIndex={0}
-              >
-                <div className="cpt-situation-icon-wrap">
-                  <PauseCircle size={20} color="#475569" />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <b className="cpt-situation-title">Decision deferred</b>
-                  <p className="cpt-situation-desc">Continue when you're ready.</p>
-                </div>
-                {plan.familyPlanningChoice === 'deferred' && (
-                  <CheckCircle2 size={20} color="#00843D" />
-                )}
-              </div>
-            </div>
-
-            {/* If 'Planning to conceive' is selected, show preconception actions */}
-            {plan.familyPlanningChoice === 'planning_to_conceive' && (
-              <div style={{ marginTop: 20, padding: 18, background: 'rgba(0, 132, 61, 0.04)', borderRadius: 12, border: '1px solid rgba(0, 132, 61, 0.2)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <Badge tone="green">Preconception Pathway Active</Badge>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>Assisted Reproductive Technology (ART) Protocol</span>
-                </div>
-                <p style={{ fontSize: 13, color: '#475569', margin: '0 0 12px 0', lineHeight: 1.5 }}>
-                  Based on your beta-thalassaemia carrier concordancy, your counsellor has initiated coordination with <b>Cleveland Clinic Abu Dhabi Fertility Center</b> for PGT-M (pre-implantation genetic testing).
-                </p>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  <a href="#/app/bonds" className="btn-clean-sm btn-green-subtle">
-                    Review PGT-M vs Natural Conception in Bonds →
-                  </a>
-                  <button type="button" className="btn-clean-sm" onClick={() => setShowPregnancyModal(true)}>
-                    Declare Positive Pregnancy Test →
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="cpt-locked-card">
-            <div className="cpt-locked-icon-wrap">
-              <Lock size={26} color="#94A3B8" />
-            </div>
-            <h4 className="cpt-locked-title">Family Planning Decision Unavailable until Stage 4</h4>
-            <p className="cpt-locked-desc">
-              To record your family planning decision (such as IVF with PGT-M or preconception preparation), you must first complete your Stage 3 Genetic Counselling consultation with {dedicatedDoctor}.
-            </p>
-            <div className="cpt-locked-btn-row">
-              <a href="#/app/counsellor" className="btn-clean-sm btn-green-subtle">
-                Attend / Manage Counselling Session →
-              </a>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* ═════════════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION 5: Pregnancy journey (Image 3 Section 5)                             */}
-      {/* ═════════════════════════════════════════════════════════════════════════════ */}
-      <section id="section-pregnancy" className="cpt-section-card">
-        <div className="cpt-sec-header">
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <span className="cpt-sec-tag">Section 5</span>
-              <Badge tone={isPregnancyUnlocked ? 'green' : 'grey'}>
-                {isPregnancyUnlocked ? 'Active' : 'Unavailable 🔒'}
-              </Badge>
-            </div>
-            <h3 className="cpt-sec-title">Pregnancy Journey · رحلة الحمل والمتابعة الجنينية</h3>
-            <p className="cpt-sec-sub">
-              Gestational age tracking, trimester health milestones, and time-critical prenatal testing windows.
-            </p>
-          </div>
-          {isPregnancyUnlocked && (
-            <button
-              type="button"
-              className="btn-clean-sm btn-green-subtle"
-              onClick={() => setShowPregnancyModal(true)}
-            >
-              Update Pregnancy Record →
-            </button>
-          )}
-        </div>
-
-        {isPregnancyUnlocked ? (
-          <>
-            <div className="cpt-preg-dashboard">
-              <div className="cpt-preg-stat-box">
-                <span className="cpt-preg-stat-label">Gestational Age</span>
-                <b className="cpt-preg-stat-val">
-                  {plan.pregnancy?.weeks ? `${plan.pregnancy.weeks} Weeks` : '12 Weeks'}
-                </b>
-                <span className="cpt-preg-stat-note">First Trimester · Ultrasound Dating Aligned</span>
-              </div>
-
-              <div className="cpt-preg-stat-box">
-                <span className="cpt-preg-stat-label">Expected Delivery Date (EDD)</span>
-                <b className="cpt-preg-stat-val">
-                  {plan.pregnancy?.edd ? new Date(plan.pregnancy.edd).toLocaleDateString('en-GB') : '15 May 2027'}
-                </b>
-                <span className="cpt-preg-stat-note">
-                  {plan.pregnancy?.deliveryHospital || 'Danat Al Emarat Hospital for Women & Children'}
-                </span>
-              </div>
-
-              <div className="cpt-preg-stat-box">
-                <span className="cpt-preg-stat-label">Prenatal Genetic Testing Window</span>
-                <b className="cpt-preg-stat-val" style={{ color: '#2563EB' }}>
-                  Active (Weeks 11–14)
-                </b>
-                <span className="cpt-preg-stat-note">Chorionic Villus Sampling (CVS) eligible</span>
-              </div>
-            </div>
-
-            {/* Trimester Timetable */}
-            <div className="cpt-trimester-timeline">
-              <div className="cpt-tri-col active">
-                <div className="cpt-tri-head">
-                  <b>1st Trimester (Weeks 1–12)</b>
-                  <Badge tone="green">Current Phase</Badge>
-                </div>
-                <ul className="cpt-tri-list">
-                  <li>✓ Obstetric registration and ultrasound dating</li>
-                  <li>✓ Early prenatal genetic consultation with {dedicatedDoctor}</li>
-                  <li>• Optional CVS diagnostic window (Weeks 11–14)</li>
-                </ul>
-              </div>
-
-              <div className="cpt-tri-col">
-                <div className="cpt-tri-head">
-                  <b>2nd Trimester (Weeks 13–27)</b>
-                  <Badge tone="grey">Upcoming</Badge>
-                </div>
-                <ul className="cpt-tri-list">
-                  <li>• Amniocentesis testing window (Weeks 15–18 if indicated)</li>
-                  <li>• Fetal anomaly ultrasound scan (Weeks 18–22)</li>
-                  <li>• Pediatric hematology coordination visit</li>
-                </ul>
-              </div>
-
-              <div className="cpt-tri-col">
-                <div className="cpt-tri-head">
-                  <b>3rd Trimester (Weeks 28–40)</b>
-                  <Badge tone="grey">Upcoming</Badge>
-                </div>
-                <ul className="cpt-tri-list">
-                  <li>• Delivery hospital maternity protocol sign-off</li>
-                  <li>• Cord blood sampling kit pre-stationed at delivery ward</li>
-                  <li>• Pre-birth pediatric genetic intake briefed</li>
-                </ul>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="cpt-locked-card">
-            <div className="cpt-locked-icon-wrap">
-              <Lock size={22} />
-            </div>
-            <h4 className="cpt-locked-title">Pregnancy Journey Unavailable until Stage 5</h4>
-            <p className="cpt-locked-desc">
-              This section is only available once the previous stages (Screening, Couple Assessment, Genetic Counselling, and Family Planning) are completed. Once a pregnancy is confirmed, gestational milestones, trimester health tracking, and time-critical prenatal testing windows (CVS and Amniocentesis) will activate here automatically.
-            </p>
-            <div className="cpt-locked-btn-row">
-              <button
-                type="button"
-                className="btn-clean-sm btn-green-subtle"
-                onClick={() => setShowPregnancyModal(true)}
-              >
-                Confirm Pregnancy Record Early →
-              </button>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* ═════════════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION 6: Birth & newborn records (Image 3 Section 6)                       */}
-      {/* ═════════════════════════════════════════════════════════════════════════════ */}
-      <section id="section-birth" className="cpt-section-card">
-        <div className="cpt-sec-header">
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <span className="cpt-sec-tag">Section 6</span>
-              <Badge tone={isBirthUnlocked ? 'green' : 'grey'}>
-                {isBirthUnlocked ? 'Active' : 'Unavailable 🔒'}
-              </Badge>
-            </div>
-            <h3 className="cpt-sec-title">Birth & Newborn Records · سجل الولادة وفحوصات المولود</h3>
-            <p className="cpt-sec-sub">
-              Maternity delivery coordination, national newborn blood spot screening, and pediatric care handoff.
-            </p>
-          </div>
-          {isBirthUnlocked && (
-            <button
-              type="button"
-              className="btn-clean-sm btn-green-subtle"
-              onClick={() => setShowBirthModal(true)}
-            >
-              <Baby size={14} /> Log Childbirth Details →
-            </button>
-          )}
-        </div>
-
-        {isBirthUnlocked ? (
-          <div className="cpt-birth-grid">
-            {/* Maternity Handover Status */}
-            <div className="cpt-detail-card">
-              <div className="cpt-card-top-badge">
-                <Building size={16} color="#00843D" />
-                <span>Maternity & Hospital Handover</span>
-                <Badge tone="green">Ready</Badge>
-              </div>
-
-              <h4 className="cpt-card-h4">
-                {plan.pregnancy?.deliveryHospital || 'Danat Al Emarat Hospital for Women & Children'}
-              </h4>
-              <dl className="cpt-dl">
-                <dt>Expected Delivery</dt>
-                <dd><b>{plan.pregnancy?.edd ? new Date(plan.pregnancy.edd).toLocaleDateString('en-GB') : '15 May 2027'}</b></dd>
-                <dt>Labor Ward Alert</dt>
-                <dd><Badge tone="green">Active · Cord blood sampling protocol alerted</Badge></dd>
-                <dt>Clinical Handover</dt>
-                <dd>Pre-authorized genomic dossier transferred to pediatric team with couple consent.</dd>
-              </dl>
-            </div>
-
-            {/* Newborn Screening & Record */}
-            <div className="cpt-detail-card">
-              <div className="cpt-card-top-badge">
-                <Baby size={16} color="#2563EB" />
-                <span>Newborn Screening Record</span>
-                <Badge tone={plan.childbirth?.delivered ? 'green' : 'amber'}>
-                  {plan.childbirth?.delivered ? 'Verified' : 'Scheduled at Birth'}
-                </Badge>
-              </div>
-
-              <h4 className="cpt-card-h4">
-                {plan.childbirth?.delivered
-                  ? `Baby ${plan.childbirth.babyName || 'Zayed'} Al Mansoori`
-                  : 'National Newborn Screening Protocol (UAE DoH)'}
-              </h4>
-              <dl className="cpt-dl">
-                <dt>Blood Spot Screen</dt>
-                <dd>
-                  <b>Extended Metabolic & Hemoglobinopathy Panel</b> · Heel-prick test completed at 48 hours.
-                </dd>
-                <dt>Cord Blood Confirmation</dt>
-                <dd>Tested for parental <i>HBB</i> variants · Confirmatory results verified.</dd>
-                <dt>Pediatric Follow-up</dt>
-                <dd>Assigned to Sheikh Shakhbout Medical City (SSMC) Pediatric Care.</dd>
-                <dt>Family Pedigree Link</dt>
-                <dd>Child registered on generation (+1) node in the family health pedigree.</dd>
-              </dl>
-            </div>
-          </div>
-        ) : (
-          <div className="cpt-locked-card">
-            <div className="cpt-locked-icon-wrap">
-              <Lock size={22} />
-            </div>
-            <h4 className="cpt-locked-title">Birth &amp; Newborn Records Unavailable until Stage 6 &amp; 7</h4>
-            <p className="cpt-locked-desc">
-              This section is only available once previous pregnancy milestones are reached. During birth preparation (Stage 6), the hospital maternity handover dossier and labor-ward cord blood protocol will activate. Following delivery (Stage 7), the UAE National Newborn Screening records will be logged here.
-            </p>
-            <div className="cpt-locked-btn-row">
-              <button
-                type="button"
-                className="btn-clean-sm btn-green-subtle"
-                onClick={() => setShowBirthModal(true)}
-              >
-                <Baby size={14} /> Log Childbirth Details Early →
-              </button>
-            </div>
-          </div>
-        )}
-      </section>
-
+      
       {/* ─── Pregnancy Modal ─── */}
       {showPregnancyModal && (
         <Dialog

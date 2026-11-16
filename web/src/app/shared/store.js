@@ -160,6 +160,31 @@ const initial = {
 let state = load();
 const subs = new Set();
 
+function sanitizeCarePlans(carePlans, initialCarePlans) {
+  const result = { ...(initialCarePlans || {}), ...(carePlans || {}) };
+  const c1 = result.c1;
+  if (c1) {
+    const stage5to7MockItems = [
+      'pregnancy_confirmation', 'gestational_milestones', 'pregnancy_counselling',
+      'prenatal_genetic_testing', 'specialist_appointments', 'expected_delivery_date',
+      'maternity_care_coordination', 'birth_prep_consultation', 'clinical_handover_consent',
+      'newborn_screening_prep', 'birth_details', 'child_health_record',
+      'newborn_screening_status', 'required_genetic_followup', 'postnatal_counselling'
+    ];
+    const hadMockPregnancy = c1.pregnancy?.deliveryHospital?.includes('Danat Al Emarat') || c1.pregnancy?.edd === '2027-05-15';
+    const hadMockChildbirth = c1.childbirth?.babyName === 'Zayed' || c1.childbirth?.birthDate === '2027-05-12';
+
+    if (hadMockPregnancy || hadMockChildbirth || (c1.activeStageId >= 5 && !c1.pregnancy?.isPregnant)) {
+      c1.completedItems = (c1.completedItems || []).filter((id) => !stage5to7MockItems.includes(id));
+      c1.pregnancy = { isPregnant: false, weeks: null, edd: null, deliveryHospital: '' };
+      c1.childbirth = { delivered: false, babyName: '', birthDate: null, newbornScreenStatus: 'pending', geneticFollowUpNeeded: false };
+      c1.familyPlanningChoice = null;
+      c1.activeStageId = 4;
+    }
+  }
+  return result;
+}
+
 function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
@@ -229,7 +254,7 @@ function load() {
       appointments: saved.appointments !== undefined ? saved.appointments : initial.appointments,
       scheduleAppointments: saved.scheduleAppointments !== undefined ? saved.scheduleAppointments : initial.scheduleAppointments,
       coupleCounsellors: saved.coupleCounsellors !== undefined ? saved.coupleCounsellors : initial.coupleCounsellors,
-      carePlans: saved.carePlans !== undefined ? saved.carePlans : initial.carePlans,
+      carePlans: sanitizeCarePlans(saved.carePlans, initial.carePlans),
     };
   } catch {
     return { ...initial };
@@ -395,17 +420,30 @@ export function resetDemo() {
     coupleCounsellors: { c1: 'Dr. Mariam Al Hosani' },
     carePlans: {
       c1: {
-        activeStageId: 1,
+        activeStageId: 4,
         condition: 'Beta-thalassaemia (HBB)',
         tier: 2,
         counsellor: 'Dr. Mariam Al Hosani',
-        completedItems: [],
+        completedItems: [
+          'individual_screening',
+          'medical_family_history',
+          'pedigree_completion',
+          'results_explanations',
+          'partner_connection_consent',
+          'joint_risk_assessment',
+          'reproductive_options',
+          'appointment_booking',
+          'counselling_session',
+          'counsellor_recommendations',
+          'approved_care_plan',
+          'follow_up_referrals',
+        ],
         referrals: [],
         followUp: null,
         reproductivePathway: { selected: null, approvedByCounsellor: false },
         silaStats: { relativesEligible: 5, alertsDispatched: 0, screeningsBooked: 0 },
-        pregnancy: { isPregnant: false, weeks: null, edd: null, deliveryHospital: 'Danat Al Emarat Hospital for Women & Children, Abu Dhabi' },
-        childbirth: { delivered: false, babyName: '', birthDate: null, newbornScreenStatus: 'pending', geneticFollowUpNeeded: true },
+        pregnancy: { isPregnant: false, weeks: null, edd: null, deliveryHospital: '' },
+        childbirth: { delivered: false, babyName: '', birthDate: null, newbornScreenStatus: 'pending', geneticFollowUpNeeded: false },
         customNotes: '',
       },
     },

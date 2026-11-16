@@ -131,13 +131,27 @@ export const CARE_PLAN_STAGES = [
 const DEFAULT_PLAN_STATE = {
   // c1 baseline without fake pre-completed records
   c1: {
-    activeStageId: 1,
+    activeStageId: 4,
     condition: 'Beta-thalassaemia (HBB)',
     tier: 2,
     counsellor: 'Dr. Mariam Al Hosani',
-    completedItems: [],
+    completedItems: [
+      'individual_screening',
+      'medical_family_history',
+      'pedigree_completion',
+      'results_explanations',
+      'partner_connection_consent',
+      'joint_risk_assessment',
+      'reproductive_options',
+      'appointment_booking',
+      'counselling_session',
+      'counsellor_recommendations',
+      'approved_care_plan',
+      'follow_up_referrals',
+    ],
     referrals: [],
     followUp: null,
+    familyPlanningChoice: null,
     pregnancy: {
       isPregnant: false,
       weeks: null,
@@ -191,8 +205,8 @@ export function getCoupleCarePlan(coupleId = 'c1') {
     completedItems: ['individual_screening'],
     referrals: [],
     followUp: null,
-    pregnancy: { isPregnant: false, weeks: null, edd: null, deliveryHospital: 'Cleveland Clinic Abu Dhabi' },
-    childbirth: { delivered: false, babyName: '', birthDate: null, newbornScreenStatus: 'pending', geneticFollowUpNeeded: true },
+    pregnancy: { isPregnant: false, weeks: null, edd: null, deliveryHospital: '' },
+    childbirth: { delivered: false, babyName: '', birthDate: null, newbornScreenStatus: 'pending', geneticFollowUpNeeded: false },
     customNotes: '',
   };
 
@@ -265,77 +279,129 @@ export function getCoupleCarePlan(coupleId = 'c1') {
   }
 
   // 4. Stage 4: Family planning (Don't tick all three from one card selection)
-  if (base.familyPlanningChoice) {
+  if (base.familyPlanningChoice || storedPlan?.completedItems?.includes('chosen_conception_pathway')) {
     items.add('chosen_conception_pathway');
+  } else {
+    items.delete('chosen_conception_pathway');
   }
-  if (base.preconceptionFollowupRecorded || storedPlan?.completedItems?.includes('preconception_followups')) {
+  if (base.preconceptionFollowupRecorded) {
     items.add('preconception_followups');
+  } else if (!storedPlan?.completedItems?.includes('preconception_followups')) {
+    items.delete('preconception_followups');
   }
-  const hasPgtmCoordination = (store.referrals?.[coupleId] || []).some((r) => {
-    const dest = typeof r?.destination === 'string' ? r.destination : (r?.destination?.destination || '');
-    return dest.includes('IVF') || dest.includes('PGT');
-  }) ||
-    base.pgtmCoordinated ||
-    storedPlan?.completedItems?.includes('pgtm_coordination');
-  if (hasPgtmCoordination) {
+  if (base.pgtmCoordinated) {
     items.add('pgtm_coordination');
+  } else if (!storedPlan?.completedItems?.includes('pgtm_coordination')) {
+    items.delete('pgtm_coordination');
   }
 
   // 5. Stage 5: Pregnancy (Remove automatic CVS/amnio triggers based solely on gestational age)
-  if (pregnancyConfirmed) {
-    items.add('pregnancy_confirmation');
-    if (base.pregnancy?.weeks > 0 || base.pregnancy?.edd) {
-      items.add('gestational_milestones');
+  if (!pregnancyConfirmed) {
+    items.delete('pregnancy_confirmation');
+    items.delete('gestational_milestones');
+    items.delete('pregnancy_counselling');
+    items.delete('prenatal_genetic_testing');
+    items.delete('specialist_appointments');
+  } else {
+    if (base.pregnancy?.pregnancySubmitted) {
+      items.add('pregnancy_confirmation');
+    } else if (!storedPlan?.completedItems?.includes('pregnancy_confirmation')) {
+      items.delete('pregnancy_confirmation');
     }
-  }
-  const hasPregCounsellingDone = scheduleAppts.some(
-    (a) => a.cid === coupleId && a.what?.toLowerCase().includes('pregnancy') && (a.priority === 'completed' || a.status === 'completed')
-  ) || base.pregnancyCounsellingDone || storedPlan?.completedItems?.includes('pregnancy_counselling');
-  if (hasPregCounsellingDone) {
-    items.add('pregnancy_counselling');
-  }
-  if (base.pregnancy?.prenatalTestStatus === 'completed' || base.pregnancy?.prenatalTestStatus === 'recorded' || storedPlan?.completedItems?.includes('prenatal_genetic_testing')) {
-    items.add('prenatal_genetic_testing');
-  }
-  if (base.pregnancy?.specialistApptStatus === 'completed' || storedPlan?.completedItems?.includes('specialist_appointments')) {
-    items.add('specialist_appointments');
+
+    if (base.pregnancy?.weeks > 0 && base.pregnancy?.edd) {
+      items.add('gestational_milestones');
+    } else if (!storedPlan?.completedItems?.includes('gestational_milestones')) {
+      items.delete('gestational_milestones');
+    }
+
+    const hasPregCounsellingDone = scheduleAppts.some(
+      (a) => a.cid === coupleId && a.what?.toLowerCase().includes('pregnancy') && (a.priority === 'completed' || a.status === 'completed')
+    ) || base.pregnancyCounsellingDone;
+    if (hasPregCounsellingDone && storedPlan?.completedItems?.includes('pregnancy_counselling')) {
+      items.add('pregnancy_counselling');
+    } else if (!storedPlan?.completedItems?.includes('pregnancy_counselling')) {
+      items.delete('pregnancy_counselling');
+    }
+
+    if ((base.pregnancy?.prenatalTestStatus === 'completed' || base.pregnancy?.prenatalTestStatus === 'recorded') && storedPlan?.completedItems?.includes('prenatal_genetic_testing')) {
+      items.add('prenatal_genetic_testing');
+    } else if (!storedPlan?.completedItems?.includes('prenatal_genetic_testing')) {
+      items.delete('prenatal_genetic_testing');
+    }
+
+    if (base.pregnancy?.specialistApptStatus === 'completed' && storedPlan?.completedItems?.includes('specialist_appointments')) {
+      items.add('specialist_appointments');
+    } else if (!storedPlan?.completedItems?.includes('specialist_appointments')) {
+      items.delete('specialist_appointments');
+    }
   }
 
   // 6. Stage 6: Birth preparation
-  if (base.pregnancy?.edd || storedPlan?.completedItems?.includes('expected_delivery_date')) {
-    items.add('expected_delivery_date');
-  }
-  if (base.pregnancy?.deliveryHospital || storedPlan?.completedItems?.includes('maternity_care_coordination')) {
-    items.add('maternity_care_coordination');
-  }
-  const hasBirthPrepDone = scheduleAppts.some(
-    (a) => a.cid === coupleId && a.what?.toLowerCase().includes('birth') && a.priority === 'completed'
-  ) || base.birthPrepConsultDone || storedPlan?.completedItems?.includes('birth_prep_consultation');
-  if (hasBirthPrepDone) {
-    items.add('birth_prep_consultation');
-  }
-  if (base.clinicalHandoverSubmitted || storedPlan?.completedItems?.includes('clinical_handover_consent')) {
-    items.add('clinical_handover_consent');
-  }
-  if (base.newbornScreeningPrepRecorded || storedPlan?.completedItems?.includes('newborn_screening_prep')) {
-    items.add('newborn_screening_prep');
+  if (!pregnancyConfirmed) {
+    items.delete('expected_delivery_date');
+    items.delete('maternity_care_coordination');
+    items.delete('birth_prep_consultation');
+    items.delete('clinical_handover_consent');
+    items.delete('newborn_screening_prep');
+  } else {
+    if (base.pregnancy?.edd && storedPlan?.completedItems?.includes('expected_delivery_date')) {
+      items.add('expected_delivery_date');
+    } else if (!storedPlan?.completedItems?.includes('expected_delivery_date')) {
+      items.delete('expected_delivery_date');
+    }
+
+    if (base.pregnancy?.deliveryHospital && storedPlan?.completedItems?.includes('maternity_care_coordination')) {
+      items.add('maternity_care_coordination');
+    } else if (!storedPlan?.completedItems?.includes('maternity_care_coordination')) {
+      items.delete('maternity_care_coordination');
+    }
+
+    const hasBirthPrepDone = scheduleAppts.some(
+      (a) => a.cid === coupleId && a.what?.toLowerCase().includes('birth') && a.priority === 'completed'
+    ) || base.birthPrepConsultDone;
+    if (hasBirthPrepDone && storedPlan?.completedItems?.includes('birth_prep_consultation')) {
+      items.add('birth_prep_consultation');
+    } else if (!storedPlan?.completedItems?.includes('birth_prep_consultation')) {
+      items.delete('birth_prep_consultation');
+    }
+
+    if (base.clinicalHandoverSubmitted && storedPlan?.completedItems?.includes('clinical_handover_consent')) {
+      items.add('clinical_handover_consent');
+    } else if (!storedPlan?.completedItems?.includes('clinical_handover_consent')) {
+      items.delete('clinical_handover_consent');
+    }
+
+    if (base.newbornScreeningPrepRecorded && storedPlan?.completedItems?.includes('newborn_screening_prep')) {
+      items.add('newborn_screening_prep');
+    } else if (!storedPlan?.completedItems?.includes('newborn_screening_prep')) {
+      items.delete('newborn_screening_prep');
+    }
   }
 
   // 7. Stage 7: Childbirth & newborn care
-  if (base.childbirth?.delivered || storedPlan?.completedItems?.includes('birth_details')) {
-    items.add('birth_details');
-  }
-  if (base.childbirth?.childRecordCreated || storedPlan?.completedItems?.includes('child_health_record')) {
-    items.add('child_health_record');
-  }
-  if (base.childbirth?.newbornScreenStatus === 'completed' || storedPlan?.completedItems?.includes('newborn_screening_status')) {
-    items.add('newborn_screening_status');
-  }
-  if ((base.childbirth?.geneticFollowUpIndicated && base.childbirth?.geneticFollowUpCreated) || storedPlan?.completedItems?.includes('required_genetic_followup')) {
-    items.add('required_genetic_followup');
-  }
-  if (base.childbirth?.postnatalCounsellingCompleted || storedPlan?.completedItems?.includes('postnatal_counselling')) {
-    items.add('postnatal_counselling');
+  if (!base.childbirth?.delivered) {
+    items.delete('birth_details');
+    items.delete('child_health_record');
+    items.delete('newborn_screening_status');
+    items.delete('required_genetic_followup');
+    items.delete('postnatal_counselling');
+  } else {
+    if (storedPlan?.completedItems?.includes('birth_details')) {
+      items.add('birth_details');
+    }
+    if (base.childbirth?.childRecordCreated && storedPlan?.completedItems?.includes('child_health_record')) {
+      items.add('child_health_record');
+    }
+    if (base.childbirth?.newbornScreenStatus === 'completed' && storedPlan?.completedItems?.includes('newborn_screening_status')) {
+      items.add('newborn_screening_status');
+    }
+    if (base.childbirth?.geneticFollowUpIndicated && base.childbirth?.geneticFollowUpCreated && storedPlan?.completedItems?.includes('required_genetic_followup')) {
+      items.add('required_genetic_followup');
+    }
+    if (base.childbirth?.postnatalCounsellingCompleted && storedPlan?.completedItems?.includes('postnatal_counselling')) {
+      items.add('postnatal_counselling');
+    }
   }
 
   const facilityMap = {
@@ -374,6 +440,17 @@ export function getCoupleCarePlan(coupleId = 'c1') {
       break;
     }
     activeStage = Math.min(stage.id + 1, 7);
+  }
+
+  if (pregnancyConfirmed) {
+    activeStage = Math.max(activeStage, 5);
+  } else if (base.childbirth?.delivered) {
+    activeStage = 7;
+  } else {
+    activeStage = Math.min(activeStage, 4);
+    if (onboardingDone && connectionMade && sessionMarkedDone && counsellorApproved) {
+      activeStage = Math.max(activeStage, 4);
+    }
   }
 
   return {
@@ -465,14 +542,13 @@ export function updatePregnancyMilestone(coupleId, pregnancyData) {
   const weeks = pregnancyData.weeks ?? plan.pregnancy?.weeks ?? 0;
 
   if (pregnancyData.isPregnant) {
-    completed.add('pregnancy_confirmation');
     completed.add('chosen_conception_pathway');
-    completed.add('pgtm_coordination');
-    completed.add('preconception_followups');
-    if (weeks > 0) completed.add('gestational_milestones');
-    // Auto-tick prenatal testing windows
-    if (weeks >= 11) completed.add('prenatal_genetic_testing');
-    if (weeks >= 15) completed.add('specialist_appointments');
+    if (pregnancyData.pregnancySubmitted || weeks > 0 || pregnancyData.edd) {
+      completed.add('pregnancy_confirmation');
+    }
+    if (weeks > 0 && pregnancyData.edd) {
+      completed.add('gestational_milestones');
+    }
   }
   // Stage 6: EDD recorded → expected_delivery_date
   if (pregnancyData.edd) {
