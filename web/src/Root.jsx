@@ -12,7 +12,6 @@ import { useStore, signOut, EMPTY_OBJ } from './app/shared/store.js';
 import { Brand } from './app/shared/Logo.jsx';
 import { watchAuth, signOut as supabaseSignOut } from './app/shared/supabase.js';
 import { loadAll } from './app/shared/db.js';
-import Welcome from './app/couple/Welcome.jsx';
 import MyReport from './app/couple/MyReport.jsx';
 import { isLinked, NEEDS_PARTNER, useJourney } from './app/shared/journey.js';
 import Onboarding from './app/onboarding/Onboarding.jsx';
@@ -211,17 +210,6 @@ export default function Root() {
               <Screening key={`${session?.id || 'anon'}-${session?.authMethod || 'def'}-${session?.email || ''}`} />
             </main>
           </div>
-        </ErrorBoundary>
-      );
-    }
-
-    if (session.role === 'couple' && !isLinked(session) && path === '/app') {
-      const menu = MENUS[session.role] || MENUS.couple;
-      return (
-        <ErrorBoundary>
-          <Shell menu={menu} path={path}>
-            <Welcome />
-          </Shell>
         </ErrorBoundary>
       );
     }
