@@ -15,6 +15,8 @@ import {
   ShieldCheck,
   Stethoscope,
   HeartHandshake,
+  Heart,
+  PauseCircle,
   Dna,
   Share2,
   FileText,
@@ -55,14 +57,16 @@ export default function PersonalisedPlanTracker() {
 
   // Section availability / milestone gates:
   // 1. Stage 3 (Genetic Counselling) Confirmation:
-  // Once Stage 3 is confirmed (plan_approved or referral_coordinated or activeStageId >= 4), specialist referrals unlock.
+  // Once Stage 3 is confirmed (counselling completed or activeStageId >= 4), specialist referrals & family planning unlock.
   const isStage3Confirmed = useMemo(() => {
     return (
       (plan.activeStageId || 1) >= 4 ||
+      plan.counsellingCompleted === true ||
+      plan.completedItems?.includes('approved_care_plan') ||
       plan.completedItems?.includes('plan_approved') ||
       plan.completedItems?.includes('referral_coordinated')
     );
-  }, [plan.activeStageId, plan.completedItems]);
+  }, [plan.activeStageId, plan.completedItems, plan.counsellingCompleted]);
 
   // 2. Section 5 (Pregnancy Journey) Unlock:
   // Available ONLY once previous sections/stages (1-4) are completed AND pregnancy is confirmed.
@@ -70,9 +74,10 @@ export default function PersonalisedPlanTracker() {
     return (
       (plan.activeStageId || 1) >= 5 ||
       !!plan.pregnancy?.isPregnant ||
+      plan.familyPlanningChoice === 'pregnant' ||
       !!plan.completedItems?.includes('pregnancy_confirmation')
     );
-  }, [plan.activeStageId, plan.pregnancy?.isPregnant, plan.completedItems]);
+  }, [plan.activeStageId, plan.pregnancy?.isPregnant, plan.familyPlanningChoice, plan.completedItems]);
 
   // 3. Section 6 (Birth & Newborn Records) Unlock:
   // Available ONLY once pregnancy stage advances to birth preparation (Stage 6) or delivery (Stage 7).
@@ -136,6 +141,41 @@ export default function PersonalisedPlanTracker() {
 
   const toggleAction = (key) => {
     setCompletedActions((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleSelectSituation = (situationKey) => {
+    if (situationKey === 'pregnant') {
+      setShowPregnancyModal(true);
+      saveCoupleCarePlan(cid, {
+        familyPlanningChoice: 'pregnant',
+        pregnancy: {
+          ...(plan.pregnancy || {}),
+          isPregnant: true,
+          weeks: plan.pregnancy?.weeks || 12,
+          edd: plan.pregnancy?.edd || '2027-05-15',
+          deliveryHospital: plan.pregnancy?.deliveryHospital || 'Danat Al Emarat Hospital for Women & Children, Abu Dhabi',
+        },
+        activeStageId: 5,
+        completedItems: Array.from(new Set([
+          ...(plan.completedItems || []),
+          'chosen_conception_pathway',
+          'pgtm_coordination',
+          'preconception_followups',
+          'pregnancy_confirmation',
+          'gestational_milestones',
+        ])),
+      }, 'Declared pregnancy in Stage 4 Family Planning');
+    } else {
+      saveCoupleCarePlan(cid, {
+        familyPlanningChoice: situationKey,
+        activeStageId: 4,
+        completedItems: Array.from(new Set([
+          ...(plan.completedItems || []),
+          'chosen_conception_pathway',
+          ...(situationKey === 'planning_to_conceive' ? ['pgtm_coordination', 'preconception_followups'] : []),
+        ])),
+      }, `Selected family planning situation: ${situationKey}`);
+    }
   };
 
   const savePregnancy = (e) => {
@@ -218,6 +258,13 @@ export default function PersonalisedPlanTracker() {
           onClick={() => scrollToSection('appointments')}
         >
           4. Appointments & referrals
+        </button>
+        <button
+          type="button"
+          className={`cpt-nav-btn ${activeSection === 'family-planning' ? 'is-active' : ''}`}
+          onClick={() => scrollToSection('family-planning')}
+        >
+          Stage 4. Family planning {isStage3Confirmed ? '' : '🔒'}
         </button>
         <button
           type="button"
@@ -860,6 +907,151 @@ export default function PersonalisedPlanTracker() {
             </div>
           )}
         </div>
+      </section>
+
+      {/* ═════════════════════════════════════════════════════════════════════════════ */}
+      {/* SECTION: Stage 4 · Family Planning (Image 3)                                  */}
+      {/* ═════════════════════════════════════════════════════════════════════════════ */}
+      <section id="section-family-planning" className="cpt-section-card">
+        <div className="cpt-sec-header">
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#00843D', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                Stage 4 · Family Planning
+              </span>
+              <Badge tone={isStage3Confirmed ? 'green' : 'grey'}>
+                {isStage3Confirmed ? 'Active' : 'Locked 🔒'}
+              </Badge>
+            </div>
+            <h3 className="cpt-sec-title">Your family planning journey · مسار تنظيم وبناء الأسرة</h3>
+            <p className="cpt-sec-sub">
+              {isStage3Confirmed
+                ? "You've completed your genetic counselling. You can now record your family-planning decision and access relevant next steps."
+                : "Complete your genetic counselling consultation with Dr. Mariam Al Hosani to record your family-planning decision and access tailored next steps."}
+            </p>
+          </div>
+        </div>
+
+        {isStage3Confirmed ? (
+          <div>
+            <h4 style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A', marginBottom: 14 }}>
+              What's your current situation?
+            </h4>
+            <div className="cpt-situation-grid">
+              {/* Option 1: Planning to conceive */}
+              <div
+                className={`cpt-situation-card ${plan.familyPlanningChoice === 'planning_to_conceive' ? 'is-selected' : ''}`}
+                onClick={() => handleSelectSituation('planning_to_conceive')}
+                role="button"
+                tabIndex={0}
+              >
+                <div className="cpt-situation-icon-wrap">
+                  <Heart size={20} color="#00843D" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <b className="cpt-situation-title">Planning to conceive</b>
+                  <p className="cpt-situation-desc">Track preconception care and relevant appointments.</p>
+                </div>
+                {plan.familyPlanningChoice === 'planning_to_conceive' && (
+                  <CheckCircle2 size={20} color="#00843D" />
+                )}
+              </div>
+
+              {/* Option 2: I'm pregnant */}
+              <div
+                className={`cpt-situation-card ${plan.pregnancy?.isPregnant || plan.familyPlanningChoice === 'pregnant' ? 'is-selected' : ''}`}
+                onClick={() => handleSelectSituation('pregnant')}
+                role="button"
+                tabIndex={0}
+              >
+                <div className="cpt-situation-icon-wrap">
+                  <Baby size={20} color="#00843D" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <b className="cpt-situation-title">I'm pregnant</b>
+                  <p className="cpt-situation-desc">Activate pregnancy tracking and record pregnancy details.</p>
+                </div>
+                {(plan.pregnancy?.isPregnant || plan.familyPlanningChoice === 'pregnant') && (
+                  <CheckCircle2 size={20} color="#00843D" />
+                )}
+              </div>
+
+              {/* Option 3: Not planning currently */}
+              <div
+                className={`cpt-situation-card ${plan.familyPlanningChoice === 'not_planning' ? 'is-selected' : ''}`}
+                onClick={() => handleSelectSituation('not_planning')}
+                role="button"
+                tabIndex={0}
+              >
+                <div className="cpt-situation-icon-wrap">
+                  <Calendar size={20} color="#475569" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <b className="cpt-situation-title">Not planning currently</b>
+                  <p className="cpt-situation-desc">Keep your family-planning journey open for later.</p>
+                </div>
+                {plan.familyPlanningChoice === 'not_planning' && (
+                  <CheckCircle2 size={20} color="#00843D" />
+                )}
+              </div>
+
+              {/* Option 4: Decision deferred */}
+              <div
+                className={`cpt-situation-card ${plan.familyPlanningChoice === 'deferred' ? 'is-selected' : ''}`}
+                onClick={() => handleSelectSituation('deferred')}
+                role="button"
+                tabIndex={0}
+              >
+                <div className="cpt-situation-icon-wrap">
+                  <PauseCircle size={20} color="#475569" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <b className="cpt-situation-title">Decision deferred</b>
+                  <p className="cpt-situation-desc">Continue when you're ready.</p>
+                </div>
+                {plan.familyPlanningChoice === 'deferred' && (
+                  <CheckCircle2 size={20} color="#00843D" />
+                )}
+              </div>
+            </div>
+
+            {/* If 'Planning to conceive' is selected, show preconception actions */}
+            {plan.familyPlanningChoice === 'planning_to_conceive' && (
+              <div style={{ marginTop: 20, padding: 18, background: 'rgba(0, 132, 61, 0.04)', borderRadius: 12, border: '1px solid rgba(0, 132, 61, 0.2)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <Badge tone="green">Preconception Pathway Active</Badge>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>Assisted Reproductive Technology (ART) Protocol</span>
+                </div>
+                <p style={{ fontSize: 13, color: '#475569', margin: '0 0 12px 0', lineHeight: 1.5 }}>
+                  Based on your beta-thalassaemia carrier concordancy, your counsellor has initiated coordination with <b>Cleveland Clinic Abu Dhabi Fertility Center</b> for PGT-M (pre-implantation genetic testing).
+                </p>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <a href="#/app/bonds" className="btn-clean-sm btn-green-subtle">
+                    Review PGT-M vs Natural Conception in Bonds →
+                  </a>
+                  <button type="button" className="btn-clean-sm" onClick={() => setShowPregnancyModal(true)}>
+                    Declare Positive Pregnancy Test →
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="cpt-locked-card">
+            <div className="cpt-locked-icon-wrap">
+              <Lock size={26} color="#94A3B8" />
+            </div>
+            <h4 className="cpt-locked-title">Family Planning Decision Unlocks at Stage 4</h4>
+            <p className="cpt-locked-desc">
+              To record your family planning decision (such as IVF with PGT-M or preconception preparation), you must first complete your Stage 3 Genetic Counselling consultation with Dr. Mariam Al Hosani.
+            </p>
+            <div className="cpt-locked-btn-row">
+              <a href="#/app/counsellor" className="btn-clean-sm btn-green-subtle">
+                Attend / Manage Counselling Session →
+              </a>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ═════════════════════════════════════════════════════════════════════════════ */}

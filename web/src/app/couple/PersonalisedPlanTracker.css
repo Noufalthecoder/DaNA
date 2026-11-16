@@ -868,3 +868,66 @@
   flex-wrap: wrap;
   justify-content: center;
 }
+
+/* ─── Stage 4: Family Planning Situation Cards (Image 3) ─── */
+.cpt-situation-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cpt-situation-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.cpt-situation-card:hover {
+  border-color: #00843D;
+  background: rgba(0, 132, 61, 0.02);
+  transform: translateY(-1px);
+}
+
+.cpt-situation-card.is-selected {
+  border-color: #00843D;
+  background: rgba(0, 132, 61, 0.04);
+  box-shadow: 0 0 0 1px #00843D;
+}
+
+.cpt-situation-icon-wrap {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #F8FAFC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid #E2E8F0;
+}
+
+.cpt-situation-card.is-selected .cpt-situation-icon-wrap {
+  background: rgba(0, 132, 61, 0.1);
+  border-color: rgba(0, 132, 61, 0.3);
+}
+
+.cpt-situation-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0F172A;
+  margin-bottom: 2px;
+}
+
+.cpt-situation-desc {
+  font-size: 13px;
+  color: #64748B;
+  margin: 0;
+}

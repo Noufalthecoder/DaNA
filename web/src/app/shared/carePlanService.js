@@ -13,6 +13,7 @@
 import { get, set } from './store.js';
 import { logAudit } from './db.js';
 import { PEOPLE, COUPLES, REFERRAL_DESTINATIONS } from './data.js';
+import { isUserScreened } from './screeningPersistence.js';
 
 export const CARE_PLAN_STAGES = [
   {
@@ -192,11 +193,27 @@ const DEFAULT_PLAN_STATE = {
 export function getCoupleCarePlan(coupleId = 'c1') {
   const store = get();
   const allPlans = store.carePlans || {};
-  if (allPlans[coupleId]) {
-    return allPlans[coupleId];
-  }
-  // Initialize default plan derived from store state
-  const base = DEFAULT_PLAN_STATE[coupleId] || {
+  const storedPlan = allPlans[coupleId];
+
+  // Dynamic signals
+  const isC1 = coupleId === 'c1';
+  const khalidScreened = isUserScreened('khalid');
+  const fatimaScreened = isUserScreened('fatima');
+  const onboardingDone = isC1 ? (khalidScreened || fatimaScreened) : isUserScreened(coupleId);
+
+  const connectionMade = (store.connections || []).some(
+    (c) => c.status === 'ACTIVE' && (c.id?.includes(coupleId) || (isC1 && ((c.userA === 'fatima' && c.userB === 'khalid') || (c.userA === 'khalid' && c.userB === 'fatima'))))
+  );
+
+  const scheduleAppts = store.scheduleAppointments || [];
+  const sessionCompleted = scheduleAppts.some(
+    (a) => (a.cid === coupleId || a.id === `appt_${coupleId}`) && (a.priority === 'completed' || a.status === 'completed')
+  ) || storedPlan?.counsellingCompleted;
+
+  const pregnancyConfirmed = storedPlan?.pregnancy?.isPregnant || storedPlan?.familyPlanningChoice === 'pregnant';
+
+  // Base state definition
+  const base = storedPlan || DEFAULT_PLAN_STATE[coupleId] || {
     activeStageId: 1,
     condition: 'Genetic screening profile',
     tier: 3,
@@ -204,32 +221,101 @@ export function getCoupleCarePlan(coupleId = 'c1') {
     completedItems: ['individual_screening'],
     referrals: [],
     followUp: null,
-    reproductivePathway: {
-      selected: store.plans?.[coupleId] || null,
-      approvedByCounsellor: (store.approved || []).includes(coupleId),
-    },
-    silaStats: {
-      relativesEligible: 4,
-      alertsDispatched: (store.alertsSent || []).length,
-      screeningsBooked: 0,
-    },
-    pregnancy: {
-      isPregnant: false,
-      weeks: null,
-      edd: null,
-      deliveryHospital: 'Cleveland Clinic Abu Dhabi',
-    },
-    childbirth: {
-      delivered: false,
-      babyName: '',
-      birthDate: null,
-      newbornScreenStatus: 'pending',
-      geneticFollowUpNeeded: true,
-    },
+    pregnancy: { isPregnant: false, weeks: null, edd: null, deliveryHospital: 'Cleveland Clinic Abu Dhabi' },
+    childbirth: { delivered: false, babyName: '', birthDate: null, newbornScreenStatus: 'pending', geneticFollowUpNeeded: true },
     customNotes: '',
   };
 
-  return base;
+  const items = new Set(base.completedItems || []);
+
+  if (!isC1 && !storedPlan) {
+    return base;
+  }
+
+  // 1. "screening & discovery is always completed once the onboarding is done..."
+  if (onboardingDone) {
+    items.add('individual_screening');
+    items.add('medical_family_history');
+    items.add('pedigree_completion');
+    items.add('results_explanations');
+  } else {
+    items.delete('individual_screening');
+    items.delete('medical_family_history');
+    items.delete('pedigree_completion');
+    items.delete('results_explanations');
+  }
+
+  // 2. "...and couple assessment is complete once the connection is made"
+  if (connectionMade && onboardingDone) {
+    items.add('partner_connection_consent');
+    items.add('joint_risk_assessment');
+    items.add('reproductive_options');
+  } else {
+    items.delete('partner_connection_consent');
+    items.delete('joint_risk_assessment');
+    items.delete('reproductive_options');
+  }
+
+  // 3. "...and once the counselor ticks the session as complete in their schedule then genetic counseling"
+  if (sessionCompleted && connectionMade && onboardingDone) {
+    items.add('appointment_booking');
+    items.add('counsellor_recommendations');
+    items.add('approved_care_plan');
+    items.add('follow_up_referrals');
+  } else {
+    items.delete('counsellor_recommendations');
+    items.delete('approved_care_plan');
+    items.delete('follow_up_referrals');
+    if (onboardingDone && connectionMade) {
+      items.add('appointment_booking');
+    } else {
+      items.delete('appointment_booking');
+    }
+  }
+
+  // 4. "...and depending on the user choice(after counselling) family planing"
+  if (base.familyPlanningChoice && sessionCompleted) {
+    items.add('chosen_conception_pathway');
+    if (base.familyPlanningChoice === 'planning_to_conceive') {
+      items.add('pgtm_coordination');
+      items.add('preconception_followups');
+    }
+  }
+
+  // 5. "...and after the pregnancy is confirmed"
+  if (pregnancyConfirmed) {
+    items.add('chosen_conception_pathway');
+    items.add('pgtm_coordination');
+    items.add('preconception_followups');
+    items.add('pregnancy_confirmation');
+    items.add('gestational_milestones');
+  }
+
+  // Dynamically calculate activeStageId based on items completed
+  let activeStage = 1;
+  for (const stage of CARE_PLAN_STAGES) {
+    const stageItems = stage.items.map((i) => i.id);
+    const completedCount = stageItems.filter((id) => items.has(id)).length;
+    if (completedCount < stageItems.length) {
+      activeStage = stage.id;
+      break;
+    }
+    activeStage = Math.min(stage.id + 1, 7);
+  }
+
+  return {
+    ...base,
+    completedItems: Array.from(items),
+    activeStageId: activeStage,
+    counsellingCompleted: !!sessionCompleted,
+    pregnancy: {
+      ...(base.pregnancy || {}),
+      isPregnant: !!pregnancyConfirmed,
+      weeks: pregnancyConfirmed ? (base.pregnancy?.weeks || 12) : null,
+      edd: pregnancyConfirmed ? (base.pregnancy?.edd || '2027-05-15') : null,
+      deliveryHospital: base.pregnancy?.deliveryHospital || 'Danat Al Emarat Hospital for Women & Children, Abu Dhabi',
+    },
+  };
 }
 
 /**

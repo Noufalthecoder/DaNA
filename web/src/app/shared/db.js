@@ -464,7 +464,16 @@ export function completeAppointment(coupleId) {
   const rest = { ...s.appointments };
   delete rest[coupleId];
   const schedule = (s.scheduleAppointments || []).map((a) => (a.cid === coupleId ? { ...a, priority: 'completed', tone: 'blue' } : a));
-  return act({ appointments: rest, scheduleAppointments: schedule }, `Counsellor completed the session with ${coupleId.toUpperCase()}`,
+  const plan = s.carePlans?.[coupleId] || {};
+  const updatedPlans = {
+    ...(s.carePlans || {}),
+    [coupleId]: {
+      ...plan,
+      counsellingCompleted: true,
+      counsellingCompletedAt: new Date().toISOString(),
+    },
+  };
+  return act({ appointments: rest, scheduleAppointments: schedule, carePlans: updatedPlans }, `Counsellor completed the session with ${coupleId.toUpperCase()}`,
     () => (s.apptIds?.[coupleId] ? supabase.rpc('complete_appointment', { p_appt: s.apptIds[coupleId] }) : Promise.resolve({ error: null })));
 }
 
