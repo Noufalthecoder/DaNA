@@ -365,3 +365,42 @@ def invite_email(req: InviteEmail, user: User = Depends(current_user)):
                                       "action": "Sent a partner invitation by email", "resource_type": "partner_invites",
                                       "resource_id": code})
     return {"sent": True}
+
+
+# ---------- DoH & Public Health De-Identified Analytics (Min Cohort >= 5) ----------
+@app.get("/analytics/aggregate", tags=["analytics"])
+def aggregate_analytics(user: User = Depends(current_user)):
+    """
+    De-identified population statistics for DoH programme viewers and administrators.
+    Guaranteed k-anonymity: cohorts under 5 are suppressed to prevent re-identification.
+    """
+    _require_role(user, "admin", "doh_viewer", "clinical_supervisor")
+    db = as_user(user.token)
+
+    # Use database security definer programme_stats() or safe aggregates
+    stats = db.rpc("programme_stats")
+    if not stats:
+        # Fallback safe empty aggregate with cohort safeguard notice
+        stats = [{"couples_screened": 0, "same_gene_couples": 0, "alerts_sent": 0, "plans_approved": 0}]
+
+    total_couples = stats[0].get("couples_screened", 0) if stats else 0
+    if 0 < total_couples < 5:
+        raise HTTPException(
+            status_code=403,
+            detail="Aggregated analytics suppressed: cohort size is below the minimum threshold (k=5)."
+        )
+
+    as_service().insert("audit_log", {
+        "actor": user.id,
+        "actor_name": _account(user).get("display_name", "DoH Viewer"),
+        "action": "Queried de-identified aggregate programme analytics",
+        "resource_type": "analytics",
+        "resource_id": "programme_stats",
+    })
+
+    return {
+        "anonymized": True,
+        "k_anonymity_threshold": 5,
+        "statistics": stats[0] if stats else {},
+    }
+

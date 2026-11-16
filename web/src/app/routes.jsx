@@ -21,6 +21,14 @@ import Overview from './admin/Overview.jsx';
 import Content from './admin/Content.jsx';
 import Audit from './admin/Audit.jsx';
 import Settings from './settings/Settings.jsx';
+import SecurityOverview from './admin/security/SecurityOverview.jsx';
+import UsersRoles from './admin/security/UsersRoles.jsx';
+import PermissionManagement from './admin/security/PermissionManagement.jsx';
+import ConsentGovernance from './admin/security/ConsentGovernance.jsx';
+import PartnerGovernance from './admin/security/PartnerGovernance.jsx';
+import ClinicalAssignments from './admin/security/ClinicalAssignments.jsx';
+import AccessHistory from './admin/security/AccessHistory.jsx';
+import ThreatMonitoring from './admin/security/ThreatMonitoring.jsx';
 
 import {
   HomeIcon,
@@ -62,13 +70,37 @@ export const MENUS = {
       { to: '/app/settings', label: 'Settings', icon: <SettingsIcon /> },
     ],
   },
+  clinical_supervisor: {
+    label: 'Clinical Supervisor',
+    items: [
+      { to: '/app', label: 'Case Queue & Review', icon: <QueueIcon /> },
+      { to: '/app/security', label: 'Clinical Governance', icon: <PrivacyIcon /> },
+      { to: '/app/schedule', label: 'Clinical Schedule', icon: <ScheduleIcon /> },
+      { to: '/app/settings', label: 'Quality & Benchmarks', icon: <SettingsIcon /> },
+    ],
+  },
   admin: {
     label: 'DoH admin',
     items: [
       { to: '/app', label: 'Overview', icon: <OverviewIcon /> },
+      { to: '/app/security', label: 'Security Console', icon: <PrivacyIcon /> },
       { to: '/app/content', label: 'Content review', icon: <ContentIcon /> },
       { to: '/app/audit', label: 'Audit log', icon: <AuditIcon /> },
       { to: '/app/settings', label: 'Settings', icon: <SettingsIcon /> },
+    ],
+  },
+  content_reviewer: {
+    label: 'Content Reviewer',
+    items: [
+      { to: '/app', label: 'Content Review', icon: <ContentIcon /> },
+      { to: '/app/settings', label: 'Preferences', icon: <SettingsIcon /> },
+    ],
+  },
+  doh_viewer: {
+    label: 'DoH Viewer',
+    items: [
+      { to: '/app', label: 'Programme Overview', icon: <OverviewIcon /> },
+      { to: '/app/audit', label: 'De-identified Audit', icon: <AuditIcon /> },
     ],
   },
 };
@@ -76,6 +108,18 @@ export const MENUS = {
 export function page(role, path) {
   // Strip query parameters (?tab=...) and trailing slashes for robust matching
   const clean = (path || '').split('?')[0].replace(/\/$/, '') || '/app';
+
+  const securityRoutes = {
+    '/app/security': <SecurityOverview />,
+    '/app/security/overview': <SecurityOverview />,
+    '/app/security/users': <UsersRoles />,
+    '/app/security/permissions': <PermissionManagement />,
+    '/app/security/consents': <ConsentGovernance />,
+    '/app/security/relationships': <PartnerGovernance />,
+    '/app/security/clinical-assignments': <ClinicalAssignments />,
+    '/app/security/audit': <AccessHistory />,
+    '/app/security/threat-monitoring': <ThreatMonitoring />,
+  };
 
   if (role === 'couple') {
     const coupleRoutes = {
@@ -102,12 +146,24 @@ export function page(role, path) {
     };
     return coupleRoutes[clean] || null;
   }
+  if (role === 'clinical_supervisor') {
+    if (securityRoutes[clean]) return securityRoutes[clean];
+    if (clean.startsWith('/app/case/')) return <CaseView id={clean.split('/').pop()} />;
+    return { '/app': <Queue />, '/app/schedule': <Schedule />, '/app/settings': <Settings /> }[clean] || null;
+  }
   if (role === 'counsellor') {
     if (clean.startsWith('/app/case/')) return <CaseView id={clean.split('/').pop()} />;
     return { '/app': <Queue />, '/app/schedule': <Schedule />, '/app/settings': <Settings /> }[clean] || null;
   }
   if (role === 'admin') {
-    return { '/app': <Overview />, '/app/content': <Content />, '/app/audit': <Audit />, '/app/settings': <Settings /> }[clean] || null;
+    return securityRoutes[clean] || { '/app': <Overview />, '/app/content': <Content />, '/app/audit': <Audit />, '/app/settings': <Settings /> }[clean] || null;
+  }
+  if (role === 'content_reviewer') {
+    return { '/app': <Content />, '/app/settings': <Settings /> }[clean] || null;
+  }
+  if (role === 'doh_viewer') {
+    if (clean === '/app/security' || clean === '/app/security/overview' || clean === '/app/security/audit') return securityRoutes[clean];
+    return { '/app': <Overview />, '/app/audit': <Audit /> }[clean] || null;
   }
   return null;
 }

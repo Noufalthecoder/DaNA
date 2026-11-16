@@ -15,6 +15,21 @@ import { get, set } from './store.js';
 import { assess } from './genetics.js';
 import { supabase, refreshSession } from './supabase.js';
 import { loadAll, logAudit } from './db.js';
+import {
+  ROLES,
+  RESOURCES,
+  ACTIONS,
+  CONSENT_PURPOSES,
+  CONSENT_SCOPES,
+  CONSENT_STATUSES,
+  SECURITY_ERRORS,
+  AuthorizationError,
+  hasActiveConsent,
+  hasActiveCoupleRelationship,
+  isResourceOwner,
+  authorizedEvaluateCoupleAssessment,
+  sanitizeResourceForViewer,
+} from './auth/authorizationEngine.js';
 
 // Canonical ordering helper for bidirectional connections
 function canonicalPair(id1, id2) {
@@ -1137,6 +1152,36 @@ export function getProfile(actingUserId, targetUserId) {
   const isConnected = isUserConnected(actingUserId, targetUserId);
   const conn = getConnectionRecord(actingUserId, targetUserId);
 
+  // Field-level authorization for protected genomic data:
+  // Carrier gene is revealed to self, OR to connected partner ONLY if explicit active consent is granted
+  let carrierGene = null;
+  let consentRequired = false;
+
+  if (isSelf) {
+    carrierGene = target.carrier || null;
+  } else if (isConnected) {
+    const allConsents = [
+      ...(state.connectionConsents || []),
+      ...(state.consents || []),
+    ];
+    const hasConsent = allConsents.some((c) => {
+      const owner = c.granterId || c.owner_id || c.person_id;
+      const recipient = c.granteeId || c.recipient_id;
+      const status = (c.status || (c.granted ? 'active' : 'revoked')).toLowerCase();
+      if (owner !== targetUserId) return false;
+      if (recipient && recipient !== actingUserId) return false;
+      if (status !== 'active' || c.revoked_at || c.revokedAt) return false;
+      return true;
+    });
+
+    if (hasConsent) {
+      carrierGene = target.carrier || null;
+    } else {
+      carrierGene = null;
+      consentRequired = true;
+    }
+  }
+
   return {
     id: targetUserId,
     name: target.name,
@@ -1149,21 +1194,80 @@ export function getProfile(actingUserId, targetUserId) {
     isConnected,
     connectionId: conn?.id || null,
     connectedAt: conn?.connectedAt || null,
-    carrierGene: isSelf || isConnected ? target.carrier : null,
+    carrierGene,
+    consentRequired,
   };
 }
 
-// Backward-compatible consent stubs (no consent barriers)
-export function grantConsent(granterId, granteeId, connectionId, purpose, dataScope = 'CARRIER_GENE') {
-  return { id: generateId('cst'), connectionId, granterId, granteeId, status: 'ACTIVE' };
+export function grantConsent(granterId, granteeId, connectionId, purpose = 'Premarital couple compatibility review', dataScope = 'CARRIER_GENE') {
+  initConnectionsStore();
+  const state = get();
+  const consents = state.connectionConsents || [];
+  const cid = generateId('cst');
+
+  const newConsent = {
+    id: cid,
+    connectionId,
+    granterId,
+    granteeId,
+    purpose,
+    dataScope,
+    scope: dataScope === 'CARRIER_GENE' ? 'result_summary' : 'full_report',
+    status: 'ACTIVE',
+    grantedAt: new Date().toISOString(),
+    revokedAt: null,
+  };
+
+  const filtered = consents.filter(
+    (c) => !(c.granterId === granterId && c.granteeId === granteeId && c.dataScope === dataScope)
+  );
+
+  set(
+    { connectionConsents: [newConsent, ...filtered] },
+    `Granted consent to share ${dataScope} with ${PEOPLE[granteeId]?.name || granteeId}`
+  );
+
+  logAudit(`Granted consent to share ${dataScope} with ${PEOPLE[granteeId]?.name || granteeId}`, {
+    resourceType: 'consents',
+    resourceId: cid,
+  });
+
+  return newConsent;
 }
 
-export function revokeConsent() {
+export function revokeConsent(consentId, actingUserId) {
+  initConnectionsStore();
+  const state = get();
+  const consents = state.connectionConsents || [];
+  const target = consents.find((c) => c.id === consentId || (c.granterId === actingUserId && c.status === 'ACTIVE'));
+
+  if (!target) return false;
+  if (target.granterId !== actingUserId) {
+    throw new Error('Only the data owner can revoke their consent.');
+  }
+
+  const updated = consents.map((c) =>
+    c.id === target.id
+      ? { ...c, status: 'REVOKED', revokedAt: new Date().toISOString() }
+      : c
+  );
+
+  set({ connectionConsents: updated }, `Revoked partner sharing consent`);
+
+  logAudit(`Revoked partner sharing consent`, {
+    resourceType: 'consents',
+    resourceId: target.id,
+  });
+
   return true;
 }
 
-export function getConsentsForConnection() {
-  return [];
+export function getConsentsForConnection(connectionId) {
+  initConnectionsStore();
+  const state = get();
+  return (state.connectionConsents || []).filter(
+    (c) => c.connectionId === connectionId && c.status === 'ACTIVE'
+  );
 }
 
 // -----------------------------------------------------------------------------
