@@ -77,20 +77,11 @@ export default function Shell({ menu, path, children }) {
             </a>
           ))}
         </nav>
-        <div className="side-foot">
-          {session?.backend ? (
-            <>
-              <button onClick={() => loadAll()}>Refresh data</button>
-              <span className="live"><i />Live · shared database</span>
-            </>
-          ) : (
-            <>
-              <button onClick={() => setShowResetConfirm(true)}>Reset demo data</button>
-              <span>Offline demo · this browser only</span>
-            </>
-          )}
-          <span>Synthetic data · simulated UAE PASS</span>
-        </div>
+        {!session?.backend && (
+          <div className="side-foot">
+            <button onClick={() => setShowResetConfirm(true)}>Reset demo data</button>
+          </div>
+        )}
       </aside>
 
       <div className="main">
