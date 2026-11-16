@@ -207,7 +207,11 @@ export function addReferral(coupleId, destination, priority, reason) {
 
 /* Save screening intake (live to screening table, offline to store) */
 export async function saveScreeningIntake(personId, intakeData) {
-  const danaId = intakeData.danaId || generateDanaId(personId);
+  // live: the DaNA ID people share and search by (011_find_partner, connectionsService.danaIdFor);
+  // the offline demo keeps its generated sample IDs
+  const danaId = isLive() && /^[up]_[0-9a-f]{6}/.test(personId || '')
+    ? `DANA-${personId.slice(2, 8).toUpperCase()}`
+    : (intakeData.danaId || generateDanaId(personId));
   const dataToSave = {
     ...intakeData,
     danaId,

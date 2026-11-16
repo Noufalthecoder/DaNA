@@ -76,7 +76,9 @@ begin
   with d as (
     select a.user_id, a.role, a.display_name, a.title,
            case when a.role in ('admin', 'counsellor') then a.email end as email,
-           a.status, a.status_reason, p.sex::text as sex, _account_place(a.user_id) as loc, a.dana_id,
+           a.status, a.status_reason, p.sex::text as sex, _account_place(a.user_id) as loc,
+           -- the DaNA ID people share and search by (011_find_partner), not the older generated accounts.dana_id
+           case when a.person_id is not null then 'DANA-' || upper(substr(a.person_id, 3, 6)) end as dana_id,
            case when a.role = 'admin' then a.scope_level end as scope_level
       from accounts a left join people p on p.id = a.person_id
   )
