@@ -103,25 +103,24 @@ describe('Connections & Risk Processing Engine Unit Tests', () => {
     assert.equal(whitespaceResults.length, 0, 'Must return 0 results when query is only whitespace');
   });
 
-  it('7. Strict Search Matching: Matches exact username, unique DaNA ID, or short name', () => {
-    // Match by exact username
-    const byUsername = searchUsers('khalid', 'fatima');
-    assert.equal(byUsername.length, 1);
-    assert.equal(byUsername[0].id, 'fatima');
-    assert.equal(byUsername[0].danaId, 'DANA-8822');
-
-    // Match with @ prefix
-    const withAt = searchUsers('khalid', '@fatima');
-    assert.equal(withAt.length, 1);
-    assert.equal(withAt[0].id, 'fatima');
-
+  it('7. Strict Search Matching: Matches exact unique DaNA ID (names/emails protected)', () => {
     // Match by unique DaNA ID
     const byId = searchUsers('khalid', 'DANA-8822');
     assert.equal(byId.length, 1);
     assert.equal(byId[0].id, 'fatima');
+    assert.equal(byId[0].danaId, 'DANA-8822');
 
-    // Unregistered / Non-existent username returns 0 results
-    const nonExistent = searchUsers('khalid', 'unknown_user_123');
+    // Case-insensitive DaNA ID matching
+    const byLowerId = searchUsers('khalid', 'dana-8822');
+    assert.equal(byLowerId.length, 1);
+    assert.equal(byLowerId[0].id, 'fatima');
+
+    // Searching by plain name or email returns 0 results for privacy (stops strangers sending requests)
+    const byUsername = searchUsers('khalid', 'fatima');
+    assert.equal(byUsername.length, 0);
+
+    // Unregistered / Non-existent DaNA ID returns 0 results
+    const nonExistent = searchUsers('khalid', 'DANA-0000');
     assert.equal(nonExistent.length, 0);
   });
 
@@ -186,12 +185,12 @@ describe('Connections & Risk Processing Engine Unit Tests', () => {
     blockUser('khalid', 'saeed');
 
     // Khalid cannot find Saeed in search results
-    const search = searchUsers('khalid', 'saeed');
+    const search = searchUsers('khalid', 'DANA-5590');
     assert.equal(search.length, 0);
 
     // Unblock restores normal search
     unblockUser('khalid', 'saeed');
-    const searchAfterUnblock = searchUsers('khalid', 'saeed');
+    const searchAfterUnblock = searchUsers('khalid', 'DANA-5590');
     assert.equal(searchAfterUnblock.length, 1);
   });
 
@@ -208,17 +207,12 @@ describe('Connections & Risk Processing Engine Unit Tests', () => {
     assert.equal(updated.isRead, true);
   });
 
-  it('13. Async Supabase search: Matches existing username or unique ID, returns [] for non-existing user', async () => {
-    // Existing user by username
-    const existingUsername = await searchUsersAsync('khalid', 'fatima');
-    assert.equal(existingUsername.length, 1);
-    assert.equal(existingUsername[0].id, 'fatima');
-    assert.equal(existingUsername[0].danaId, 'DANA-8822');
-
+  it('13. Async Supabase search: Matches existing unique ID, returns [] for non-existing user', async () => {
     // Existing user by unique DaNA ID
     const existingDanaId = await searchUsersAsync('khalid', 'DANA-8822');
     assert.equal(existingDanaId.length, 1);
     assert.equal(existingDanaId[0].id, 'fatima');
+    assert.equal(existingDanaId[0].danaId, 'DANA-8822');
 
     // Non-existing user returns [] to trigger WhatsApp / Gmail invitation
     const nonExistent = await searchUsersAsync('khalid', 'unknown_future_spouse');

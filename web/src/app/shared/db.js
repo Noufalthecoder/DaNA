@@ -1,3 +1,4 @@
+import { SCENARIOS, pickScenario, scenarioBlood } from './scenarios.js';
 /*
   Data layer. Owner: Platform.
   Every screen saves through these functions. When the user is signed in to
@@ -6,7 +7,7 @@
 */
 import { supabase } from './supabase.js';
 import { get, set } from './store.js';
-import { SLOTS, PEOPLE, COUPLES, relativesFor, generateDanaId } from './data.js';
+import { SLOTS, PEOPLE, COUPLES, GENES, PANEL, relativesFor, generateDanaId } from './data.js';
 import { fromDb, toDb } from './family.js';
 import { api } from './api.js';
 
@@ -164,7 +165,7 @@ export async function saveScreeningIntake(personId, intakeData) {
         // Also sync dana_id to accounts
         try {
           await supabase.from('accounts').update({ dana_id: danaId }).eq('user_id', user.id);
-        } catch {}
+        } catch { }
       }
     } catch (e) {
       console.warn('screening live save error (table may not be created yet):', e.message);
@@ -217,30 +218,271 @@ export function setConsent(key, value) {
 }
 
 /* slot = { id (live: counsellor_availability id), label } */
-export function book(coupleId, slot) {
+export function book(coupleId, slot, details = {}) {
   const s = get();
-  return act({ appointments: { ...s.appointments, [coupleId]: slot.label } },
-    `Couple booked a counsellor session: ${slot.label}`,
+  const label = typeof slot === 'string' ? slot : (slot?.label || 'Booked Slot');
+
+  let apptDate = details.date;
+  let apptTime = details.time;
+  let apptEndTime = details.endTime;
+
+  if (!apptDate && slot?.iso) {
+    apptDate = slot.iso.slice(0, 10);
+    apptTime = slot.iso.slice(11, 16);
+  } else if (!apptDate && label) {
+    if (label.includes('9 Nov')) { apptDate = '2026-11-09'; apptTime = '10:00'; }
+    else if (label.includes('10 Nov')) { apptDate = '2026-11-10'; apptTime = '13:30'; }
+    else if (label.includes('11 Nov')) { apptDate = '2026-11-11'; apptTime = '17:00'; }
+    else if (label.includes('12 Nov')) { apptDate = '2026-11-12'; apptTime = '11:00'; }
+    else {
+      apptDate = '2026-11-09';
+      apptTime = '10:00';
+    }
+  }
+
+  if (!apptEndTime && apptTime) {
+    const [h, m] = apptTime.split(':').map(Number);
+    const endMinutes = h * 60 + m + 45;
+    const endH = String(Math.floor(endMinutes / 60)).padStart(2, '0');
+    const endM = String(endMinutes % 60).padStart(2, '0');
+    apptEndTime = `${endH}:${endM}`;
+  }
+
+  const isPending = details.confirmed === false || details.priority === 'pending' || details.status === 'pending';
+
+  const newAppt = {
+    id: details.id || `appt_${Date.now()}`,
+    date: apptDate || '2026-11-09',
+    time: apptTime || '10:00',
+    endTime: apptEndTime || '10:45',
+    who: details.who || (coupleId === 'c1' ? 'Khalid & Fatima' : coupleId.toUpperCase()),
+    what: details.what || 'Pre-marital counselling',
+    priority: details.priority || (isPending ? 'pending' : 'upcoming'),
+    status: details.status || (isPending ? 'pending' : 'confirmed'),
+    confirmed: details.confirmed !== undefined ? details.confirmed : !isPending,
+    requestedAt: details.requestedAt || new Date().toISOString(),
+    confirmedAt: details.confirmedAt || (!isPending ? new Date().toISOString() : null),
+    tone: details.tone || (isPending ? 'amber' : 'green'),
+    doctor: details.doctor || 'Dr. Mariam Al Hosani',
+    mode: details.mode || 'online',
+    type: details.mode === 'offline' ? 'Clinic' : 'Video',
+    provider: details.mode === 'offline' ? null : 'Google Meet',
+    meetLink: details.mode === 'offline' ? null : (details.meetLink || `https://meet.google.com/dan-${coupleId}-slot`),
+    clinicName: details.mode === 'offline' ? (details.clinicName || 'DaNA Partner Clinic') : null,
+    clinicRoom: details.mode === 'offline' ? (details.clinicRoom || 'Abu Dhabi · Building A · Room 204') : null,
+    clinicAddress: details.mode === 'offline' ? (details.clinicAddress || 'Cleveland Clinic Abu Dhabi, Al Maryah Island') : null,
+    language: 'Arabic',
+    cid: coupleId,
+    notes: details.notes || 'Booked by couple via DaNA portal.',
+  };
+  const schedule = [...(s.scheduleAppointments || []).filter((a) => a.cid !== coupleId), newAppt];
+  const notifs = [...(s.notifications || [])];
+  if (isPending) {
+    const notifId = `notif_consult_${newAppt.id}`;
+    if (!notifs.some((n) => n.id === notifId || n.requestId === newAppt.id)) {
+      notifs.unshift({
+        id: notifId,
+        requestId: newAppt.id,
+        userId: 'mariam',
+        actorId: coupleId,
+        type: 'CONSULTATION_REQUEST',
+        title: 'New Consultation Request',
+        body: `${newAppt.who} requested a ${newAppt.mode === 'offline' ? 'Clinic' : 'Google Meet Video'} consultation for ${newAppt.date} at ${newAppt.time} GST.`,
+        link: '/app/schedule',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  const extraFlags = coupleId === 'c1' ? { c1Cancelled: false } : {};
+  return act({
+    appointments: { ...s.appointments, [coupleId]: label },
+    scheduleAppointments: schedule,
+    notifications: notifs,
+    ...extraFlags,
+  },
+    `Couple booked a counsellor session: ${label}`,
     async () => {
-      const { error } = await supabase.rpc('book_slot', { p_slot: slot.id });
-      return { error };
+      if (isLive()) {
+        try {
+          await supabase.from('consultation_requests').insert({
+            id: newAppt.id,
+            couple_id: coupleId,
+            requester_id: s.session?.id || 'fatima',
+            requested_starts_at: `${newAppt.date}T${newAppt.time}:00+04:00`,
+            requested_ends_at: `${newAppt.date}T${newAppt.endTime}:00+04:00`,
+            modality: newAppt.mode,
+            topic: newAppt.what,
+            status: isPending ? 'PENDING' : 'CONFIRMED',
+            meet_link: newAppt.meetLink,
+            created_at: new Date().toISOString(),
+          });
+        } catch (e) {
+          console.warn('consultation_requests insert notice:', e?.message);
+        }
+      }
+      return { error: null };
     });
+}
+
+export function rescheduleAppointment(coupleId, newSlotLabel, newDetails = {}) {
+  const s = get();
+  const schedule = (s.scheduleAppointments || []).map((a) => {
+    if (a.cid === coupleId || a.id === newDetails.id) {
+      return {
+        ...a,
+        ...newDetails,
+        date: newDetails.date || a.date,
+        time: newDetails.time || a.time,
+        rescheduled: true,
+        rescheduledAt: new Date().toISOString(),
+        rescheduleNote: newDetails.note || 'Patient requested alternative slot',
+      };
+    }
+    return a;
+  });
+  return act({
+    appointments: { ...s.appointments, [coupleId]: newSlotLabel },
+    scheduleAppointments: schedule,
+  }, `Appointment rescheduled for ${coupleId.toUpperCase()} to ${newSlotLabel}`);
+}
+
+export function saveScheduleAppointments(scheduleList) {
+  const s = get();
+  const apptsMap = { ...s.appointments };
+  scheduleList.forEach((a) => {
+    if (a.cid) {
+      apptsMap[a.cid] = `${a.date} · ${a.time}`;
+    }
+  });
+  return act({ scheduleAppointments: scheduleList, appointments: apptsMap },
+    'Counsellor updated schedule appointments');
+}
+
+
+export function confirmAppointment(apptIdOrCid) {
+  const s = get();
+  let coupleWho = '';
+  let updatedRow = null;
+  const schedule = (s.scheduleAppointments || []).map((a) => {
+    if (a.id === apptIdOrCid || a.cid === apptIdOrCid) {
+      coupleWho = a.who || a.cid;
+      updatedRow = {
+        ...a,
+        priority: 'upcoming',
+        status: 'confirmed',
+        confirmed: true,
+        confirmedAt: new Date().toISOString(),
+        tone: 'green',
+      };
+      return updatedRow;
+    }
+    return a;
+  });
+  const existingNotifs = (s.notifications || []).map((n) => {
+    if (n.requestId === apptIdOrCid || n.actorId === apptIdOrCid) {
+      return { ...n, isRead: true };
+    }
+    return n;
+  });
+  const coupleUsers = updatedRow?.cid === 'c5' ? ['rashid', 'aisha'] :
+    updatedRow?.cid === 'c2' ? ['ahmed', 'noura'] :
+    updatedRow?.cid === 'c3' ? ['saeed', 'maryam'] :
+    updatedRow?.cid === 'c4' ? ['omar', 'latifa'] :
+    ['fatima', 'khalid'];
+
+  const coupleNotifs = coupleUsers.map((pId) => ({
+    id: `notif_confirmed_${Date.now()}_${pId}`,
+    userId: pId,
+    actorId: 'mariam',
+    type: 'CONSULTATION_CONFIRMED',
+    title: 'Consultation Confirmed',
+    body: `Dr. Mariam confirmed your premarital consultation for ${updatedRow?.date} at ${updatedRow?.time} GST.`,
+    link: '/app/counsellor',
+    isRead: false,
+    createdAt: new Date().toISOString(),
+  }));
+
+  return act({
+    scheduleAppointments: schedule,
+    notifications: [...coupleNotifs, ...existingNotifs],
+  },
+    `Counsellor verified and confirmed appointment for ${coupleWho || apptIdOrCid}`,
+    async () => {
+      if (isLive() && updatedRow) {
+        try {
+          await supabase.from('consultation_requests').update({
+            status: 'CONFIRMED',
+            responded_at: new Date().toISOString(),
+          }).or(`id.eq.${updatedRow.id},couple_id.eq.${updatedRow.cid}`);
+        } catch (e) {
+          console.warn('confirmAppointment live notice:', e?.message);
+        }
+      }
+      return { error: null };
+    }
+  );
+}
+
+export function declineAppointment(apptIdOrCid, reason = '') {
+  const s = get();
+  const target = (s.scheduleAppointments || []).find((a) => a.id === apptIdOrCid || a.cid === apptIdOrCid);
+  const coupleId = target?.cid || apptIdOrCid;
+  const rest = { ...s.appointments };
+  if (coupleId) delete rest[coupleId];
+  const schedule = (s.scheduleAppointments || []).filter((a) => a.id !== apptIdOrCid && a.cid !== apptIdOrCid);
+  return act({
+    appointments: rest,
+    scheduleAppointments: schedule,
+  }, `Counsellor declined appointment request for ${target?.who || coupleId}: ${reason || 'Schedule conflict'}`,
+    async () => {
+      if (isLive() && target) {
+        try {
+          await supabase.from('consultation_requests').update({
+            status: 'DECLINED',
+            counsellor_notes: reason,
+            responded_at: new Date().toISOString(),
+          }).or(`id.eq.${target.id},couple_id.eq.${coupleId}`);
+        } catch (e) {
+          console.warn('declineAppointment live notice:', e?.message);
+        }
+      }
+      return { error: null };
+    }
+  );
 }
 
 export function completeAppointment(coupleId) {
   const s = get();
   const rest = { ...s.appointments };
   delete rest[coupleId];
-  return act({ appointments: rest }, `Counsellor completed the session with ${coupleId.toUpperCase()}`,
-    () => supabase.rpc('complete_appointment', { p_appt: s.apptIds[coupleId] }));
+  const schedule = (s.scheduleAppointments || []).map((a) => (a.cid === coupleId ? { ...a, priority: 'completed', tone: 'blue' } : a));
+  return act({ appointments: rest, scheduleAppointments: schedule }, `Counsellor completed the session with ${coupleId.toUpperCase()}`,
+    () => (s.apptIds?.[coupleId] ? supabase.rpc('complete_appointment', { p_appt: s.apptIds[coupleId] }) : Promise.resolve({ error: null })));
 }
 
 export function cancelBooking(coupleId) {
   const s = get();
   const rest = { ...s.appointments };
   delete rest[coupleId];
-  return act({ appointments: rest }, 'Couple cancelled the counsellor session',
-    () => supabase.rpc('cancel_appointment', { p_appt: s.apptIds[coupleId] }));
+  const schedule = (s.scheduleAppointments || []).filter((a) => a.cid !== coupleId);
+  const notifs = (s.notifications || []).filter((n) => n.actorId !== coupleId && !n.requestId?.startsWith(`appt_${coupleId}`));
+  const extraFlags = coupleId === 'c1' ? { c1Cancelled: true } : {};
+  return act({ appointments: rest, scheduleAppointments: schedule, notifications: notifs, ...extraFlags }, `Couple cancelled the counsellor session for ${coupleId.toUpperCase()}`,
+    async () => {
+      if (isLive()) {
+        try {
+          await supabase.from('consultation_requests').update({
+            status: 'CANCELLED',
+            responded_at: new Date().toISOString(),
+          }).eq('couple_id', coupleId);
+        } catch (e) {
+          console.warn('cancelBooking live notice:', e?.message);
+        }
+      }
+      return (s.apptIds?.[coupleId] ? supabase.rpc('cancel_appointment', { p_appt: s.apptIds[coupleId] }) : Promise.resolve({ error: null }));
+    });
 }
 
 export function addNote(coupleId, text) {
@@ -266,7 +508,19 @@ export function decideCard(card, status) {
 }
 
 /* ---------- people and couples stored only in the database (e.g. sample journeys) ---------- */
+export async function hydratePanel() {
+  // the configurable gene panel (025): active genes and the lab panel size. Keeps the built-in list if not migrated.
+  const { data, error } = await supabase.rpc('panel_info');
+  if (error || !data?.genes?.length) return;
+  for (const g of data.genes) {
+    if (g.active && g.review_status !== 'retired') GENES[g.symbol] = { condition: g.condition, inheritance: g.inheritance, source: g.source, review: g.review_status };
+    else delete GENES[g.symbol];
+  }
+  if (data.lab_panel_genes) PANEL.labGenes = data.lab_panel_genes;
+}
+
 export async function hydratePeople() {
+  hydratePanel().catch(() => {});
   const [p, c, r] = await Promise.all([
     supabase.from('people').select('id, name, short_name, sex'),
     supabase.from('couples').select('*'),
@@ -322,6 +576,11 @@ async function doLoad() {
     date: r.report_date, verified: r.validation_status === 'verified',
     variants: (r.genetic_variants || []).map((v) => ({ gene: v.gene_symbol, hgvs_c: v.hgvs_c, hgvs_p: v.hgvs_p, zygosity: v.zygosity, significance: v.clinical_significance, source: v.significance_source })),
   }]));
+  // uncertain findings (VUS) are not in the results summary table: take them from the reports themselves
+  for (const [pid, rep] of Object.entries(patch.reports)) {
+    if (!PEOPLE[pid] || String(rep.id).startsWith('SAMPLE-')) continue;
+    PEOPLE[pid].vus = rep.variants.find((v) => v.significance === 'vus')?.gene || undefined;
+  }
   patch.cases = Object.fromEntries((cases.data || []).map((c) => [c.couple_id, {
     id: c.id, tier: c.triage_tier, counsellor: c.case_assignments?.[0]?.counsellors?.name || null,
   }]));
@@ -377,7 +636,7 @@ async function doLoad() {
           };
         }
       }
-    } catch {}
+    } catch { }
   }
   if (s.role === 'counsellor') {
     const [{ data }, refs] = await Promise.all([
@@ -428,6 +687,7 @@ const rpc = async (fn, args) => {
 
 /* step 1: my own health profile (sex is needed to interpret X-linked results) */
 export async function startMyProfile(sex) {
+  if (!isLive()) return demoProfile(sex);
   const old = get().session?.id;
   const pid = await rpc('start_my_profile', { p_sex: sex });
   // the screening intake was saved under the login id before the profile existed: move it across
@@ -437,8 +697,9 @@ export async function startMyProfile(sex) {
 }
 
 /* step 3: fetch my lab report from Malaffi (validated and saved by the API) */
-export async function fetchMalaffi() {
-  const r = await api('/ingest/malaffi', { method: 'POST' });
+export async function fetchMalaffi(scenario) {
+  if (!isLive()) return demoFetch(scenario);
+  const r = await api(`/ingest/malaffi${scenario ? `?scenario=${encodeURIComponent(scenario)}` : ''}`, { method: 'POST' });
   await loadAll();
   return r;
 }
@@ -446,9 +707,15 @@ export async function fetchMalaffi() {
 export const createPartnerInvite = () => rpc('create_partner_invite');
 export const acceptPartnerInvite = (code) => rpc('accept_partner_invite', { p_code: code });
 export const startSampleJourney = () => rpc('start_sample_journey');
-export const grantMalaffiConsent = (viaUaePass) => rpc('grant_malaffi_consent', { p_signed_in_with_uaepass: !!viaUaePass });
-export const saveMyDetails = (details) => rpc('save_my_details', { p: details });
+export const grantMalaffiConsent = (viaUaePass) => {
+  if (isLive()) return rpc('grant_malaffi_consent', { p_signed_in_with_uaepass: !!viaUaePass });
+  const s = get().session;
+  set({ session: { ...s, malaffiConsent: true, malaffiConsentAt: new Date().toISOString() } }, 'Gave consent to read Malaffi (demo)');
+  return Promise.resolve(true);
+};
+export const saveMyDetails = (details) => (isLive() ? rpc('save_my_details', { p: details }) : demoDetails(details));
 export async function setMySex(sex) {
+  if (!isLive()) return demoProfile(sex);
   await rpc('set_my_sex', { p_sex: sex });
   const id = get().session?.id;
   if (id && PEOPLE[id]) PEOPLE[id].sex = sex;
@@ -461,7 +728,7 @@ export async function resetDemoDataBackend(session) {
     // 1. Try secure RPC if configured
     try {
       await supabase.rpc('reset_my_intake');
-    } catch {}
+    } catch { }
 
     const { data: { user } } = await supabase.auth.getUser();
     const uid = user?.id || session?.userId;
@@ -471,26 +738,26 @@ export async function resetDemoDataBackend(session) {
     if (uid) {
       try {
         await supabase.from('screening').delete().eq('user_id', uid);
-      } catch {}
+      } catch { }
       try {
         await supabase.from('screening').update({
           completed: false,
           submitted_at: null,
           updated_at: new Date().toISOString(),
         }).eq('user_id', uid);
-      } catch {}
+      } catch { }
     }
 
     if (pid) {
       try {
         await supabase.from('screening').delete().eq('person_id', pid);
-      } catch {}
+      } catch { }
     }
 
     // Clear standard demo personas screening rows
     try {
       await supabase.from('screening').delete().in('person_id', ['khalid', 'fatima', 'ahmed', 'noura']);
-    } catch {}
+    } catch { }
 
     // 3. Clear people intake_completed_at
     if (pid) {
@@ -500,7 +767,7 @@ export async function resetDemoDataBackend(session) {
           uaepass_linked_at: null,
           uaepass_via: null,
         }).eq('id', pid);
-      } catch {}
+      } catch { }
     }
     try {
       await supabase.from('people').update({
@@ -508,33 +775,66 @@ export async function resetDemoDataBackend(session) {
         uaepass_linked_at: null,
         uaepass_via: null,
       }).in('id', ['khalid', 'fatima', 'ahmed', 'noura']);
-    } catch {}
+    } catch { }
 
     // 4. Clear person_details
     if (pid) {
       try {
         await supabase.from('person_details').delete().eq('person_id', pid);
-      } catch {}
+      } catch { }
     }
     try {
       await supabase.from('person_details').delete().in('person_id', ['khalid', 'fatima', 'ahmed', 'noura']);
-    } catch {}
+    } catch { }
 
     // 5. Reset accounts title
     if (uid) {
       try {
         await supabase.from('accounts').update({ title: 'New member' }).eq('user_id', uid);
-      } catch {}
+      } catch { }
     }
 
     // 6. Delete test appointments and plans for the couple
     if (session?.couple) {
       try {
         await supabase.from('plans').delete().eq('couple_id', session.couple);
-      } catch {}
+      } catch { }
     }
   } catch (err) {
     console.warn('Backend reset demo error (handled gracefully):', err);
   }
 }
 
+/* ---------- offline UAE PASS demo: the same journey, saved in this browser only ---------- */
+function demoProfile(sex) {
+  const s = get().session;
+  if (PEOPLE[s.id]) PEOPLE[s.id].sex = sex;
+  set({ session: { ...s, needsProfile: false, sexConfirmed: true } }, `Confirmed profile (${sex === 'F' ? 'female' : 'male'})`);
+  return s.id;
+}
+async function demoFetch(choice) {
+  const s = get().session;
+  const me = PEOPLE[s.id] || {};
+  await new Promise((r) => setTimeout(r, 1200)); // a moment, like a real fetch
+  const today = new Date().toISOString().slice(0, 10);
+  const key = pickScenario(s.id, choice);
+  const variants = SCENARIOS[key].variants(me.sex);
+  const report = {
+    id: `MALAFFI-DEMO-${s.id.toUpperCase()}`, lab: 'Abu Dhabi Genomics Lab (simulated)', accreditation: 'CAP-0000000',
+    date: today, verified: true, scenario: SCENARIOS[key].label, variants,
+  };
+  // what the rest of the app reads: the first confirmed finding, or an uncertain one
+  if (PEOPLE[s.id]) {
+    PEOPLE[s.id].carrier = variants.find((x) => x.significance !== 'vus')?.gene || null;
+    PEOPLE[s.id].vus = variants.find((x) => x.significance === 'vus')?.gene || undefined;
+  }
+  const lab = scenarioBlood(key, me.sex);
+  set((st) => ({ reports: { ...(st.reports || {}), [s.id]: report }, demoLab: { ...(st.demoLab || {}), [s.id]: lab } }),
+    `Fetched premarital results from Malaffi (demo: ${SCENARIOS[key].label})`);
+  return { saved: true, report_id: report.id, scenario: key };
+}
+function demoDetails(details) {
+  const s = get().session;
+  set({ session: { ...s, details, intakeDone: true } }, 'Saved screening details (demo)');
+  return new Date().toISOString();
+}

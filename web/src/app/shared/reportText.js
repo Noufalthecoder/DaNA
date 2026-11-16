@@ -19,7 +19,7 @@ export const T = {
     genetic: 'Genetic carrier screening (570 genes, 840+ conditions)',
     noVariant: 'No disease-causing change found', variantOf: 'Change found in',
     hiv: 'HIV', hbsag: 'Hepatitis B (HBsAg)', hcv: 'Hepatitis C (anti-HCV)', syphilis: 'Syphilis',
-    hb: 'Haemoglobin', hba2: 'Haemoglobin A2 (thalassaemia trait)', hbVariant: 'Haemoglobin variant (sickle cell)',
+    hb: 'Haemoglobin', mcv: 'Red cell size (MCV)', ferritin: 'Iron stores (ferritin)', g6pd: 'G6PD enzyme activity', hba2: 'Haemoglobin A2 (thalassaemia trait)', hbVariant: 'Haemoglobin variant (sickle cell)',
     rubella: 'Rubella immunity (IgG)', rhd: 'Blood group RhD',
     nonReactive: 'Non-reactive', reactive: 'Reactive', positive: 'Positive', negative: 'Negative', none: 'None detected',
     notInRecord: 'Not in your Malaffi record',
@@ -55,7 +55,7 @@ export const T = {
     genetic: 'فحص حمل الصفات الوراثية (570 جيناً، أكثر من 840 حالة)',
     noVariant: 'لم يُعثر على تغيّر مسبب للمرض', variantOf: 'تغيّر في جين',
     hiv: 'فيروس نقص المناعة البشرية', hbsag: 'التهاب الكبد ب (HBsAg)', hcv: 'التهاب الكبد ج (anti-HCV)', syphilis: 'الزهري',
-    hb: 'الهيموغلوبين', hba2: 'الهيموغلوبين A2 (سمة الثلاسيميا)', hbVariant: 'متغيّر الهيموغلوبين (فقر الدم المنجلي)',
+    hb: 'الهيموغلوبين', mcv: 'حجم خلايا الدم الحمراء (MCV)', ferritin: 'مخزون الحديد (الفيريتين)', g6pd: 'نشاط إنزيم G6PD', hba2: 'الهيموغلوبين A2 (سمة الثلاسيميا)', hbVariant: 'متغيّر الهيموغلوبين (فقر الدم المنجلي)',
     rubella: 'المناعة ضد الحصبة الألمانية (IgG)', rhd: 'فصيلة الدم RhD',
     nonReactive: 'غير تفاعلي', reactive: 'تفاعلي', positive: 'موجب', negative: 'سالب', none: 'لم يُكتشف',
     notInRecord: 'غير موجود في سجلك في ملفي',
@@ -91,7 +91,7 @@ export const T = {
     genetic: 'جینیاتی کیریئر اسکریننگ (570 جینز، 840 سے زائد بیماریاں)',
     noVariant: 'بیماری پیدا کرنے والی کوئی تبدیلی نہیں ملی', variantOf: 'جین میں تبدیلی',
     hiv: 'ایچ آئی وی', hbsag: 'ہیپاٹائٹس بی (HBsAg)', hcv: 'ہیپاٹائٹس سی (anti-HCV)', syphilis: 'آتشک',
-    hb: 'ہیموگلوبن', hba2: 'ہیموگلوبن A2 (تھیلیسیمیا ٹریٹ)', hbVariant: 'ہیموگلوبن ویریئنٹ (سکل سیل)',
+    hb: 'ہیموگلوبن', mcv: 'سرخ خلیوں کا سائز (MCV)', ferritin: 'آئرن کا ذخیرہ (فیریٹن)', g6pd: 'G6PD انزائم کی سرگرمی', hba2: 'ہیموگلوبن A2 (تھیلیسیمیا ٹریٹ)', hbVariant: 'ہیموگلوبن ویریئنٹ (سکل سیل)',
     rubella: 'روبیلا کے خلاف قوتِ مدافعت (IgG)', rhd: 'بلڈ گروپ RhD',
     nonReactive: 'غیر ری ایکٹو', reactive: 'ری ایکٹو', positive: 'پازیٹو', negative: 'نیگیٹو', none: 'کچھ نہیں ملا',
     notInRecord: 'آپ کے ملفی ریکارڈ میں موجود نہیں',
@@ -147,4 +147,13 @@ export function headline(lang, status, gene) {
     },
   };
   return H[lang][status];
+}
+
+/* the lab panel size is configurable (025): swap the default 570 for the current value everywhere */
+export function withPanel(x, n) {
+  if (!n || n === 570) return x;
+  if (typeof x === 'string') return x.replace(/570/g, String(n));
+  if (Array.isArray(x)) return x.map((y) => withPanel(y, n));
+  if (x && typeof x === 'object') return Object.fromEntries(Object.entries(x).map(([k, v]) => [k, withPanel(v, n)]));
+  return x;
 }

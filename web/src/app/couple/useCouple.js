@@ -26,7 +26,7 @@ export function useCouple() {
     );
     if (!couple) {
       couple = {
-        id: `c_${myId}_${partnerId}`,
+        id: activeConn?.id && !String(activeConn.id).startsWith('conn_') ? activeConn.id : `c_${myId}_${partnerId}`,
         a: myId,
         b: partnerId,
         stage: 'Engaged',

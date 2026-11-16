@@ -80,6 +80,7 @@ export default function Connections({ defaultTab = 'discover' }) {
   // Request modal state
   const [requestTarget, setRequestTarget] = useState(null);
   const [requestNote, setRequestNote] = useState('');
+  const [confirmAction, setConfirmAction] = useState(null);
 
   // React to hashchange events (e.g. from notification clicks) & live Supabase sync
   useEffect(() => {
@@ -161,8 +162,9 @@ export default function Connections({ defaultTab = 'discover' }) {
         }
       } catch (err) {
         if (active) {
-          // Fallback to strict synchronous search
-          setSearchResults(searchUsers(meId, raw));
+          // live errors (rate limit, wrong format) are shown; offline falls back to the local search
+          if (session?.backend) { setSearchResults([]); notify(err.message, 'error'); }
+          else setSearchResults(searchUsers(meId, raw));
           setIsSearching(false);
           setSearchDone(true);
         }
@@ -206,10 +208,10 @@ export default function Connections({ defaultTab = 'discover' }) {
   };
 
   // Actions
-  const handleSendRequest = () => {
+  const handleSendRequest = async () => {
     if (!requestTarget) return;
     try {
-      sendConnectionRequest(meId, requestTarget.id, requestNote, {
+      await sendConnectionRequest(meId, requestTarget.id, requestNote, {
         targetEmail: requestTarget.email,
         targetName: requestTarget.name,
       });
@@ -260,28 +262,42 @@ export default function Connections({ defaultTab = 'discover' }) {
   };
 
   const handleRemove = (connectionId, partnerName) => {
-    if (!window.confirm(`Are you sure you want to disconnect from ${partnerName}?`)) return;
-    try {
-      removeConnection(connectionId, meId);
-      notify(`Disconnected from ${partnerName}.`);
-    } catch (err) {
-      notify(err.message, 'error');
-    }
+    setConfirmAction({
+      title: 'Disconnect Partner',
+      message: `Disconnect from ${partnerName}? Your couple result and shared plans end for both of you. Your own results stay.`,
+      actionLabel: 'Disconnect',
+      isDanger: true,
+      onConfirm: async () => {
+        try {
+          await removeConnection(connectionId, meId);
+          notify(`Disconnected from ${partnerName}.`);
+        } catch (err) {
+          notify(err.message, 'error');
+        }
+      }
+    });
   };
 
   const handleBlock = (targetId, targetName) => {
-    if (!window.confirm(`Block ${targetName}? They will not be able to find or request to connect with you.`)) return;
-    try {
-      blockUser(meId, targetId);
-      notify(`Blocked ${targetName}.`);
-    } catch (err) {
-      notify(err.message, 'error');
-    }
+    setConfirmAction({
+      title: 'Block User',
+      message: `Block ${targetName}? This also ends any link between you. Neither of you can find, request or link with the other until you unblock.`,
+      actionLabel: 'Block User',
+      isDanger: true,
+      onConfirm: async () => {
+        try {
+          await blockUser(meId, targetId);
+          notify(`Blocked ${targetName}.`);
+        } catch (err) {
+          notify(err.message, 'error');
+        }
+      }
+    });
   };
 
-  const handleUnblock = (targetId, targetName) => {
+  const handleUnblock = async (targetId, targetName) => {
     try {
-      unblockUser(meId, targetId);
+      await unblockUser(meId, targetId);
       notify(`Unblocked ${targetName}.`);
     } catch (err) {
       notify(err.message, 'error');
@@ -399,7 +415,7 @@ export default function Connections({ defaultTab = 'discover' }) {
         {tab === 'discover' && (
           <Card title="Search & Connect with Your Partner">
             <p className="lead-in">
-              Type your partner’s <b>full name</b>, <b>email</b> or <b>DaNA ID</b>. They will get a request to accept.
+              Ask your partner for their <b>DaNA ID</b> (shown at the top of their Connections page) and type it here. Names and emails cannot be searched, so strangers cannot find you.
             </p>
 
             <div className="conn-search-box">
@@ -409,7 +425,7 @@ export default function Connections({ defaultTab = 'discover' }) {
               <input
                 type="text"
                 className="conn-search-input"
-                placeholder="Partner's full name, email or DaNA ID (e.g. Fatima Al Hammadi or DANA-3F9A2C)"
+                placeholder="Partner's DaNA ID, e.g. DANA-3F9A2C"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 autoFocus
@@ -445,7 +461,7 @@ export default function Connections({ defaultTab = 'discover' }) {
                 </div>
                 <h3>Private by design</h3>
                 <p>
-                  DaNA never shows a list of members. Only an exact full name, email or DaNA ID finds someone, and they see nothing about you until they accept.
+                  DaNA never shows a list of members. Only the exact DaNA ID your partner shares with you finds them. Searches are limited, and nobody sees anything about you until they accept.
                 </p>
               </div>
             )}
@@ -735,7 +751,7 @@ export default function Connections({ defaultTab = 'discover' }) {
               <Card title="No Active Connection">
                 <div className="conn-empty-state">
                   <p className="conn-empty-state-p muted">
-                    You have not connected with a premarital partner yet. Search for your partner by username or DaNA ID to get started.
+                    You have not connected with a premarital partner yet. Ask your partner for their DaNA ID and search for it to get started.
                   </p>
                   <button className="btn btn-sm" onClick={() => switchTab('discover')}>
                     <IconSearch size={15} />
@@ -853,6 +869,50 @@ export default function Connections({ defaultTab = 'discover' }) {
               </div>
             )}
           </Card>
+        )}
+
+        {/* Confirm Action In-App Modal */}
+        {confirmAction && (
+          <div className="conn-modal-backdrop" onClick={() => setConfirmAction(null)}>
+            <div className="conn-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440 }}>
+              <div className="conn-modal-header">
+                <h3>{confirmAction.title}</h3>
+                <button
+                  type="button"
+                  className="conn-modal-close"
+                  onClick={() => setConfirmAction(null)}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="conn-modal-body">
+                <p style={{ margin: 0, fontSize: 14, color: '#334155', lineHeight: 1.5 }}>
+                  {confirmAction.message}
+                </p>
+              </div>
+              <div className="conn-modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-line"
+                  onClick={() => setConfirmAction(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{ background: confirmAction.isDanger ? '#DC2626' : undefined, borderColor: confirmAction.isDanger ? '#DC2626' : undefined, color: '#fff' }}
+                  onClick={() => {
+                    const action = confirmAction.onConfirm;
+                    setConfirmAction(null);
+                    action();
+                  }}
+                >
+                  {confirmAction.actionLabel || 'Confirm'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Send Request Modal */}
