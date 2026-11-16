@@ -77,7 +77,7 @@ export function useJourney() {
   // verified = allowed into the app: profile, UAE PASS identity, consent, details and a real Malaffi result.
   // No shortcuts from older flows; withdrawing consent sends the person back to onboarding.
   const verified = !tracked || (
-    !session?.needsProfile && session?.sexConfirmed !== false && !!session?.uaepassLinked && !!session?.malaffiConsent
+    !session?.needsProfile && session?.sexConfirmed !== false && !!session?.uaepassLinked && !!session?.malaffiConsent && !!session?.consentScopes?.identity && !!session?.consentScopes?.results
     && !!session?.details && isRealReport(reports[session?.id]));
   return { steps, current, next, live, linked, done, verified };
 }

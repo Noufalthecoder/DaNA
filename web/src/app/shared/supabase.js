@@ -69,9 +69,15 @@ export async function loadSession(user) {
   // a new couple account has no health profile yet: the Welcome page walks them through it (009_onboarding.sql)
   // journey state (018): old auto-made profiles confirm their sex; the intake counts on every device
   let journey = null;
+  let consentScopes = null;
   if (acc.person_id) {
-    const { data: j } = await supabase.rpc('my_journey');
+    const [{ data: j }, { data: c }] = await Promise.all([
+      supabase.rpc('my_journey'),
+      // the onboarding consent (029, malaffi-consent-v2) records which groups were agreed; older consents have none
+      supabase.from('consents').select('granted, scopes').eq('person_id', acc.person_id).eq('kind', 'malaffi_access').maybeSingle(),
+    ]);
     journey = Array.isArray(j) ? j[0] : null;
+    consentScopes = c?.granted ? c.scopes || null : null;
   }
   await hydratePeople();
   // prefer a real couple over an old sample one (013 removes the sample couple when a real partner links)
@@ -111,6 +117,7 @@ export async function loadSession(user) {
     sexConfirmed: journey ? !!journey.sex_confirmed : true,
     intakeDone: !!journey?.intake_completed_at,
     malaffiConsent: !!journey?.malaffi_consent,
+    consentScopes,
     uaepassLinked: !!journey?.uaepass_linked_at,
     details: journey?.details || null,
     backend: true,
