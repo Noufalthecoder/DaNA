@@ -94,6 +94,15 @@ export default function Root() {
     }
   }, [ready, inApp, session]);
 
+  // the gate: unverified couple members go to /onboarding; verified ones never stay on it
+  const mustOnboard = !!session && isCouple && (obReview || !journey.verified);
+  const gateReady = !session?.backend || dataLoaded;
+  useEffect(() => {
+    if (!gateReady) return;
+    if (mustOnboard && path.startsWith('/app')) go('/onboarding');
+    else if (!mustOnboard && path === '/onboarding' && session) go('/app');
+  }, [mustOnboard, gateReady, path, session]);
+
   useEffect(() => {
     document.body.classList.toggle('in-app', path !== '/');
   }, [path]);
@@ -117,6 +126,13 @@ export default function Root() {
   }, [path, session]);
 
   // Route matching
+  // onboarding: its own page before the app; only signed-in couple members who are not yet verified
+  if (path === '/onboarding') {
+    if (!session) return <ErrorBoundary><Login /></ErrorBoundary>;
+    if (session.backend && !dataLoaded) return <div className="ob-loading">Loading your account…</div>;
+    return <ErrorBoundary><Onboarding key={session.id} /></ErrorBoundary>;
+  }
+
   if (path === '/login') {
     return (
       <ErrorBoundary>
@@ -145,13 +161,9 @@ export default function Root() {
 
     // Only verified couple members enter the app: profile, UAE PASS identity, consent, details and
     // results first. Until then every /app page shows the onboarding (outside the app shell).
-    if (isCouple && (obReview || !(journey.done.profile && journey.done.malaffi))) {
-      if (session.backend && !dataLoaded) return <div className="ob-loading">Loading your account…</div>;
-      return (
-        <ErrorBoundary>
-          <Onboarding key={session.id} />
-        </ErrorBoundary>
-      );
+    // unverified couple members never see an app page: they are sent to /onboarding (outside the app)
+    if (isCouple && (obReview || !journey.verified)) {
+      return <div className="ob-loading">{session.backend && !dataLoaded ? 'Loading your account…' : 'Opening your setup…'}</div>;
     }
 
     // Full standalone layout for individual medical report

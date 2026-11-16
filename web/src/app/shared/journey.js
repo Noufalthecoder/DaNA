@@ -74,5 +74,10 @@ export function useJourney() {
   if (steps[at]?.key === 'profile' && tracked && !session?.needsProfile) {
     next = { ...next, t: 'Confirm your profile', p: 'Please confirm if you are female or male. Older accounts were saved without asking.' };
   }
-  return { steps, current, next, live, linked, done };
+  // verified = allowed into the app: profile, UAE PASS identity, consent, details and a real Malaffi result.
+  // No shortcuts from older flows; withdrawing consent sends the person back to onboarding.
+  const verified = !tracked || (
+    !session?.needsProfile && session?.sexConfirmed !== false && !!session?.uaepassLinked && !!session?.malaffiConsent
+    && !!session?.details && isRealReport(reports[session?.id]));
+  return { steps, current, next, live, linked, done, verified };
 }
