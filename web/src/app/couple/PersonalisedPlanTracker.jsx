@@ -425,7 +425,7 @@ export default function PersonalisedPlanTracker() {
                         ) : isCurrent ? (
                           <Badge tone="amber">Active Focus</Badge>
                         ) : (
-                          <Badge tone="grey">Locked</Badge>
+                          <Badge tone="grey">Unavailable</Badge>
                         )}
                       </td>
                       <td style={{ padding: '12px', color: '#475569', fontSize: '12.5px' }}>
@@ -902,7 +902,7 @@ export default function PersonalisedPlanTracker() {
               </p>
               <div className="cpt-pending-hint">
                 <Clock size={13} style={{ color: '#D97706' }} />
-                <span>Unlocks once Stage 3 consultation is confirmed &amp; care plan approved</span>
+                <span>Unavailable until Stage 3 consultation is confirmed &amp; care plan approved</span>
               </div>
             </div>
           )}
@@ -920,7 +920,7 @@ export default function PersonalisedPlanTracker() {
                 Stage 4 · Family Planning
               </span>
               <Badge tone={isStage3Confirmed ? 'green' : 'grey'}>
-                {isStage3Confirmed ? 'Active' : 'Locked 🔒'}
+                {isStage3Confirmed ? 'Active' : 'Unavailable 🔒'}
               </Badge>
             </div>
             <h3 className="cpt-sec-title">Your family planning journey · مسار تنظيم وبناء الأسرة</h3>
@@ -1041,7 +1041,7 @@ export default function PersonalisedPlanTracker() {
             <div className="cpt-locked-icon-wrap">
               <Lock size={26} color="#94A3B8" />
             </div>
-            <h4 className="cpt-locked-title">Family Planning Decision Unlocks at Stage 4</h4>
+            <h4 className="cpt-locked-title">Family Planning Decision Unavailable until Stage 4</h4>
             <p className="cpt-locked-desc">
               To record your family planning decision (such as IVF with PGT-M or preconception preparation), you must first complete your Stage 3 Genetic Counselling consultation with Dr. Mariam Al Hosani.
             </p>
@@ -1060,7 +1060,12 @@ export default function PersonalisedPlanTracker() {
       <section id="section-pregnancy" className="cpt-section-card">
         <div className="cpt-sec-header">
           <div>
-            <span className="cpt-sec-tag">Section 5</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span className="cpt-sec-tag">Section 5</span>
+              <Badge tone={isPregnancyUnlocked ? 'green' : 'grey'}>
+                {isPregnancyUnlocked ? 'Active' : 'Unavailable 🔒'}
+              </Badge>
+            </div>
             <h3 className="cpt-sec-title">Pregnancy Journey · رحلة الحمل والمتابعة الجنينية</h3>
             <p className="cpt-sec-sub">
               Gestational age tracking, trimester health milestones, and time-critical prenatal testing windows.
@@ -1151,7 +1156,7 @@ export default function PersonalisedPlanTracker() {
             <div className="cpt-locked-icon-wrap">
               <Lock size={22} />
             </div>
-            <h4 className="cpt-locked-title">Pregnancy Journey Unlocks at Stage 5</h4>
+            <h4 className="cpt-locked-title">Pregnancy Journey Unavailable until Stage 5</h4>
             <p className="cpt-locked-desc">
               This section is only available once the previous stages (Screening, Couple Assessment, Genetic Counselling, and Family Planning) are completed. Once a pregnancy is confirmed, gestational milestones, trimester health tracking, and time-critical prenatal testing windows (CVS and Amniocentesis) will activate here automatically.
             </p>
@@ -1174,7 +1179,12 @@ export default function PersonalisedPlanTracker() {
       <section id="section-birth" className="cpt-section-card">
         <div className="cpt-sec-header">
           <div>
-            <span className="cpt-sec-tag">Section 6</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span className="cpt-sec-tag">Section 6</span>
+              <Badge tone={isBirthUnlocked ? 'green' : 'grey'}>
+                {isBirthUnlocked ? 'Active' : 'Unavailable 🔒'}
+              </Badge>
+            </div>
             <h3 className="cpt-sec-title">Birth & Newborn Records · سجل الولادة وفحوصات المولود</h3>
             <p className="cpt-sec-sub">
               Maternity delivery coordination, national newborn blood spot screening, and pediatric care handoff.
@@ -1248,7 +1258,7 @@ export default function PersonalisedPlanTracker() {
             <div className="cpt-locked-icon-wrap">
               <Lock size={22} />
             </div>
-            <h4 className="cpt-locked-title">Birth &amp; Newborn Records Unlock at Stage 6 &amp; 7</h4>
+            <h4 className="cpt-locked-title">Birth &amp; Newborn Records Unavailable until Stage 6 &amp; 7</h4>
             <p className="cpt-locked-desc">
               This section is only available once previous pregnancy milestones are reached. During birth preparation (Stage 6), the hospital maternity handover dossier and labor-ward cord blood protocol will activate. Following delivery (Stage 7), the UAE National Newborn Screening records will be logged here.
             </p>
