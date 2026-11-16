@@ -1,7 +1,5 @@
 /* The journey card shown on Home: where you are, what is done, and ONE next step. Owner: Platform. */
 import { useJourney } from './journey.js';
-import Intake from './Intake.jsx';
-import ProfileStep from './ProfileStep.jsx';
 import { loadAll } from './db.js';
 
 export default function Journey({ action }) {
@@ -24,11 +22,7 @@ export default function Journey({ action }) {
         <span className="eyebrow">Next step</span>
         <h3>{next.t}</h3>
         <p>{next.p}</p>
-        {action || (steps[current]?.key === 'malaffi'
-          ? <Intake />
-          : steps[current]?.key === 'profile'
-            ? <ProfileStep />
-            : <a className="btn" href={next.to}>Continue →</a>)}
+        {action || <a className="btn" href={next.to}>Continue →</a>}
       </div>
     </section>
   );
