@@ -3,7 +3,7 @@ import { Page, Card, Badge, Dialog } from '../shared/ui.jsx';
 import LocationPicker from '../shared/LocationPicker.jsx';
 import { supabase } from '../shared/supabase.js';
 import { isLive, gulfLabel } from '../shared/db.js';
-import { loadLocations, locationName, adminCounsellors, adminCoverage, setCounsellorProfile, setAdminScope } from '../shared/locationService.js';
+import { loadLocations, locationName, adminCounsellors, adminCoverage, setCounsellorProfile, setAdminScope, manageCounsellor } from '../shared/locationService.js';
 import '../shared/location.css';
 
 const LEVELS = { national: 'Whole country', emirate: 'One emirate', location: 'One area' };
@@ -74,7 +74,7 @@ export default function Coverage() {
         </table>
       </Card>
 
-      <Card title="Counsellors in your area">
+      <Card title="Counsellors in your area" aside={<span className="muted">{me?.scope_level === 'national' ? 'All counsellors, including those without a clinic' : 'Counsellors whose clinic is in your area'}</span>}>
         <table className="table">
           <thead><tr><th>Counsellor</th><th>Clinic</th><th>Formats</th><th>Caseload</th><th>Open slots (14 days)</th><th /></tr></thead>
           <tbody>
@@ -85,10 +85,24 @@ export default function Coverage() {
                 <td>{[k.offers_in_person && 'In person', k.offers_online && 'Online'].filter(Boolean).join(' · ') || '—'}</td>
                 <td>{k.active_caseload} / {k.max_caseload}</td>
                 <td>{k.open_slots_14d}{k.next_open_slot ? <small>Next: {gulfLabel(k.next_open_slot)}</small> : null}</td>
-                <td><button type="button" className="btn-line" onClick={() => setEditK({ ...k, loc: k.location_id, inPerson: k.offers_in_person, online: k.offers_online })}>Set clinic</button></td>
+                <td>
+                  <div className="cov-actions">
+                    {!k.credentials_verified && (
+                      <button type="button" className="btn" disabled={busy || !k.location_id} title={k.location_id ? '' : 'The counsellor must choose a clinic first'}
+                        onClick={() => run(() => manageCounsellor(k.id, 'verify'), `${k.name} verified.`)}>Verify</button>
+                    )}
+                    {k.credentials_verified && k.status === 'active' && (
+                      <button type="button" className="btn-line" disabled={busy} onClick={() => run(() => manageCounsellor(k.id, 'pause'), `${k.name} paused. Couples will not see them.`)}>Pause</button>
+                    )}
+                    {k.credentials_verified && k.status !== 'active' && (
+                      <button type="button" className="btn-line" disabled={busy} onClick={() => run(() => manageCounsellor(k.id, 'activate'), `${k.name} is active again.`)}>Activate</button>
+                    )}
+                    <button type="button" className="btn-line" onClick={() => setEditK({ ...k, loc: k.location_id, inPerson: k.offers_in_person, online: k.offers_online })}>Set clinic</button>
+                  </div>
+                </td>
               </tr>
             ))}
-            {!staff.length && <tr><td colSpan="6" className="muted">No counsellors in your area yet.</td></tr>}
+            {!staff.length && <tr><td colSpan="6" className="muted">No counsellors in your area yet. New counsellors appear here once they choose a clinic in your area.</td></tr>}
           </tbody>
         </table>
       </Card>

@@ -3,6 +3,7 @@ import { Page, Card, Priority, Badge, Stat } from '../shared/ui.jsx';
 import { COUPLES, PEOPLE } from '../shared/data.js';
 import { assess, PRIORITY_ORDER, TIER_PRIORITY } from '../shared/genetics.js';
 import { useStore } from '../shared/store.js';
+import ClinicPrompt from './ClinicPrompt.jsx';
 
 /* cases sorted by clinical priority: pregnant + same gene first */
 export function cases(live = {}) {
@@ -23,6 +24,7 @@ export default function Queue() {
 
   return (
     <Page title="Case queue" sub="Sorted by priority. Urgent cases are contacted first.">
+      <ClinicPrompt />
       <div className="stats four">
         <Stat label="Tier 1 · Urgent" value={all.filter((c) => c.r.priority === 'urgent').length} note="pregnant, shared finding" />
         <Stat label="Tier 2 · High" value={all.filter((c) => c.r.priority === 'high').length} />

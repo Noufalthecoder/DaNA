@@ -818,3 +818,17 @@ def person_location(person_id: str, user: User = Depends(current_user)):
     if not rows:
         raise HTTPException(404, "Person not found, or you may not see them")
     return {"person_id": person_id, "place": places.public_place(_place_by_id(user, rows[0]["location_id"]))}
+
+
+class ManageCounsellor(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    action: Literal["verify", "activate", "pause"]
+    reason: str | None = Field(None, max_length=200)
+
+
+@app.post("/counsellors/{counsellor_id}/manage", tags=["places"])
+def manage_counsellor(counsellor_id: str, body: ManageCounsellor, user: User = Depends(current_user)):
+    """Verify, pause or re-activate a counsellor. An admin may only manage counsellors inside their own area (the database enforces it)."""
+    _require_role(user, "admin")
+    status = as_user(user.token).rpc("manage_counsellor", {"p_counsellor": counsellor_id, "p_action": body.action, "p_reason": body.reason})
+    return {"counsellor_id": counsellor_id, "action": body.action, "status": status}

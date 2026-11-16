@@ -20,7 +20,7 @@ await db.exec(`create table public.locations (id bigint ${identity ? 'generated 
 const dubai = [['Downtown Dubai',25.1972,55.2744],['Dubai Marina',25.0805,55.1403],['Jumeirah',25.2048,55.2708],['Deira',25.2697,55.3094]];
 let id = 1; for (const [c,la,lo] of dubai) await db.exec(`insert into locations ${identity ? 'overriding system value ' : ''}values (${id++}, '${c}','${c}','Dubai','United Arab Emirates','AE',${la},${lo})`);
 await db.exec(`insert into locations ${identity ? 'overriding system value ' : ''}values (100,'Abu Dhabi','Abu Dhabi','Abu Dhabi','United Arab Emirates','AE',24.4539,54.3773),(101,'Al Ain','Al Ain','Abu Dhabi','United Arab Emirates','AE',24.2075,55.7447),(102,'Sharjah','Sharjah','Sharjah','United Arab Emirates','AE',25.3463,55.4209)`);
-const files = ['schema.sql','seed.sql', ...fs.readdirSync(DIR).filter(f=>/^\d{3}_.*\.sql$/.test(f)).sort().filter(f=>f!=='029_locations.sql'), '030_location_scope.sql'];
+const files = ['schema.sql','seed.sql', ...fs.readdirSync(DIR).filter(f=>/^\d{3}_.*\.sql$/.test(f)).sort().filter(f=>f!=='029_locations.sql')];
 for (const f of files) { try { await db.exec(fs.readFileSync(DIR+f,'utf8')); } catch(e){ console.log('MIGRATION FAIL', f, e.message.split('\n')[0]); throw new Error('migration failed: '+f);} }
 console.log('migrations ok (live-shaped locations, 029_locations skipped)');
 await db.exec(`grant select, insert, update, delete on all tables in schema public to authenticated, service_role; grant usage on all sequences in schema public to authenticated;`);
@@ -98,8 +98,42 @@ await ok('upsert_case prefers counsellor in the couple\'s emirate', async () => 
 });
 await ok('seed added other emirates without duplicating existing ones', async () => { const r=(await db.query(`select count(*)::int c, count(distinct lower(city)||state_name)::int d from locations where country_code='AE'`)).rows[0]; const f=(await db.query(`select count(*)::int c from locations where city='Fujairah'`)).rows[0].c; return r.c===r.d && f===1; });
 await ok('Mariam and Yousef linked to real locations', async () => (await db.query(`select count(*)::int c from counsellors where name like 'Dr.%' and location_id is not null`)).rows[0].c===2);
+
+// ---- 031: an admin handles the counsellors of their own area ----
+await db.exec(`insert into auth.users (id,email) values ('00000000-0000-0000-0000-0000000000b3','k3@t.dev'),('00000000-0000-0000-0000-0000000000b4','k4@t.dev');
+ insert into accounts (user_id, role, display_name, title) values ('00000000-0000-0000-0000-0000000000b3','counsellor','K3 New','Genetic counsellor (pending verification)'),('00000000-0000-0000-0000-0000000000b4','counsellor','K4 AbuDhabiNew','Genetic counsellor (pending verification)');
+ insert into counsellors (user_id,name,status,credentials_verified) values ('00000000-0000-0000-0000-0000000000b3','K3 New','away',false),('00000000-0000-0000-0000-0000000000b4','K4 AbuDhabiNew','away',false);
+ update accounts set scope_level='emirate', location_id=1 where user_id='${U.adminD}';`);
+const k3 = (await db.query(`select id from counsellors where user_id='00000000-0000-0000-0000-0000000000b3'`)).rows[0].id;
+const k4 = (await db.query(`select id from counsellors where user_id='00000000-0000-0000-0000-0000000000b4'`)).rows[0].id;
+await ok('regional admin cannot see a counsellor with no clinic', async () => !(await as(U.adminD, `select name from admin_counsellors()`)).rows.some(x=>x.name==='K3 New'));
+await ok('nationwide admin sees the unplaced counsellor', async () => (await as(U.adminN, `select name from admin_counsellors()`)).rows.some(x=>x.name==='K3 New'));
+await bad('regional admin cannot verify an unplaced counsellor', () => as(U.adminD, `select manage_counsellor('${k3}','verify')`), /outside your area/);
+await bad('nationwide admin cannot verify without a clinic either', () => as(U.adminN, `select manage_counsellor('${k3}','verify')`), /choose a clinic/);
+await ok('counsellor picks a clinic in Dubai', async () => { await as('00000000-0000-0000-0000-0000000000b3', `select set_counsellor_profile(null, 3, true, true)`); return true; });
+await ok('now the Dubai admin sees them', async () => (await as(U.adminD, `select name from admin_counsellors()`)).rows.some(x=>x.name==='K3 New'));
+await bad('couple cannot manage counsellors', () => as(U.c1, `select manage_counsellor('${k3}','verify')`), /Only a DoH admin/);
+await bad('counsellor cannot manage counsellors', () => as(U.k1, `select manage_counsellor('${k3}','verify')`), /Only a DoH admin/);
+await bad('bad action refused', () => as(U.adminD, `select manage_counsellor('${k3}','delete')`), /Choose verify/);
+await bad('cannot activate before verifying', () => as(U.adminD, `select manage_counsellor('${k3}','activate')`), /Verify the counsellor first/);
+await ok('Dubai admin verifies: active, verified, title updated', async () => { const s=(await as(U.adminD, `select manage_counsellor('${k3}','verify') s`)).rows[0].s; const r=(await db.query(`select k.status, k.credentials_verified, a.title from counsellors k join accounts a on a.user_id=k.user_id where k.id='${k3}'`)).rows[0]; return s==='active' && r.status==='active' && r.credentials_verified && r.title==='Genetic counsellor'; });
+await bad('verifying twice refused', () => as(U.adminD, `select manage_counsellor('${k3}','verify')`), /Already verified/);
+const K3U = '00000000-0000-0000-0000-0000000000b3';
+await ok('verified counsellor publishes and couples can find them', async () => { await as(K3U, `select publish_slots(current_date+6, current_date+6, array[1,2,3,4,5,6,7], '09:00','10:00',45,15,'online')`); return (await as(U.c1, `select * from find_slots('online')`)).rows.some(x=>x.counsellor_name==='K3 New'); });
+await ok('Dubai admin pauses: hidden from couples; re-activates: visible again', async () => {
+  await as(U.adminD, `select manage_counsellor('${k3}','pause','on leave')`);
+  const paused = (await db.query(`select status from counsellors where id='${k3}'`)).rows[0].status;
+  const hidden = !(await as(U.c1, `select * from find_slots('online')`)).rows.some(x=>x.counsellor_name==='K3 New');
+  await as(U.adminD, `select manage_counsellor('${k3}','activate')`);
+  const back = (await as(U.c1, `select * from find_slots('online')`)).rows.some(x=>x.counsellor_name==='K3 New');
+  return paused==='away' && hidden && back;
+});
+await ok('Abu Dhabi counsellor (placed) is out of the Dubai admin\'s reach', async () => { await as('00000000-0000-0000-0000-0000000000b4', `select set_counsellor_profile(null, 100, false, true)`); return !(await as(U.adminD, `select name from admin_counsellors()`)).rows.some(x=>x.name==='K4 AbuDhabiNew'); });
+await bad('Dubai admin cannot verify the Abu Dhabi counsellor', () => as(U.adminD, `select manage_counsellor('${k4}','verify')`), /outside your area/);
+await ok('an Abu Dhabi emirate admin can', async () => { await db.exec(`update accounts set scope_level='emirate', location_id=100 where user_id='${U.adminD}'`); await as(U.adminD, `select manage_counsellor('${k4}','verify')`); return (await db.query(`select credentials_verified from counsellors where id='${k4}'`)).rows[0].credentials_verified; });
+await ok('manage actions are audited', async () => (await db.query(`select count(*)::int c from audit_log where action like 'Verified counsellor:%' or action like 'Paused counsellor:%' or action like 'Activated counsellor:%'`)).rows[0].c >= 4);
 // re-run safe
-await ok('030 is re-runnable', async () => { await db.exec(fs.readFileSync(DIR+'030_location_scope.sql','utf8')); return true; });
+await ok('030 is re-runnable', async () => { for (const f of ['030_location_scope.sql','031_admin_manages_counsellors.sql']) await db.exec(fs.readFileSync(DIR+f,'utf8')); return true; });
 // 029 after 030 (fresh-database order)
 assert.equal(fail, 0, `${fail} of ${pass + fail} checks failed`);
 
