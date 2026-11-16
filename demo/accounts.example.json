@@ -1,0 +1,6 @@
+{
+  "male": {"email": "...", "pw": "..."},
+  "female": {"email": "...", "pw": "..."},
+  "counsellor": {"email": "...", "pw": "...", "code": "staff code"},
+  "admin": {"email": "...", "pw": "...", "code": "staff code"}
+}
