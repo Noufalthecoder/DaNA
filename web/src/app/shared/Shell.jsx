@@ -9,6 +9,7 @@ import { Brand } from './Logo.jsx';
 import { signOut as supabaseSignOut } from './supabase.js';
 import { loadAll, logAudit, resetDemoDataBackend } from './db.js';
 import NotificationBell from './NotificationBell.jsx';
+import Assistant from './Assistant.jsx';
 import { isLinked, NEEDS_PARTNER } from './journey.js';
 import { syncRequestsFromSupabase } from './connectionsService.js';
 import { syncConsultationsFromSupabase, subscribeConsultationRealtime } from './consultationService.js';
@@ -103,6 +104,7 @@ export default function Shell({ menu, path, children }) {
         {dbError && <div className="db-err">{dbError} <button className="link" onClick={() => { set({ dbError: null }); loadAll(); }}>Try again</button></div>}
         <main className="content">{children}</main>
       </div>
+      {session?.role === 'couple' && <Assistant />}
       {open && <div className="scrim" onClick={() => setOpen(false)} />}
 
       {showResetConfirm && (
