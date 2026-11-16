@@ -46,7 +46,8 @@ grant select on public.locations to anon, authenticated;
 do $$
 declare has_default boolean; base bigint; src bigint;
 begin
-  select column_default is not null into has_default
+  -- identity columns (GENERATED ALWAYS, as on live) report no default but still must not be given an id
+  select (column_default is not null or is_identity = 'YES') into has_default
     from information_schema.columns where table_schema = 'public' and table_name = 'locations' and column_name = 'id';
   select coalesce(max(id), 0) into base from public.locations;
   select greatest(coalesce(max(source_id), 0), 9000000000) into src from public.locations;  -- DaNA's own range, clear of SimpleMaps ids
@@ -61,6 +62,8 @@ begin
     ('Ajman', 'Ajman', 25.4052, 55.5136), ('Ras Al Khaimah', 'Ras Al Khaimah', 25.7895, 55.9432),
     ('Fujairah', 'Fujairah', 25.1288, 56.3265), ('Umm Al Quwain', 'Umm Al Quwain', 25.5647, 55.5552);
   if has_default then
+    -- rows loaded with explicit ids leave the sequence behind; move it past them
+    perform setval(pg_get_serial_sequence('public.locations', 'id'), greatest(base, 1));
     insert into public.locations (source_id, city, city_ascii, state_name, country, country_code, latitude, longitude)
     select src + row_number() over (order by u.state, u.city), u.city, u.city, u.state, 'United Arab Emirates', 'AE', u.lat, u.lon from _uae u
     where not exists (select 1 from public.locations l where l.country_code = 'AE' and lower(l.city) = lower(u.city) and coalesce(l.state_name, '') = u.state);
