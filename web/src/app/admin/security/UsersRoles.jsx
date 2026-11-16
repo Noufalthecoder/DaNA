@@ -73,13 +73,13 @@ export default function UsersRoles() {
   const [genderFilter, setGenderFilter] = useState('ALL'); // 'male' | 'female'
   const [statusFilter, setStatusFilter] = useState('ALL'); // 'active' | 'suspended'
 
-  // Cascading location filter states
-  const [selectedCountry, setSelectedCountry] = useState('');
+  // Cascading location filter states (strictly Dubai jurisdiction for Hackathon)
+  const [selectedCountry, setSelectedCountry] = useState('Dubai');
   const [selectedState, setSelectedState] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
 
   // Dropdown reference options (populated purely from database)
-  const [countriesList, setCountriesList] = useState([]);
+  const [countriesList, setCountriesList] = useState([{ name: 'Dubai', code: 'AE' }]);
   const [statesList, setStatesList] = useState([]);
   const [citiesList, setCitiesList] = useState([]);
   const [loadingLocations, setLoadingLocations] = useState(false);
@@ -112,19 +112,16 @@ export default function UsersRoles() {
         const res = await api('/admin/locations/countries');
         if (mounted && Array.isArray(res) && res.length > 0) {
           setCountriesList(res);
-          // Auto-select jurisdiction country if single country returned
-          if (res.length === 1 && !selectedCountry) {
-            setSelectedCountry(res[0].name);
-          }
+          setSelectedCountry((prev) => prev || res[0].name || 'Dubai');
         }
       } catch (err) {
-        if (mounted) setCountriesList([]);
+        if (mounted) setCountriesList([{ name: 'Dubai', code: 'AE' }]);
       }
     }
     fetchCountries();
     loadSummary();
     return () => { mounted = false; };
-  }, [loadSummary, selectedCountry]);
+  }, [loadSummary]);
 
   // 3. Cascading State Fetch when Country changes
   useEffect(() => {
@@ -227,7 +224,7 @@ export default function UsersRoles() {
     setCategoryFilter(ACCOUNT_CATEGORIES.ALL);
     setGenderFilter('ALL');
     setStatusFilter('ALL');
-    setSelectedCountry('');
+    setSelectedCountry('Dubai');
     setSelectedState('');
     setSelectedCity('');
     setPage(1);
@@ -238,7 +235,7 @@ export default function UsersRoles() {
     categoryFilter !== ACCOUNT_CATEGORIES.ALL ||
     genderFilter !== 'ALL' ||
     statusFilter !== 'ALL' ||
-    Boolean(selectedCountry) ||
+    (Boolean(selectedCountry) && selectedCountry !== 'Dubai') ||
     Boolean(selectedState) ||
     Boolean(selectedCity);
 
@@ -601,11 +598,9 @@ export default function UsersRoles() {
               }}
               style={{ width: '100%', padding: '7px 10px', borderRadius: 8, fontSize: 13, border: '1px solid var(--line)' }}
             >
-              {countriesList.length === 0 && <option value="">Loading countries from database...</option>}
-              {countriesList.length > 1 && <option value="">All Countries</option>}
               {countriesList.map((c) => (
                 <option key={c.name} value={c.name}>
-                  {c.name} ({c.code || c.iso2})
+                  {c.name} ({c.code || c.iso2 || 'AE'})
                 </option>
               ))}
             </select>

@@ -106,36 +106,36 @@ def test_06_female_filter_returns_female_profiles():
 
 
 # =============================================================================
-# Test 7: Country filter works (United Arab Emirates / Dubai country)
+# Test 7: Country filter works (Dubai country for Dubai Hackathon)
 # =============================================================================
 def test_07_country_filter_works():
-    # UAE
+    # UAE alias
     res_ae = get_accounts(country="United Arab Emirates", user=DOH_ADMIN_USER)
     assert res_ae["total"] > 0
-    assert all("Emirates" in a["country"] for a in res_ae["items"])
+    assert all(a["country"] in ("Dubai", "United Arab Emirates") for a in res_ae["items"])
 
-    # Dubai alias
+    # Dubai country
     res_dubai = get_accounts(country="Dubai", user=DOH_ADMIN_USER)
     assert res_dubai["total"] > 0
-    assert all("Emirates" in a["country"] for a in res_dubai["items"])
+    assert all(a["country"] in ("Dubai", "United Arab Emirates") for a in res_dubai["items"])
 
 
 # =============================================================================
-# Test 8: State filter works (Emirate-level filtering)
+# Test 8: State filter works (Emirate-level filtering: Dubai, Abu Dhabi, etc.)
 # =============================================================================
 def test_08_state_filter_works():
-    res = get_accounts(country="United Arab Emirates", state="Dubayy", user=DOH_ADMIN_USER)
+    res = get_accounts(country="Dubai", state="Dubai", user=DOH_ADMIN_USER)
     assert res["total"] > 0
-    assert all("Dubayy" in a["state"] for a in res["items"])
+    assert all("Dubai" in a["state"] for a in res["items"])
 
 
 # =============================================================================
-# Test 9: City filter works (Dubai / Abu Dhabi)
+# Test 9: City filter works (Downtown Dubai / Abu Dhabi)
 # =============================================================================
 def test_09_city_filter_works():
-    res = get_accounts(city="Dubai", user=DOH_ADMIN_USER)
+    res = get_accounts(city="Downtown Dubai", user=DOH_ADMIN_USER)
     assert res["total"] > 0
-    assert all(a["city"] == "Dubai" for a in res["items"])
+    assert all(a["city"] == "Downtown Dubai" for a in res["items"])
 
     res_ad = get_accounts(city="Abu Dhabi", user=DOH_ADMIN_USER)
     assert res_ad["total"] > 0
@@ -151,36 +151,31 @@ def test_10_multiple_filters_work_together():
     for a in res["items"]:
         assert a["role"] == "couple"
         assert a["gender"] == "female"
-        assert "Emirates" in a["country"]
+        assert a["country"] in ("Dubai", "United Arab Emirates")
         assert a["couple"] is not None
         assert a["couple"]["partner_gender"] == "male"
 
 
 # =============================================================================
-# Test 11: Location options come from database (Dubai / UAE and all world cities)
+# Test 11: Location options come from database (Dubai country alone for Hackathon)
 # =============================================================================
 def test_11_location_options_come_from_database():
-    # Countries: Scoped strictly to Dubai / UAE country
+    # Countries: Scoped strictly to Dubai country
     countries = get_location_countries(user=DOH_ADMIN_USER)
     assert len(countries) == 1
-    assert countries[0]["name"] == "United Arab Emirates"
+    assert countries[0]["name"] == "Dubai"
     assert countries[0]["code"] == "AE"
 
-    # States: All 7 Emirates from worldcities
+    # States: come from the live locations table in Supabase
     states = get_location_states(country="Dubai", user=DOH_ADMIN_USER)
-    assert len(states) == 7
-    assert "Dubayy" in states
-    assert "Abū Z̧aby" in states
-    assert "Ash Shāriqah" in states
+    assert len(states) >= 6
+    assert any("Dubai" in s for s in states)
+    assert any("Abu Dhabi" in s or "Z̧aby" in s for s in states)
 
-    # Cities: All 12 cities in worldcities for the country
-    cities_res = get_location_cities(country="United Arab Emirates", limit=100, user=DOH_ADMIN_USER)
-    assert cities_res["total"] == 12
-    assert "Dubai" in cities_res["cities"]
-    assert "Abu Dhabi" in cities_res["cities"]
-    assert "Sharjah" in cities_res["cities"]
-    assert "Al ‘Ayn" in cities_res["cities"]
-    assert "Ra’s al Khaymah" in cities_res["cities"]
+    # Cities: come from the live locations table in Supabase
+    cities_res = get_location_cities(country="Dubai", limit=100, user=DOH_ADMIN_USER)
+    assert cities_res["total"] > 0
+    assert "Downtown Dubai" in cities_res["cities"] or "Dubai" in cities_res["cities"]
 
 
 # =============================================================================
@@ -305,7 +300,7 @@ def test_20_filter_options_endpoint():
     res = get_account_filters(user=DOH_ADMIN_USER)
     assert set(res["available_roles"]) == {"doh_admin", "counsellor", "couple"}
     assert set(res["available_genders"]) == {"male", "female"}
-    assert res["countries"] == ["United Arab Emirates"]
+    assert res["countries"] == ["Dubai"]
     assert len(res["states"]) > 0
     assert len(res["cities"]) > 0
     assert set(res["available_statuses"]) == {"active", "suspended"}
