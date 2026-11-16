@@ -13,6 +13,7 @@ import Screening from './couple/Screening.jsx';
 import Profile from './couple/Profile.jsx';
 import MedicalReport from './couple/MedicalReport.jsx';
 import Bonds from './couple/Bonds.jsx';
+import PersonalisedPlanTracker from './couple/PersonalisedPlanTracker.jsx';
 import Connections from './couple/Connections.jsx';
 import Roots from './couple/Roots.jsx';
 import CoupleCounsellor from './couple/Counsellor.jsx';
@@ -49,6 +50,7 @@ import {
   AuditIcon,
   ConnectionsIcon,
   SettingsIcon,
+  PlanTrackerIcon,
 } from './shared/Icons.jsx';
 
 function MalaffiPage() {
@@ -65,6 +67,7 @@ export const MENUS = {
       { to: '/app/malaffi', label: 'Malaffi record', icon: <PrivacyIcon /> },
       { to: '/app/familytree', label: 'Family Tree', icon: <BranchesIcon /> },
       { to: '/app/bonds', label: 'Bonds', icon: <BondsIcon /> },
+      { to: '/app/plan', label: 'Care Plan', icon: <PlanTrackerIcon /> },
       { to: '/app/roots', label: 'Roots', icon: <RootsIcon /> },
       { to: '/app/connections', label: 'Connections', icon: <ConnectionsIcon /> },
       { to: '/app/counsellor', label: 'Counsellor', icon: <CounsellorIcon /> },
@@ -143,7 +146,9 @@ export function page(role, path) {
       '/app/bonds': <Bonds />,
       '/app/bonds/assessment': <Bonds defaultTab="assessment" />,
       '/app/bonds/counselling': <CoupleCounsellor />,
-      '/app/bonds/timeline': <Bonds defaultTab="timeline" />,
+      '/app/bonds/timeline': <PersonalisedPlanTracker />,
+      '/app/bonds/plan': <PersonalisedPlanTracker />,
+      '/app/plan': <PersonalisedPlanTracker />,
       '/app/familytree': <FamilyTree />,
       '/app/branches': <FamilyTree />,
       '/app/connections': <Connections />,
