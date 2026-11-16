@@ -33,7 +33,10 @@ export default function Home() {
 
   const session = useStore((s) => s.session);
   const cid = session?.couple || couple?.id || 'c1';
-  const dedicatedDoctor = useStore((s) => s.coupleCounsellors?.[cid]) || useStore((s) => s.cases?.[cid]?.counsellor) || 'Dr. Mariam Al Hosani';
+  // hooks always run in the same order (never `useStore(a) || useStore(b)`)
+  const lockedDoctor = useStore((s) => s.coupleCounsellors?.[cid]);
+  const caseDoctor = useStore((s) => s.cases?.[cid]?.counsellor);
+  const dedicatedDoctor = lockedDoctor || caseDoctor || 'Dr. Mariam Al Hosani';
 
   const handleBookSlot = (slot) => {
     const isOnline = bookModality === 'online';
@@ -63,7 +66,9 @@ export default function Home() {
   const sent = useStore((s) => s.alertsSent) || EMPTY_ARR;
   const plan = useStore((s) => (couple?.id ? s.plans[couple.id] : null) || s.plan);
   const scheduleAppointments = useStore((s) => s.scheduleAppointments) || EMPTY_ARR;
-  const bookedLabel = useStore((s) => s.appointments[cid]) || useStore((s) => s.booked);
+  const coupleBooking = useStore((s) => s.appointments[cid]);
+  const anyBooking = useStore((s) => s.booked);
+  const bookedLabel = coupleBooking || anyBooking;
 
   const formatDateLabel = (d) => {
     if (!d) return '';

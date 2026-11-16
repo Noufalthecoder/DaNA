@@ -114,7 +114,9 @@ export default function PersonalisedPlanTracker() {
     return getCoupleCarePlan(cid);
   }, [cid, storePlans, storeReferrals, scheduleAppointments, coupleCounsellors, storeApproved, connections, screeningIntakes]);
 
-  const dedicatedDoctor = useStore((s) => s.coupleCounsellors?.[cid]) || plan.counsellor || useStore((s) => s.cases?.[cid]?.counsellor) || 'Dr. Mariam Al Hosani';
+  const lockedDoctor = useStore((s) => s.coupleCounsellors?.[cid]);
+  const caseDoctor = useStore((s) => s.cases?.[cid]?.counsellor);
+  const dedicatedDoctor = lockedDoctor || plan.counsellor || caseDoctor || 'Dr. Mariam Al Hosani';
   const counsellorObj = useMemo(() => {
     return COUNSELLORS.find((c) => c.name === dedicatedDoctor) || COUNSELLORS[0];
   }, [dedicatedDoctor]);
