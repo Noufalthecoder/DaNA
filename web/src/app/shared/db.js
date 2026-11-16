@@ -366,7 +366,7 @@ export function confirmAppointment(apptIdOrCid) {
   let coupleWho = '';
   let updatedRow = null;
   const schedule = (s.scheduleAppointments || []).map((a) => {
-    if (a.id === apptIdOrCid || a.cid === apptIdOrCid) {
+    if (a.id === apptIdOrCid || a.cid === apptIdOrCid || a.requestId === apptIdOrCid) {
       coupleWho = a.who || a.cid;
       updatedRow = {
         ...a,
@@ -404,8 +404,14 @@ export function confirmAppointment(apptIdOrCid) {
     createdAt: new Date().toISOString(),
   }));
 
+  const apptsMap = { ...(s.appointments || {}) };
+  if (updatedRow?.cid) {
+    apptsMap[updatedRow.cid] = `${updatedRow.date} · ${updatedRow.time}`;
+  }
+
   return act({
     scheduleAppointments: schedule,
+    appointments: apptsMap,
     notifications: [...coupleNotifs, ...existingNotifs],
   },
     `Counsellor verified and confirmed appointment for ${coupleWho || apptIdOrCid}`,
@@ -740,8 +746,33 @@ export async function linkUaePass(viaSignIn) {
 export async function submitIntake(scopes, details) {
   if (isLive()) return rpc('submit_intake', { p_scopes: scopes, p_details: details });
   const s = get().session;
-  set({ session: { ...s, malaffiConsent: true, malaffiConsentAt: new Date().toISOString(), consentScopes: scopes, details, intakeDone: true } },
-    'Gave consent and saved screening details (demo)');
+  const currentIntakes = get().screeningIntakes || {};
+  const prev = currentIntakes[s?.id] || {};
+  set({
+    session: {
+      ...s,
+      malaffiConsent: true,
+      malaffiConsentAt: new Date().toISOString(),
+      consentScopes: scopes,
+      details,
+      intakeDone: true,
+      fresh: false,
+      needsProfile: false,
+      sexConfirmed: true,
+      uaepassLinked: true,
+    },
+    screeningIntakes: {
+      ...currentIntakes,
+      ...(s?.id ? {
+        [s.id]: {
+          ...prev,
+          completed: true,
+          submittedAt: new Date().toISOString(),
+          mode: 'uae_pass',
+        },
+      } : {}),
+    },
+  }, 'Gave consent and saved screening details (demo)');
   return new Date().toISOString();
 }
 

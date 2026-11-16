@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Video,
   MapPin,
@@ -66,7 +66,8 @@ export default function Counsellor() {
 
   // Find active appointment for this couple
   const activeAppt = useMemo(() => {
-    const found = scheduleAppointments.find((a) => a.cid === cid);
+    const coupleAppts = scheduleAppointments.filter((a) => a.cid === cid);
+    const found = coupleAppts.find((a) => a.confirmed === true || a.status === 'confirmed' || a.priority === 'upcoming') || coupleAppts[0];
     if (found) return found;
 
     // Fallback if booked label exists but not in schedule list
@@ -92,6 +93,12 @@ export default function Counsellor() {
     }
     return null;
   }, [scheduleAppointments, cid, bookedLabel, session, counsellorName]);
+
+  useEffect(() => {
+    if (cid) {
+      syncConsultationsFromSupabase(cid);
+    }
+  }, [cid]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
