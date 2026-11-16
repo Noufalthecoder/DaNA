@@ -5,6 +5,8 @@ import { loadLocations, locationName, myHomeLocation, setMyLocation, findSlots, 
 import { gulfLabel } from '../shared/db.js';
 import '../shared/location.css';
 
+const friendly = (m) => (/function|schema cache|does not exist/i.test(m || '') ? 'Booking is being upgraded. Please try again shortly.' : m);
+
 const GROUPS = [
   ['your_counsellor', 'Your counsellor'],
   ['same_location', 'Closest to you'],
@@ -28,7 +30,7 @@ export default function SlotFinder({ modality, onRequested, onError }) {
 
   const refresh = useCallback(async () => {
     setErr('');
-    try { setRows(await findSlots(modality)); } catch (e) { setErr(e.message); setRows([]); }
+    try { setRows(await findSlots(modality)); } catch (e) { setErr(friendly(e.message)); setRows([]); }
   }, [modality]);
   useEffect(() => { if (homeLoaded) refresh(); }, [homeLoaded, home, refresh]);
 
@@ -44,7 +46,7 @@ export default function SlotFinder({ modality, onRequested, onError }) {
       await requestConsultation(s.slot_id, modality);
       await onRequested?.(s);
       await refresh();
-    } catch (e) { setErr(e.message); onError?.(e.message); await refresh(); }
+    } catch (e) { setErr(friendly(e.message)); onError?.(friendly(e.message)); await refresh(); }
     setBusy('');
   };
 
