@@ -11,7 +11,7 @@ import { PEOPLE, GENES } from './data.js';
 import { useCouple } from '../couple/useCouple.js';
 import { logAudit } from './db.js';
 import './assistant.css';
-import { useLang, getLang } from './i18n.js';
+import { useLang, getLang, tr } from './i18n.js';
 import { supabase } from './supabase.js';
 import { API_URL } from './api.js';
 
@@ -398,7 +398,7 @@ export default function Assistant() {
                   <div dir={m.from === 'dana' ? dir : 'auto'} lang={m.shown || undefined}>
                     {text.split('\n').map((l, j) => (l ? <p key={j}>{l}</p> : null))}
                   </div>
-                  {m.link && <a className="as-link" href={m.link[0]} onClick={() => setOpen(false)}>{m.link[1]} →</a>}
+                  {m.link && <a className="as-link" href={m.link[0]} onClick={() => setOpen(false)}>{tr(m.link[1], m.shown || 'en') || m.link[1]} {(m.shown || 'en') === 'en' ? '→' : '←'}</a>}
                   {m.from === 'dana' && (
                     <div className="as-voice">
                       <div className="as-langs" role="group" aria-label="Show this answer in">

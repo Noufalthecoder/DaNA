@@ -12,7 +12,11 @@ import time
 import wave
 from collections import OrderedDict, defaultdict, deque
 
+import logging
+
 import httpx
+
+log = logging.getLogger("dana.tts")
 
 MODEL = "gemini-2.5-flash-preview-tts"
 URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
@@ -78,20 +82,40 @@ def speak(text: str, lang: str, sex: str, user_id: str) -> bytes:
         "generationConfig": {"responseModalities": ["AUDIO"],
                              "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": voice}}}},
     }
-    try:
-        r = httpx.post(URL, json=body, headers={"x-goog-api-key": key}, timeout=60)
-    except httpx.HTTPError:
-        raise TTSError(502, "The voice service did not answer. Please try again.")
+    r, last = None, None
+    for _ in range(2):  # one retry: the preview voice model sometimes drops the first call
+        try:
+            r = httpx.post(URL, json=body, headers={"x-goog-api-key": key},
+                           timeout=httpx.Timeout(90.0, connect=15.0))
+            if r.status_code < 500:
+                break
+            last = f"HTTP {r.status_code}"
+        except httpx.HTTPError as e:
+            last = type(e).__name__
+            log.warning("Gemini TTS call failed: %s %s", last, e)
+    if r is None:
+        raise TTSError(502, f"The voice service did not answer ({last}). Please try again.")
     if r.status_code == 429:
         raise TTSError(429, "The free voice quota is used up for now. Please read the text, or try again later.")
     if r.status_code != 200:
-        raise TTSError(502, "The voice service could not read this answer.")
+        msg = ""
+        try:
+            msg = r.json().get("error", {}).get("message", "")[:160]
+        except ValueError:
+            pass
+        log.warning("Gemini TTS HTTP %s: %s", r.status_code, msg)
+        raise TTSError(502, f"The voice service could not read this answer (HTTP {r.status_code}{': ' + msg if msg else ''}).")
     try:
         part = r.json()["candidates"][0]["content"]["parts"][0]["inlineData"]
         rate = int(part.get("mimeType", "").split("rate=")[-1] or 24000)
         audio = _wav(base64.b64decode(part["data"]), rate)
     except (KeyError, IndexError, ValueError):
-        raise TTSError(502, "The voice service could not read this answer.")
+        reason = ""
+        try:
+            reason = r.json()["candidates"][0].get("finishReason", "")
+        except (KeyError, IndexError, ValueError):
+            pass
+        raise TTSError(502, f"The voice service returned no audio{' (' + reason + ')' if reason else ''}. Please try again.")
     _cache[ck] = audio
     if len(_cache) > 200:
         _cache.popitem(last=False)
