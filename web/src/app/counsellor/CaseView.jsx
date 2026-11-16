@@ -36,7 +36,7 @@ export default function CaseView({ id }) {
 
   return (
     <Page title={`${PEOPLE[couple.a].short} & ${PEOPLE[couple.b].short}`} sub={`Case ${id.toUpperCase()} · screened ${couple.screened}`}
-      actions={<a className="ghost" href="#/app">← Queue</a>}>
+      actions={<><a className="btn secondary" href={`#/app/case/${id}/report`}>Couple report</a> <a className="ghost" href="#/app">← Queue</a></>}>
       <div className="grid2">
         <Card title="Assessment" aside={<Priority p={r.priority} />}>
           <dl className="dl">
