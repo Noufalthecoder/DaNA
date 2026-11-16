@@ -8,7 +8,7 @@ export default function Journey({ action }) {
     <section className="jr card" aria-label="Your journey">
       <div className="jr-head">
         <h2>Your journey</h2>
-        <span className="muted">Step {Math.min(current + 1, steps.length)} of {steps.length}</span>
+        <span className="muted">{`Step ${Math.min(current + 1, steps.length)} of ${steps.length}`}</span>
       </div>
       <ol className="jr-steps">
         {steps.map((s, i) => (

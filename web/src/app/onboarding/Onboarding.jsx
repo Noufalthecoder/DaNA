@@ -11,6 +11,8 @@ import { SCENARIOS } from '../shared/scenarios.js';
 import { Brand } from '../shared/Logo.jsx';
 import { go } from '../shared/router.js';
 import './onboarding.css';
+import { LangSwitch } from '../shared/Translator.jsx';
+import { getLang } from '../shared/i18n.js';
 
 const STEPS = ['About you', 'Verify identity', 'Consent', 'Marriage & pregnancy', 'Family history', 'Get your results'];
 const FAMILY = [
@@ -50,7 +52,7 @@ export default function Onboarding() {
     marital_status: d0.marital_status || '', wedding_date: d0.wedding_date || '', pregnant: !!d0.pregnant,
     pregnancy_weeks: d0.pregnancy_weeks || '', related_to_partner: d0.related_to_partner || '',
     family_history: d0.family_history || [], family_notes: d0.family_notes || '', affected_child: d0.affected_child ?? null,
-    preferred_language: d0.preferred_language || 'en',
+    preferred_language: d0.preferred_language || getLang(),
   });
   const [scenario, setScenario] = useState('');
   const [busy, setBusy] = useState('');
@@ -116,7 +118,7 @@ export default function Onboarding() {
     <div className="ob">
       <header className="ob-top">
         <Brand size={30} href="#/" />
-        <div className="ob-who"><span>{session?.name}</span><button className="ghost" onClick={leave}>Sign out</button></div>
+        <div className="ob-who"><LangSwitch /><span>{session?.name}</span><button className="ghost" onClick={leave}>Sign out</button></div>
       </header>
 
       <div className="ob-title">

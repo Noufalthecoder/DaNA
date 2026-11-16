@@ -11,6 +11,7 @@ import { PEOPLE, GENES } from './data.js';
 import { useCouple } from '../couple/useCouple.js';
 import { logAudit } from './db.js';
 import './assistant.css';
+import { useLang, getLang } from './i18n.js';
 
 /* friendly counsellor illustrations: Emirati dress, no real person's likeness */
 export function CounsellorFace({ sex, size = 56 }) {
@@ -265,7 +266,9 @@ export default function Assistant() {
   const [msgs, setMsgs] = useState([]);   // dana messages: { from, en, ar, ur, link, shown, picking, playing, note }
   const [q, setQ] = useState('');
   const [listening, setListening] = useState(false);
-  const [inLang, setInLang] = useState('en-US');
+  const appLang = useLang(); // answers open in the app's language; the tabs still switch per answer
+  const [inLang, setInLang] = useState(() => ({ ar: 'ar-AE', ur: 'ur-PK' }[getLang()] || 'en-US'));
+  useEffect(() => { setInLang({ ar: 'ar-AE', ur: 'ur-PK' }[appLang] || 'en-US'); }, [appLang]);
   const [voiceErr, setVoiceErr] = useState('');
   const end = useRef(null);
   const rec = useRef(null);
@@ -282,7 +285,7 @@ export default function Assistant() {
     const tp = topic || match(topics, text);
     const a = tp ? tp.answer() : { ...A.unknown, link: ['#/app/counsellor', 'Talk to a counsellor'] };
     if (canSpeak) window.speechSynthesis.cancel();
-    setMsgs((m) => [...m, { from: 'me', en: text }, { from: 'dana', ...a, shown: 'en' }]);
+    setMsgs((m) => [...m, { from: 'me', en: text }, { from: 'dana', ...a, shown: getLang() }]);
     setQ('');
     logAudit(`Asked the DaNA guide (${tp ? tp.id : 'unmatched'})`).catch(() => {}); // the topic only, never the words typed
   };
@@ -326,7 +329,11 @@ export default function Assistant() {
             <button className="as-x" onClick={() => setOpen(false)} aria-label="Close">×</button>
           </header>
           <div className="as-body">
-            <div className="as-msg dana">Hello {first}. I can explain your result in simple words. What would you like to know?</div>
+            <div className="as-msg dana" dir={appLang === 'en' ? 'ltr' : 'rtl'}>{{
+              en: `Hello ${first}. I can explain your result in simple words. What would you like to know?`,
+              ar: `مرحبًا ${first}. يمكنني شرح نتيجتك بكلمات بسيطة. ماذا تود أن تعرف؟`,
+              ur: `السلام علیکم ${first}۔ میں آپ کا نتیجہ آسان الفاظ میں سمجھا سکتا ہوں۔ آپ کیا جاننا چاہیں گے؟`,
+            }[appLang]}</div>
             {msgs.map((m, i) => {
               const text = m[m.shown || 'en'] || m.en;
               const dir = LANGS[m.shown || 'en']?.dir || 'ltr';

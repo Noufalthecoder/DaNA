@@ -25,7 +25,7 @@ export function EscalationNote({ result, couple, counsellor }) {
     <section className="cp-esc" role="note">
       <span className="cp-esc-ic" aria-hidden="true">👩‍⚕️</span>
       <div>
-        <b>A genetic counsellor will contact you{counsellor ? `: ${counsellor}` : ''}.</b>
+        <b>{counsellor ? `A genetic counsellor will contact you: ${counsellor}.` : 'A genetic counsellor will contact you.'}</b>
         <p>{why} Results like this are always reviewed by an accredited genetics professional. This is not a diagnosis, and every decision stays yours.</p>
         <p className="cp-esc-line">DaNA explains your result. Medical advice comes only from your counsellor.</p>
       </div>

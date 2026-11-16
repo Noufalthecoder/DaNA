@@ -11,6 +11,7 @@ import { go } from './router.js';
 import { Avatar } from './ui.jsx';
 import { Brand } from './Logo.jsx';
 import { supabase, hasBackend } from './supabase.js';
+import { LangSwitch } from './Translator.jsx';
 
 const ROLE = { couple: 'Couple', counsellor: 'Counsellor', admin: 'DoH admin' };
 
@@ -229,6 +230,7 @@ export default function Login() {
   return (
     <div className="login">
       <a className="login-back" href="#/">← Back to home</a>
+      <div className="login-lang"><LangSwitch /></div>
       <div className="login-card">
         <div className="login-brand" style={{ marginBottom: 22 }}>
           <Brand size={36} withArabic={true} href="#/" />
