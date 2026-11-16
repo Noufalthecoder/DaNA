@@ -1,5 +1,6 @@
 import { Page, Card, Stat, Badge } from '../shared/ui.jsx';
 import Journey from '../shared/Journey.jsx';
+import { useJourney } from '../shared/journey.js';
 import { useStore, EMPTY_OBJ, EMPTY_ARR } from '../shared/store.js';
 import { useState, useMemo } from 'react';
 import { Calendar, Clock, Video, MapPin, Check, ExternalLink, X } from 'lucide-react';
@@ -10,6 +11,7 @@ import './counsellor.css';
 
 export default function Home() {
   const { me, partner, result, couple } = useCouple();
+  const journey = useJourney();
   const intakes = useStore((s) => s.screeningIntakes) || EMPTY_OBJ;
   const myIntake = intakes[me.id];
   const isScreened = !!myIntake?.completed;
@@ -103,6 +105,9 @@ export default function Home() {
     return null;
   }, [scheduleAppointments, cid, bookedLabel]);
 
+  // the counsellor comes in once the groundwork is done: own result seen and the couple result ready
+  const counsellorReady = journey.done.result && journey.done.together;
+
   return (
     <Page
       title={`Welcome, ${me.short}`}
@@ -112,7 +117,7 @@ export default function Home() {
     >
       <Journey />
 
-      <div className="grid2">
+      <div className={counsellorReady ? 'grid2' : undefined}>
         <Card title="Your couple result">
           <div className="result-mini">
             {waiting ? (
@@ -139,6 +144,7 @@ export default function Home() {
             )}
           </div>
         </Card>
+        {counsellorReady && (
         <Card title={activeAppt ? 'Your counsellor session' : 'Your counsellor'}>
           {!activeAppt ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -282,6 +288,7 @@ export default function Home() {
             </div>
           )}
         </Card>
+        )}
       </div>
 
       <div className="tiles">
