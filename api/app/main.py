@@ -8,6 +8,7 @@ service key, and only after checking the caller's identity and consent here.
 Run locally:  uvicorn app.main:app --reload --port 8000   (from the api/ folder)
 Docs:         http://localhost:8000/docs
 """
+import logging
 from typing import Literal
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
@@ -17,6 +18,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from . import config
 from .auth import User, current_user
+
+logger = logging.getLogger("dana.api")
 from .benchmark import EvaluateRequest, LabEntry, evaluate_couple, labs_from_records
 from .db import as_service, as_user
 from .fhir import parse_bundle
@@ -470,7 +473,11 @@ def aggregate_analytics(user: User = Depends(current_user)):
     db = as_user(user.token)
 
     # Use database security definer programme_stats() or safe aggregates
-    stats = db.rpc("programme_stats")
+    try:
+        stats = db.rpc("programme_stats")
+    except Exception as exc:  # report zeros rather than fail the dashboard
+        logger.warning("programme_stats failed: %s", exc)
+        stats = None
     if not stats:
         # Fallback safe empty aggregate with cohort safeguard notice
         stats = [{"couples_screened": 0, "same_gene_couples": 0, "alerts_sent": 0, "plans_approved": 0}]
@@ -482,13 +489,16 @@ def aggregate_analytics(user: User = Depends(current_user)):
             detail="Aggregated analytics suppressed: cohort size is below the minimum threshold (k=5)."
         )
 
-    as_service().insert("audit_log", {
-        "actor": user.id,
-        "actor_name": _account(user).get("display_name", "DoH Viewer"),
-        "action": "Queried de-identified aggregate programme analytics",
-        "resource_type": "analytics",
-        "resource_id": "programme_stats",
-    })
+    try:
+        as_service().insert("audit_log", {
+            "actor": user.id,
+            "actor_name": _account(user).get("display_name", "DoH Viewer"),
+            "action": "Queried de-identified aggregate programme analytics",
+            "resource_type": "analytics",
+            "resource_id": "programme_stats",
+        })
+    except Exception as exc:  # an audit write failure must not hide the figures, but it is logged
+        logger.warning("analytics audit write failed: %s", exc)
 
     return {
         "anonymized": True,

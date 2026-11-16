@@ -133,7 +133,7 @@ await bad('Dubai admin cannot verify the Abu Dhabi counsellor', () => as(U.admin
 await ok('an Abu Dhabi emirate admin can', async () => { await db.exec(`update accounts set scope_level='emirate', location_id=100 where user_id='${U.adminD}'`); await as(U.adminD, `select manage_counsellor('${k4}','verify')`); return (await db.query(`select credentials_verified from counsellors where id='${k4}'`)).rows[0].credentials_verified; });
 await ok('manage actions are audited', async () => (await db.query(`select count(*)::int c from audit_log where action like 'Verified counsellor:%' or action like 'Paused counsellor:%' or action like 'Activated counsellor:%'`)).rows[0].c >= 4);
 // re-run safe
-await ok('030 is re-runnable', async () => { for (const f of ['030_location_scope.sql','031_admin_manages_counsellors.sql']) await db.exec(fs.readFileSync(DIR+f,'utf8')); return true; });
+await ok('030 is re-runnable', async () => { for (const f of ['030_location_scope.sql','031_admin_manages_counsellors.sql','036_admin_directory.sql']) await db.exec(fs.readFileSync(DIR+f,'utf8')); return true; });
 // ---- 035: home location from UAE PASS fills people.location_id, never over the person's choice ----
 await db.exec(`delete from uaepass_identity where person_id in ('omar','khalid'); update people set location_id = null where id = 'omar'; update people set location_id = 3 where id = 'khalid';`);
 const ident = async (pid) => (await db.query(`select home_location_id, home_area, home_emirate from uaepass_identity where person_id = $1`, [pid])).rows[0];
@@ -164,6 +164,78 @@ await ok('the UAE PASS home area is stable for an account', async () => {
 });
 await bad('the internal fill function cannot be called by a user', () => as(U.c2, `select _apply_uaepass_home('khalid')`), /permission denied/);
 await ok('035 is re-runnable', async () => { await db.exec(fs.readFileSync(DIR+'035_location_from_uaepass.sql','utf8')); return (await homeOf('khalid')) === 3; });
+
+// ---- 036: admin account directory and enforced suspension ----
+// adminD is an Abu Dhabi emirate admin by now (031 tests); K1's clinic is Dubai Marina, K2's Abu Dhabi.
+await db.exec(`update people set location_id = 100 where id = 'omar'; update people set location_id = 3 where id = 'khalid';`);
+const dir = async (u, args = '') => (await as(u, `select * from admin_directory(${args})`)).rows;
+const allAccounts = (await db.query(`select count(*)::int c from accounts`)).rows[0].c;
+await bad('a couple cannot open the directory', () => dir(U.c1), /Only an administrator/);
+await bad('a counsellor cannot open the directory', () => dir(U.k1), /Only an administrator/);
+await ok('a nationwide admin sees every account, with the total on each row', async () => { const r = await dir(U.adminN, 'p_limit => 100'); return r.length === Math.min(allAccounts, 100) && Number(r[0].total) === allAccounts; });
+await ok('an Abu Dhabi admin sees Abu Dhabi accounts only (K2, Omar), not Dubai ones (K1, Khalid)', async () => {
+  const names = (await dir(U.adminD, 'p_limit => 100')).map((x) => x.display_name);
+  return names.includes('K2 AbuDhabi') && names.includes('Omar') && !names.includes('K1 Dubai') && !names.includes('Khalid');
+});
+await ok('filters: role, sex, emirate, search', async () => {
+  const k = await dir(U.adminN, `p_role => 'counsellor', p_limit => 100`);
+  const men = await dir(U.adminN, `p_sex => 'M', p_limit => 100`);
+  const dubai = await dir(U.adminN, `p_emirate => 'Dubai', p_limit => 100`);
+  const found = await dir(U.adminN, `p_search => 'k1 dub'`);
+  return k.every((x) => x.role === 'counsellor') && men.every((x) => x.sex === 'M') && men.some((x) => x.display_name === 'Khalid')
+    && dubai.every((x) => x.emirate === 'Dubai') && found.length === 1 && found[0].display_name === 'K1 Dubai';
+});
+await ok('paging: limit and offset', async () => { const a = await dir(U.adminN, 'p_limit => 2, p_offset => 0'); const b = await dir(U.adminN, 'p_limit => 2, p_offset => 2'); return a.length === 2 && b.length >= 1 && a[0].user_id !== b[0].user_id; });
+await ok('couples never show an email; staff do', async () => { const r = await dir(U.adminN, 'p_limit => 100'); return r.filter((x) => x.role === 'couple').every((x) => x.email == null) && r.some((x) => x.role !== 'couple' && x.email); });
+await ok('summary counts match the directory scope', async () => {
+  const s = (await as(U.adminD, `select * from admin_directory_summary()`)).rows[0];
+  const r = await dir(U.adminD, 'p_limit => 100');
+  return Number(s.total) === r.length && Number(s.counsellors) === r.filter((x) => x.role === 'counsellor').length;
+});
+await bad('reason needed to suspend', () => as(U.adminN, `select admin_set_account_status('${U.c2}', 'suspended', '  ')`), /reason/);
+await bad('nobody changes their own status', () => as(U.adminN, `select admin_set_account_status('${U.adminN}', 'suspended', 'x')`), /own account/);
+await bad('an admin cannot suspend outside their area', () => as(U.adminD, `select admin_set_account_status('${U.c1}', 'suspended', 'test')`), /outside your area/);
+await bad('only a nationwide admin changes another admin', () => as(U.adminD, `select admin_set_account_status('${U.adminN}', 'suspended', 'test')`), /nationwide administrator/);
+await bad('a couple cannot suspend anyone', () => as(U.c1, `select admin_set_account_status('${U.c2}', 'suspended', 'test')`), /Only an administrator/);
+await ok('an Abu Dhabi admin suspends Omar: he loses his role and every data path', async () => {
+  await as(U.adminD, `select admin_set_account_status('${U.c2}', 'suspended', 'Identity under review')`);
+  const role = (await as(U.c2, `select my_role() r, my_person() p`)).rows[0];
+  const people = (await as(U.c2, `select id from people`)).rows.length;
+  const own = (await as(U.c2, `select status, status_reason from accounts where user_id = '${U.c2}'`)).rows[0];
+  return role.r === null && role.p === null && people === 0 && own.status === 'suspended' && own.status_reason === 'Identity under review';
+});
+await bad('a suspended couple cannot use location functions', () => as(U.c2, `select set_my_location(3)`), /Only a couple member/);
+await ok('suspending a counsellor also stops their bookings', async () => {
+  await as(U.adminN, `select admin_set_account_status('${U.k2}', 'suspended', 'Licence check')`);
+  return (await db.query(`select status from counsellors where user_id = '${U.k2}'`)).rows[0].status === 'away';
+});
+await ok('reactivating restores access, and both changes are audited', async () => {
+  await as(U.adminD, `select admin_set_account_status('${U.c2}', 'active')`);
+  await as(U.adminN, `select admin_set_account_status('${U.k2}', 'active')`);
+  const back = (await as(U.c2, `select my_role() r`)).rows[0].r === 'couple';
+  const n = (await db.query(`select count(*)::int c from audit_log where action like 'Suspended account:%' or action like 'Reactivated account:%'`)).rows[0].c;
+  return back && n === 4;
+});
+await ok('a suspended admin has no directory and no scope', async () => {
+  await as(U.adminN, `select admin_set_account_status('${U.adminD}', 'suspended', 'Left the programme')`);
+  let refused = false; try { await dir(U.adminD); } catch { refused = true; }
+  const scope = (await as(U.adminD, `select in_admin_scope(100) s`)).rows[0].s;
+  const st = (await db.query(`select status, scope_level, location_id from accounts where user_id = '${U.adminD}'`)).rows[0];
+  await as(U.adminN, `select admin_set_account_status('${U.adminD}', 'active')`);
+  if (!(refused && scope === false)) throw new Error(JSON.stringify({ refused, scope, st }));
+  return true;
+});
+await ok('a nationwide admin can suspend another nationwide admin, who then loses access', async () => {
+  await db.exec(`update accounts set scope_level = 'national' where user_id = '${U.adminD}'`);
+  try {
+    await as(U.adminD, `select admin_set_account_status('${U.adminN}', 'suspended', 'Rotation')`);
+    let refused = false; try { await dir(U.adminN); } catch { refused = true; }
+    await db.exec(`update accounts set status = 'active' where user_id = '${U.adminN}'`);
+    return refused;
+  } finally { await db.exec(`update accounts set scope_level = 'emirate' where user_id = '${U.adminD}'`); }
+});
+await ok('036 is re-runnable', async () => { await db.exec(fs.readFileSync(DIR+'036_admin_directory.sql','utf8')); return (await as(U.c1, `select my_role() r`)).rows[0].r === 'couple'; });
+await bad('nobody can set their own status column directly', () => as(U.c2, `update accounts set status = 'active' where user_id = '${U.c2}'`), /permission denied/);
 // 029 after 030 (fresh-database order)
 assert.equal(fail, 0, `${fail} of ${pass + fail} checks failed`);
 

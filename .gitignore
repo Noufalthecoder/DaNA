@@ -12,3 +12,4 @@ Thumbs.db
 api/.venv/
 __pycache__/
 .pytest_cache/
+*.xlsx
