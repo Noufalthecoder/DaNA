@@ -34,7 +34,9 @@ export default function Counsellor() {
   const bookedLabel = useStore((s) => s.appointments[cid]);
   const scheduleAppointments = useStore((s) => s.scheduleAppointments) || INITIAL_SCHEDULE;
   const liveSlots = useStore((s) => s.slots);
-  const dedicatedCounsellor = useStore((s) => s.coupleCounsellors?.[cid]) || useStore((s) => s.cases[cid]?.counsellor) || 'Dr. Mariam Al Hosani';
+  const lockedCounsellor = useStore((s) => s.coupleCounsellors?.[cid]);
+  const caseCounsellor = useStore((s) => s.cases?.[cid]?.counsellor);
+  const dedicatedCounsellor = lockedCounsellor || caseCounsellor || 'Dr. Mariam Al Hosani';
   const counsellorName = dedicatedCounsellor;
   const counsellorObj = COUNSELLORS.find((c) => c.name === dedicatedCounsellor) || COUNSELLORS[0];
 

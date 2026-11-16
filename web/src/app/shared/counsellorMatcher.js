@@ -16,23 +16,10 @@
 import { DEMO_LOCATIONS } from './locationService.js';
 import { COUNSELLORS, DEMO_REPORTS, PEOPLE, COUPLES } from './data.js';
 
-// UAE reference location coordinates for Haversine calculations
-export const UAE_COORDINATES = {
-  // Abu Dhabi Emirate
-  100: { id: 100, city: 'Abu Dhabi', emirate: 'Abu Dhabi', lat: 24.4539, lon: 54.3773 },
-  101: { id: 101, city: 'Al Ain', emirate: 'Abu Dhabi', lat: 24.2075, lon: 55.7447 },
-  107: { id: 107, city: 'Al Dhafra', emirate: 'Abu Dhabi', lat: 23.6542, lon: 53.7052 },
-  // Dubai Emirate
-  1: { id: 1, city: 'Downtown Dubai', emirate: 'Dubai', lat: 25.1972, lon: 55.2744 },
-  2: { id: 2, city: 'Dubai Marina', emirate: 'Dubai', lat: 25.0805, lon: 55.1403 },
-  3: { id: 3, city: 'Jumeirah', emirate: 'Dubai', lat: 25.2048, lon: 55.2708 },
-  // Other Emirates
-  102: { id: 102, city: 'Sharjah', emirate: 'Sharjah', lat: 25.3463, lon: 55.4209 },
-  103: { id: 103, city: 'Ajman', emirate: 'Ajman', lat: 25.4052, lon: 55.5136 },
-  104: { id: 104, city: 'Ras Al Khaimah', emirate: 'Ras Al Khaimah', lat: 25.7895, lon: 55.9432 },
-  105: { id: 105, city: 'Fujairah', emirate: 'Fujairah', lat: 25.1288, lon: 56.3265 },
-  106: { id: 106, city: 'Umm Al Quwain', emirate: 'Umm Al Quwain', lat: 25.5647, lon: 55.5552 },
-};
+// coordinates by public.locations id (the demo subset of the live table; see locationService.js)
+export const UAE_COORDINATES = Object.fromEntries(DEMO_LOCATIONS.map((l) => [l.id, {
+  id: l.id, city: l.city, emirate: l.state_name || l.city, lat: l.latitude, lon: l.longitude,
+}]));
 
 /**
  * Great-circle distance between two coordinates in kilometers (Haversine formula).
@@ -214,20 +201,17 @@ export function calculateMatchScore({
   modality = 'online',
   targetGene = 'DEFAULT',
   preferredLang = 'ar',
-  coupleLocationId = 100, // Default to Abu Dhabi
+  coupleLocationId = null, // the couple's people.location_id; unknown = no distance, online only
   triageTier = 1,
 }) {
-  const coupleCoord = UAE_COORDINATES[coupleLocationId] || UAE_COORDINATES[100];
-  const counsellorLocationId = counsellor.location_id || 100;
-  const counsellorCoord = UAE_COORDINATES[counsellorLocationId] || UAE_COORDINATES[100];
+  // never guess a place: an unknown location gives no distance and no in-person match
+  const coupleCoord = UAE_COORDINATES[coupleLocationId] || null;
+  const counsellorCoord = UAE_COORDINATES[counsellor.location_id] || null;
 
-  const sameEmirate = coupleCoord.emirate === counsellorCoord.emirate;
-  const distanceKm = haversineDistanceKm(
-    coupleCoord.lat,
-    coupleCoord.lon,
-    counsellorCoord.lat,
-    counsellorCoord.lon
-  );
+  const sameEmirate = !!(coupleCoord && counsellorCoord && coupleCoord.emirate === counsellorCoord.emirate);
+  const distanceKm = coupleCoord && counsellorCoord
+    ? haversineDistanceKm(coupleCoord.lat, coupleCoord.lon, counsellorCoord.lat, counsellorCoord.lon)
+    : null;
 
   // If in-person requested but counsellor does not offer in-person or is in different emirate
   if (modality === 'offline' || modality === 'in_person') {
@@ -238,7 +222,7 @@ export function calculateMatchScore({
         distanceKm,
         sameEmirate,
         eligible: false,
-        reasons: ['In-person consultation unavailable across different emirates'],
+        reasons: [coupleCoord && counsellorCoord ? 'In-person consultation unavailable across different emirates' : 'In-person needs both locations; online is available'],
         badges: [],
       };
     }
@@ -303,7 +287,7 @@ export function getRecommendedCounsellors({
   coupleId = 'c1',
   modality = 'online',
   preferredLang = 'ar',
-  userLocationId = 100,
+  userLocationId = null,
   counsellorPool = null,
 }) {
   const targetGene = getCouplePrimaryGene(coupleId);

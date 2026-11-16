@@ -114,7 +114,9 @@ export default function PersonalisedPlanTracker() {
     return getCoupleCarePlan(cid);
   }, [cid, storePlans, storeReferrals, scheduleAppointments, coupleCounsellors, storeApproved, connections, screeningIntakes]);
 
-  const dedicatedDoctor = useStore((s) => s.coupleCounsellors?.[cid]) || plan.counsellor || useStore((s) => s.cases?.[cid]?.counsellor) || 'Dr. Mariam Al Hosani';
+  const lockedDoctor = useStore((s) => s.coupleCounsellors?.[cid]);
+  const caseDoctor = useStore((s) => s.cases?.[cid]?.counsellor);
+  const dedicatedDoctor = lockedDoctor || plan.counsellor || caseDoctor || 'Dr. Mariam Al Hosani';
   const counsellorObj = useMemo(() => {
     return COUNSELLORS.find((c) => c.name === dedicatedDoctor) || COUNSELLORS[0];
   }, [dedicatedDoctor]);
@@ -444,7 +446,7 @@ export default function PersonalisedPlanTracker() {
                 </tr>
               </thead>
               <tbody>
-                {CARE_PLAN_STAGES.filter((stg) => isPregnancyActive || stg.id <= 4).map((stg) => {
+                {CARE_PLAN_STAGES.filter((stg) => isPregnancyUnlocked || stg.id <= 4).map((stg) => {
                   const completedCount = stg.items.filter((it) => plan.completedItems?.includes(it.id)).length;
                   const totalCount = stg.items.length;
                   const isDone = stg.id < (plan.activeStageId || 3);
@@ -592,7 +594,7 @@ export default function PersonalisedPlanTracker() {
         </div>
 
         <div className="cpt-stages-list">
-          {CARE_PLAN_STAGES.filter((stage) => isPregnancyActive || stage.id <= 4).map((stage) => {
+          {CARE_PLAN_STAGES.filter((stage) => isPregnancyUnlocked || stage.id <= 4).map((stage) => {
             const isExpanded = !!expandedStages[stage.id];
             const stageItems = stage.items.map((i) => i.id);
             const completedCount = stageItems.filter((id) =>

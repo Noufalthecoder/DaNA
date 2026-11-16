@@ -10,6 +10,7 @@ import AvatarPicker from '../shared/AvatarPicker.jsx';
 import { setMySex } from '../shared/db.js';
 import { PEOPLE } from '../shared/data.js';
 import { Avatar } from '../shared/ui.jsx';
+import HomeLocation, { HomeLocationText } from '../shared/HomeLocation.jsx';
 
 const RELATIONS = [
   'Mother', 'Father', 'Brother', 'Sister',
@@ -40,11 +41,10 @@ export default function Profile() {
     fullNameAr: '',
     emiratesId: '',
     dob: '',
-    gender: 'Female',
+    gender: '',
     phone: authPhone,
     email: authEmail,
     nationality: 'United Arab Emirates',
-    city: 'Abu Dhabi',
   });
 
   const baseMedical = existingIntake?.medical || (isUaePass ? fallback.medical : {
@@ -132,6 +132,9 @@ export default function Profile() {
       updatedAt: new Date().toISOString(),
       personal: {
         ...personal,
+        // sex comes from the account (About you); the home area lives in people.location_id
+        gender: mySex === 'M' ? 'Male' : mySex === 'F' ? 'Female' : personal.gender,
+        city: undefined,
         danaId: assignedDanaId,
       },
       medical,
@@ -256,6 +259,8 @@ export default function Profile() {
           {sexErr && <p className="err">{sexErr}</p>}
         </Card>
       )}
+
+      {account.role === 'couple' && <HomeLocation />}
 
       {/* Profile Overview Card */}
       <Card>
@@ -384,44 +389,14 @@ export default function Profile() {
                   <label className="field-label" style={{ display: 'block', fontSize: 12.5, fontWeight: 600, marginBottom: 4 }}>
                     Gender
                   </label>
-                  {isEditing ? (
-                    <select
-                      value={personal.gender}
-                      onChange={(e) => setPersonal({ ...personal, gender: e.target.value })}
-                      className="input"
-                      style={{ width: '100%' }}
-                    >
-                      <option value="Female">Female</option>
-                      <option value="Male">Male</option>
-                    </select>
-                  ) : (
-                    <div style={{ fontSize: 14, fontWeight: 500 }}>{personal.gender || '—'}</div>
-                  )}
+                  <div className="pf-readonly"><b>{mySex === 'M' ? 'Male' : mySex === 'F' ? 'Female' : '—'}</b> <small>Set in About you</small></div>
                 </div>
 
                 <div>
                   <label className="field-label" style={{ display: 'block', fontSize: 12.5, fontWeight: 600, marginBottom: 4 }}>
-                    City / Emirate
+                    Where you live
                   </label>
-                  {isEditing ? (
-                    <select
-                      value={personal.city}
-                      onChange={(e) => setPersonal({ ...personal, city: e.target.value })}
-                      className="input"
-                      style={{ width: '100%' }}
-                    >
-                      <option value="Abu Dhabi">Abu Dhabi</option>
-                      <option value="Al Ain">Al Ain</option>
-                      <option value="Al Dhafra">Al Dhafra</option>
-                      <option value="Dubai">Dubai</option>
-                      <option value="Sharjah">Sharjah</option>
-                      <option value="Ajman">Ajman</option>
-                      <option value="Ras Al Khaimah">Ras Al Khaimah</option>
-                      <option value="Fujairah">Fujairah</option>
-                    </select>
-                  ) : (
-                    <div style={{ fontSize: 14, fontWeight: 500 }}>{personal.city || '—'}</div>
-                  )}
+                  <div className="pf-readonly"><b><HomeLocationText /></b> <small>Change it in Where you live</small></div>
                 </div>
               </div>
 

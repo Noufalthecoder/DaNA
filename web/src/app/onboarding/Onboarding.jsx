@@ -6,7 +6,7 @@ import { useStore, signOut, set, get } from '../shared/store.js';
 import { setUserScreened } from '../shared/screeningPersistence.js';
 import MalaffiRecord from '../shared/MalaffiRecord.jsx';
 import { refreshSession, signOut as supabaseSignOut } from '../shared/supabase.js';
-import { startMyProfile, setMySex, linkUaePass, myIdentity, submitIntake, fetchMalaffi, loadAll } from '../shared/db.js';
+import { startMyProfile, setMySex, linkUaePass, myIdentity, submitIntake, fetchMalaffi, loadAll, isLive } from '../shared/db.js';
 import { PEOPLE } from '../shared/data.js';
 import { SCENARIOS } from '../shared/scenarios.js';
 import { Brand } from '../shared/Logo.jsx';
@@ -14,6 +14,8 @@ import { go } from '../shared/router.js';
 import './onboarding.css';
 import { LangSwitch } from '../shared/Translator.jsx';
 import { getLang } from '../shared/i18n.js';
+import LocationPicker from '../shared/LocationPicker.jsx';
+import { myHomeLocation, setMyLocation, loadLocations, locationName } from '../shared/locationService.js';
 
 const STEPS = ['About you', 'Verify identity', 'Consent', 'Marriage & pregnancy', 'Family history', 'Get your results'];
 const FAMILY = [
@@ -56,6 +58,9 @@ export default function Onboarding() {
     preferred_language: d0.preferred_language || getLang(),
   });
   const [scenario, setScenario] = useState('');
+  // where the person lives: their saved choice, else the home address UAE PASS returned (035)
+  const [home, setHome] = useState(null);
+  const [uaeHomeLabel, setUaeHomeLabel] = useState('');
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
   const up = (k, v) => setF((x) => ({ ...x, [k]: v }));
@@ -65,6 +70,21 @@ export default function Onboarding() {
   useEffect(() => {
     myIdentity().then((i) => { if (i) setId(i); }).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!id) return;
+    let off = false;
+    (async () => {
+      const saved = await myHomeLocation().catch(() => null);
+      if (off) return;
+      setHome((h) => h ?? saved ?? id.home_location_id ?? get().session?.homeLocation ?? null);
+      if (id.home_location_id) {
+        const groups = await loadLocations();
+        if (!off) setUaeHomeLabel(locationName(groups, id.home_location_id));
+      }
+    })();
+    return () => { off = true; };
+  }, [id]);
 
   const run = async (label, fn) => {
     setErr(''); setBusy(label);
@@ -82,7 +102,12 @@ export default function Onboarding() {
       if (ok) setStep(1);
     } else if (step === 1) {
       if (!id) return setErr('Verify your identity with UAE PASS to continue.');
-      setStep(2);
+      if (!home) return setErr('Choose where you live (emirate and area).');
+      const ok = await run('Saving…', async () => {
+        if (isLive()) await setMyLocation(home);
+        else set({ session: { ...get().session, homeLocation: home } });
+      });
+      if (ok) setStep(2);
     } else if (step === 2) {
       if (!scopes.identity || !scopes.results) return setErr('Your identity and your premarital results are needed. Tick both to continue.');
       setErr(''); setStep(3);
@@ -197,6 +222,12 @@ export default function Onboarding() {
                   .map(([l, v]) => <div key={l} className="ob-f"><small>{l}</small><b>{v || '—'}</b></div>)}
               </div>
               <p className="ob-hint">Filled in from UAE PASS and cannot be edited here. To correct them, update UAE PASS.</p>
+              <Q label="Where do you live?"
+                hint={uaeHomeLabel
+                  ? `Filled in from your UAE PASS home address (${uaeHomeLabel}). Change it if it is not right. It is used to find a counsellor near you.`
+                  : 'Used to find a counsellor near you. You can change it later in Profile.'}>
+                <LocationPicker value={home} onChange={setHome} label="Emirate and area" />
+              </Q>
             </>
           ))}
 

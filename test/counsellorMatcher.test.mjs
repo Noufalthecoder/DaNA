@@ -18,8 +18,8 @@ import { COUNSELLORS } from '../web/src/app/shared/data.js';
 test('DaNA Counsellor Recommendation & Matching Engine Suite', async (t) => {
   await t.test('1. Haversine distance calculation matches great-circle geometry', () => {
     // Abu Dhabi to Al Ain
-    const ad = UAE_COORDINATES[100];
-    const alAin = UAE_COORDINATES[101];
+    const ad = UAE_COORDINATES[21];
+    const alAin = UAE_COORDINATES[22];
     const dist = haversineDistanceKm(ad.lat, ad.lon, alAin.lat, alAin.lon);
     assert.ok(dist >= 135 && dist <= 145, `Distance should be ~140km, got ${dist}`);
 
@@ -83,7 +83,7 @@ test('DaNA Counsellor Recommendation & Matching Engine Suite', async (t) => {
       coupleId: 'c1',
       modality: 'online',
       preferredLang: 'ar',
-      userLocationId: 100,
+      userLocationId: 21,
     });
 
     assert.equal(resOnline.targetGene, 'HBB');
@@ -97,7 +97,7 @@ test('DaNA Counsellor Recommendation & Matching Engine Suite', async (t) => {
       coupleId: 'c1',
       modality: 'offline',
       preferredLang: 'ar',
-      userLocationId: 100,
+      userLocationId: 21,
     });
 
     const hasDubai = resOffline.counsellors.some((c) => c.emirate === 'Dubai');
@@ -111,7 +111,7 @@ test('DaNA Counsellor Recommendation & Matching Engine Suite', async (t) => {
       coupleId: 'c3',
       modality: 'online',
       preferredLang: 'ar',
-      userLocationId: 100,
+      userLocationId: 21,
     });
 
     assert.equal(res.targetGene, 'SMN1');
@@ -124,7 +124,7 @@ test('DaNA Counsellor Recommendation & Matching Engine Suite', async (t) => {
       coupleId: 'c2',
       modality: 'online',
       preferredLang: 'ar',
-      userLocationId: 100,
+      userLocationId: 21,
     });
 
     assert.equal(res.targetGene, 'GJB2');

@@ -79,7 +79,7 @@ export async function syncConsultationsFromSupabase(coupleId, counsellorUserId =
           type: row.modality === 'offline' ? 'Clinic' : 'Video',
           meetLink: row.meet_link || (row.modality === 'offline' ? null : `https://meet.google.com/dan-${row.couple_id}-0224`),
           clinicName: row.modality === 'offline' ? (row.counsellors?.name ? `${row.counsellors.name}'s clinic` : 'DaNA Partner Clinic') : null,
-          clinicRoom: row.modality === 'offline' ? (row.locations?.city || 'Abu Dhabi') : null,
+          clinicRoom: row.modality === 'offline' ? (row.locations?.city || 'Clinic location not set') : null,
           clinicAddress: row.modality === 'offline' ? (row.locations ? [row.locations.city, row.locations.state_name].filter((x, i, a) => x && a.indexOf(x) === i).join(', ') : 'Abu Dhabi') : null,
           notes: row.patient_notes || '',
         };
