@@ -78,6 +78,7 @@ export default function Root() {
   const [ready, setReady] = useState(false);
   const journey = useJourney();
   const dataLoaded = useStore((s) => s.dataLoaded);
+  const obReview = useStore((s) => s.obReview);
 
   const isCouple = session?.role === 'couple';
   const isScreened = session ? (!!session.intakeDone || !!intakes[session.id]?.completed || !!intakes[session.personId]?.completed) : false;
@@ -144,7 +145,7 @@ export default function Root() {
 
     // Only verified couple members enter the app: profile, UAE PASS identity, consent, details and
     // results first. Until then every /app page shows the onboarding (outside the app shell).
-    if (isCouple && !(journey.done.profile && journey.done.malaffi)) {
+    if (isCouple && (obReview || !(journey.done.profile && journey.done.malaffi))) {
       if (session.backend && !dataLoaded) return <div className="ob-loading">Loading your account…</div>;
       return (
         <ErrorBoundary>

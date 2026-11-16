@@ -2024,3 +2024,29 @@ body.in-app{background:#F6F7F5}
 .ik-link p{margin:4px 0 0;color:var(--ink2);max-width:60ch}
 .ik-submit{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
 .ik-go{padding:13px 22px;font-size:15px}
+
+/* ===== Malaffi record ===== */
+.mr{display:grid;gap:22px}
+.mr-head{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.mr-eyebrow{font:700 11.5px var(--body);letter-spacing:.07em;text-transform:uppercase;color:var(--green)}
+.mr-head h3{font:800 20px var(--head);margin:4px 0 10px}
+.mr-head dl{display:grid;grid-template-columns:repeat(2,minmax(160px,auto));gap:8px 24px;margin:0}
+.mr-head dt{font-size:12px;color:var(--ink3)}
+.mr-head dd{margin:0;font-weight:600;font-size:14px}
+.mr-checks{list-style:none;margin:0;padding:14px 16px;background:var(--green-l);border-radius:12px;display:grid;gap:6px;align-self:flex-start;font-size:14px}
+.mr-checks li.ok{color:var(--green);font-weight:600}
+.mr-checks li.bad{color:var(--amber);font-weight:600}
+.mr-sec h4{font:700 16px var(--head);margin:0 0 10px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.mr-sec h4 small{font:500 13px var(--body);color:var(--ink3)}
+.mr-none{margin:0;background:var(--green-l);color:var(--green);font-weight:600;border-radius:10px;padding:12px 14px}
+.mr-scroll{overflow-x:auto}
+.mr-table{width:100%;border-collapse:collapse;font-size:14px}
+.mr-table th{text-align:left;font:600 12.5px var(--body);color:var(--ink3);padding:8px 10px;border-bottom:1px solid var(--line)}
+.mr-table td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+.mr-table code{font-size:13px}
+.mr-table small{color:var(--ink3)}
+.mr-pill{display:inline-block;border-radius:999px;padding:3px 10px;font:700 12px var(--body)}
+.mr-pill.green{background:var(--green-l);color:var(--green)}
+.mr-pill.amber{background:#FFF4E5;color:var(--amber)}
+.mr-pill.grey{background:#EEF0EE;color:var(--ink2)}
+.mr-foot{margin:0;font-size:13px;color:var(--ink3)}

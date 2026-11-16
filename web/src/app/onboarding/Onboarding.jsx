@@ -2,7 +2,8 @@
    1 About you · 2 Verify identity (UAE PASS) · 3 Consent · 4 Marriage & pregnancy · 5 Family history · 6 Get your results.
    Root.jsx sends every /app page here until the person is verified (profile + identity + consent + details + results). */
 import { useEffect, useState } from 'react';
-import { useStore, signOut } from '../shared/store.js';
+import { useStore, signOut, set } from '../shared/store.js';
+import MalaffiRecord from '../shared/MalaffiRecord.jsx';
 import { refreshSession, signOut as supabaseSignOut } from '../shared/supabase.js';
 import { startMyProfile, setMySex, linkUaePass, myIdentity, submitIntake, fetchMalaffi, loadAll } from '../shared/db.js';
 import { PEOPLE } from '../shared/data.js';
@@ -101,11 +102,13 @@ export default function Onboarding() {
   const finish = () => run('Saving your consent and details…', async () => {
     await submitIntake(scopes, { ...f, affected_child: !!f.affected_child, pregnant: female && f.pregnant, pregnancy_weeks: female && f.pregnant ? Number(f.pregnancy_weeks) : null });
     setBusy('Fetching your premarital results from Malaffi… (up to a minute)');
+    set({ obReview: true }); // keep onboarding open to review the import (Root.jsx)
     await fetchMalaffi(scenario || undefined);
     await refreshSession();
     await loadAll();
-    go('/app/result');
+    setStep(6);
   });
+  const enter = () => { set({ obReview: false }); go('/app/result'); };
 
   const leave = async () => { signOut(); try { await supabaseSignOut(); } catch {} go('/login'); };
 
@@ -123,12 +126,20 @@ export default function Onboarding() {
 
       <ol className="ob-steps" aria-label="Progress">
         {STEPS.map((l, i) => (
-          <li key={l} className={i < step ? 'done' : i === step ? 'now' : ''} aria-current={i === step ? 'step' : undefined}>
-            <span>{l}</span><i>{i < step ? '✓' : i + 1}</i>
+          <li key={l} className={i < step || step === 6 ? 'done' : i === step ? 'now' : ''} aria-current={i === step ? 'step' : undefined}>
+            <span>{l}</span><i>{i < step || step === 6 ? '✓' : i + 1}</i>
           </li>
         ))}
       </ol>
 
+      {step === 6 ? (
+        <main className="ob-main">
+          <h2>Imported from Malaffi</h2>
+          <p className="ob-lead">This is what DaNA received. Check it, then enter DaNA to see what it means for you.</p>
+          <section className="ob-card"><MalaffiRecord personId={session.id} /></section>
+          <div className="ob-nav"><span /><button type="button" className="btn ob-go" onClick={enter}>Enter DaNA: see my result →</button></div>
+        </main>
+      ) : (
       <main className="ob-main">
         <h2>{STEPS[step]}</h2>
         <section className="ob-card">
@@ -231,6 +242,7 @@ export default function Onboarding() {
             : <button type="button" className="btn ob-go" onClick={finish} disabled={!!busy}>{busy || 'I consent: get my results'}</button>}
         </div>
       </main>
+      )}
     </div>
   );
 }

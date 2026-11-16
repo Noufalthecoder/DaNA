@@ -1,3 +1,6 @@
+import MalaffiRecord from './shared/MalaffiRecord.jsx';
+import { Page, Card } from './shared/ui.jsx';
+import { useStore } from './shared/store.js';
 /*
   One menu per login. To add a page: create it in your module folder,
   then add one line to your role's `items` and one case to `page()`.
@@ -48,12 +51,18 @@ import {
   SettingsIcon,
 } from './shared/Icons.jsx';
 
+function MalaffiPage() {
+  const id = useStore((st) => st.session?.id);
+  return <Page title="My Malaffi record" sub="Your premarital screening record, exactly as imported. Open it any time."><Card><MalaffiRecord personId={id} /></Card></Page>;
+}
+
 export const MENUS = {
   couple: {
     label: 'Couple',
     items: [
       { to: '/app', label: 'Home', icon: <HomeIcon /> },
       { to: '/app/result', label: 'My result', icon: <ContentIcon /> },
+      { to: '/app/malaffi', label: 'Malaffi record', icon: <PrivacyIcon /> },
       { to: '/app/familytree', label: 'Family Tree', icon: <BranchesIcon /> },
       { to: '/app/bonds', label: 'Bonds', icon: <BondsIcon /> },
       { to: '/app/roots', label: 'Roots', icon: <RootsIcon /> },
@@ -125,6 +134,7 @@ export function page(role, path) {
     const coupleRoutes = {
       '/app': <Home />,
       '/app/result': <Result />,
+      '/app/malaffi': <MalaffiPage />,
       '/app/details': <Details />,
       '/app/profile': <Profile />,
       '/app/report': <MedicalReport />,
