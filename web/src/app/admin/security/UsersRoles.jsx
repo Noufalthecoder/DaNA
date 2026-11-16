@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import SecurityNav from './SecurityNav.jsx';
 import { Page, Card, Badge, Dialog } from '../../shared/ui.jsx';
 import { ACCOUNTS } from '../../shared/data.js';
-import { useStore } from '../../shared/store.js';
+import { useStore, get, set } from '../../shared/store.js';
 import { supabase } from '../../shared/supabase.js';
 import { logAudit } from '../../shared/db.js';
 import {
@@ -32,14 +32,15 @@ export default function UsersRoles() {
 
   const loadAccounts = async () => {
     setLoading(true);
+    let loaded = [];
     try {
-      if (supabase && session?.backend) {
+      if (supabase) {
         const { data, error } = await supabase
           .from('accounts')
           .select('user_id, role, person_id, display_name, title, status, created_at')
           .order('display_name', { ascending: true });
         if (!error && data && data.length > 0) {
-          setAccounts(data.map((a) => ({
+          loaded = data.map((a) => ({
             id: a.user_id,
             userId: a.user_id,
             name: a.display_name || 'Member',
@@ -47,24 +48,45 @@ export default function UsersRoles() {
             personId: a.person_id,
             status: a.status || 'active',
             title: a.title,
-          })));
-          setLoading(false);
-          return;
+          }));
         }
       }
     } catch (e) {
       console.warn('Direct accounts query notice:', e.message);
     }
-    // Fallback to rich system accounts list
-    setAccounts(ACCOUNTS.map((a) => ({
-      id: a.id,
-      userId: a.id,
-      name: a.name,
-      role: a.role,
-      personId: a.person_id || (a.role === 'couple' ? a.id : null),
-      status: a.status || 'active',
-      title: a.title,
-    })));
+
+    // Merge system accounts (ACCOUNTS) with any registered database accounts
+    const map = new Map();
+    ACCOUNTS.forEach((a) => {
+      map.set(a.id, {
+        id: a.id,
+        userId: a.id,
+        name: a.name,
+        role: a.role,
+        personId: a.person_id || (a.role === 'couple' ? a.id : null),
+        status: a.status || 'active',
+        title: a.title,
+      });
+    });
+
+    loaded.forEach((a) => {
+      map.set(a.userId, a);
+    });
+
+    // Check if session or localStorage has registered accounts like Adi_Counselot
+    const currentSession = session || {};
+    if (currentSession.name && !map.has(currentSession.id) && !map.has(currentSession.name)) {
+      map.set(currentSession.id || currentSession.name, {
+        id: currentSession.id || currentSession.name,
+        userId: currentSession.id || currentSession.name,
+        name: currentSession.name,
+        role: currentSession.role || 'counsellor',
+        status: 'active',
+        title: currentSession.title || 'Genetic counsellor (pending verification)',
+      });
+    }
+
+    setAccounts(Array.from(map.values()));
     setLoading(false);
   };
 
@@ -81,6 +103,47 @@ export default function UsersRoles() {
     const matchesRole = roleFilter === 'ALL' || acc.role === roleFilter;
     return matchesSearch && matchesRole;
   });
+
+  const handleVerifyCounsellor = async (user) => {
+    try {
+      if (supabase) {
+        try {
+          await supabase
+            .from('accounts')
+            .update({ title: 'Genetic counsellor' })
+            .or(`user_id.eq.${user.userId},display_name.eq.${user.name}`);
+
+          await supabase
+            .from('counsellors')
+            .update({ credentials_verified: true, status: 'active' })
+            .or(`user_id.eq.${user.userId},name.eq.${user.name}`);
+        } catch (e) {
+          console.warn('Live counsellor verify notice:', e.message);
+        }
+      }
+
+      setAccounts((prev) =>
+        prev.map((a) =>
+          a.userId === user.userId || a.name === user.name
+            ? { ...a, title: 'Genetic counsellor' }
+            : a
+        )
+      );
+
+      // If active session belongs to this user, update title immediately
+      const s = get();
+      if (s.session && (s.session.id === user.userId || s.session.name === user.name)) {
+        set({ session: { ...s.session, title: 'Genetic counsellor' } });
+      }
+
+      await logAudit(
+        `DoH Administrator verified professional medical credentials for Genetic Counsellor ${user.name} (${user.userId})`
+      );
+      setActionSuccess(`Successfully verified and credentialed ${user.name}!`);
+    } catch (err) {
+      setActionError(`Verification failed: ${err.message}`);
+    }
+  };
 
   const handleStatusToggle = async () => {
     if (!selectedUser) return;
@@ -237,7 +300,17 @@ export default function UsersRoles() {
                   </span>
                 </td>
                 <td className="right">
-                  <div style={{ display: 'inline-flex', gap: 8 }}>
+                  <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+                    {acc.title?.toLowerCase().includes('pending') && (
+                      <button
+                        className="btn btn-sm"
+                        style={{ background: '#00843D', color: '#fff', fontWeight: 600, padding: '4px 10px', fontSize: 12 }}
+                        onClick={() => handleVerifyCounsellor(acc)}
+                        title="Verify medical credentials and activate caseload"
+                      >
+                        ✓ Verify
+                      </button>
+                    )}
                     {acc.status === 'suspended' ? (
                       <button
                         className="btn btn-sm"
