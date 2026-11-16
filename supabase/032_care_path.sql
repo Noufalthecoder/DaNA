@@ -56,7 +56,7 @@ create or replace function update_care_step(p_couple text, p_step text, p_status
 language plpgsql security definer set search_path = public as $$
 declare v_case uuid;
 begin
-  if my_role() <> 'counsellor' then raise exception 'Only a counsellor can update the care path'; end if;
+  if my_role() is distinct from 'counsellor' then raise exception 'Only a counsellor can update the care path'; end if;
   select id into v_case from clinical_cases where couple_id = p_couple;
   if v_case is null then raise exception 'No case for this couple'; end if;
   if p_step = 'counselling' then
@@ -81,7 +81,7 @@ create or replace function set_referral_status(p_id uuid, p_status text) returns
 language plpgsql security definer set search_path = public as $$
 declare v_couple text;
 begin
-  if my_role() <> 'counsellor' then raise exception 'Only a counsellor can update a referral'; end if;
+  if my_role() is distinct from 'counsellor' then raise exception 'Only a counsellor can update a referral'; end if;
   if p_status not in ('sent', 'accepted', 'completed') then raise exception 'Invalid status'; end if;
   update referrals f set status = p_status, updated_at = now() where f.id = p_id
   returning (select couple_id from clinical_cases where id = f.case_id) into v_couple;
