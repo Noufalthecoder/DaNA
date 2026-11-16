@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import SecurityNav from './SecurityNav.jsx';
 import { Page, Card, Badge, Dialog } from '../../shared/ui.jsx';
-import { useStore } from '../../shared/store.js';
+import { useStore, get, set } from '../../shared/store.js';
 import { supabase } from '../../shared/supabase.js';
 import { logAudit } from '../../shared/db.js';
 import { ROLES } from '../../shared/auth/authorizationEngine.js';
@@ -251,6 +251,27 @@ export default function UsersRoles() {
     Boolean(selectedCity);
 
   // Status toggle handler (Suspend / Reactivate)
+  // from the consultation branch: DoH admin verifies a counsellor's credentials and activates them
+  const handleVerifyCounsellor = async (user) => {
+    try {
+      if (supabase) {
+        try {
+          await supabase.from('accounts').update({ title: 'Genetic counsellor' }).eq('user_id', user.userId);
+          await supabase.from('counsellors').update({ credentials_verified: true, status: 'active' }).eq('user_id', user.userId);
+        } catch (e) {
+          console.warn('Live counsellor verify notice:', e.message);
+        }
+      }
+      setAccounts((prev) => prev.map((a) => (a.userId === user.userId ? { ...a, title: 'Genetic counsellor' } : a)));
+      const s = get();
+      if (s.session && s.session.id === user.userId) set({ session: { ...s.session, title: 'Genetic counsellor' } });
+      await logAudit(`DoH Administrator verified professional credentials for Genetic Counsellor ${user.name} (${user.userId})`);
+      setActionSuccess(`Successfully verified and credentialed ${user.name}!`);
+    } catch (err) {
+      setActionError(`Verification failed: ${err.message}`);
+    }
+  };
+
   const handleStatusToggle = async () => {
     if (!selectedUser) return;
     const targetStatus = actionType === 'suspend' ? 'suspended' : 'active';
@@ -911,7 +932,17 @@ export default function UsersRoles() {
                   </td>
                   <td className="right">
                     {canModify ? (
-                      <div style={{ display: 'inline-flex', gap: 8 }}>
+                      <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+                        {acc.title?.toLowerCase().includes('pending') && (
+                          <button
+                            className="btn btn-sm"
+                            style={{ background: '#00843D', color: '#fff', fontWeight: 600, padding: '4px 10px', fontSize: 12 }}
+                            onClick={() => handleVerifyCounsellor(acc)}
+                            title="Verify medical credentials and activate caseload"
+                          >
+                            Verify counsellor
+                          </button>
+                        )}
                         {acc.status === 'suspended' ? (
                           <button
                             className="btn btn-sm"
