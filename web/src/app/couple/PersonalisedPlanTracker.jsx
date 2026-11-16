@@ -20,6 +20,10 @@ import {
   FileText,
   AlertCircle,
   HelpCircle,
+  Sparkles,
+  Check,
+  UserCheck,
+  Building,
 } from 'lucide-react';
 import { Page, Card, Badge, Dialog } from '../shared/ui.jsx';
 import { useStore } from '../shared/store.js';
@@ -36,7 +40,7 @@ import {
 import './PersonalisedPlanTracker.css';
 
 export default function PersonalisedPlanTracker() {
-  const { me, partner, result, couple, isConnected } = useCouple();
+  const { me, partner, result, couple } = useCouple();
   const session = useStore((s) => s.session);
   const cid = couple?.id || session?.couple || 'c1';
 
@@ -48,12 +52,23 @@ export default function PersonalisedPlanTracker() {
 
   const progress = useMemo(() => computeCarePlanProgress(plan), [plan]);
 
-  // Expanded stage state
+  // Section navigation state
+  const [activeSection, setActiveSection] = useState('lifecycle');
+
+  // Expanded stages state
   const [expandedStages, setExpandedStages] = useState({
     [plan.activeStageId || 3]: true,
     1: false,
     2: false,
     3: true,
+  });
+
+  // Action checklist local state (stored in plan)
+  const [completedActions, setCompletedActions] = useState({
+    consultation: true,
+    pgtm_review: true,
+    referral_check: false,
+    sila_outreach: true,
   });
 
   // Modals state
@@ -71,12 +86,24 @@ export default function PersonalisedPlanTracker() {
   const [babyDob, setBabyDob] = useState(plan.childbirth?.birthDate || '2027-05-12');
   const [babyScreen, setBabyScreen] = useState(plan.childbirth?.newbornScreenStatus || 'completed');
 
+  const scrollToSection = (sectionId) => {
+    setActiveSection(sectionId);
+    const el = document.getElementById(`section-${sectionId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   const toggleExpand = (stageId) => {
     setExpandedStages((prev) => ({ ...prev, [stageId]: !prev[stageId] }));
   };
 
   const handleToggleItem = (itemId) => {
     toggleCarePlanItem(cid, itemId);
+  };
+
+  const toggleAction = (key) => {
+    setCompletedActions((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const savePregnancy = (e) => {
@@ -108,8 +135,8 @@ export default function PersonalisedPlanTracker() {
 
   return (
     <Page
-      title="Personalised Care Plan"
-      sub="مُتابِع خِطة الرعاية الشاملة · Continuous health roadmap from premarital screening to newborn care"
+      title="Personal Tracker"
+      sub="مُتابِع الخطة الشخصية الشاملة · Longitudinal lifecycle roadmap from premarital screening to newborn care"
       actions={
         <div style={{ display: 'flex', gap: 10 }}>
           <button
@@ -130,140 +157,123 @@ export default function PersonalisedPlanTracker() {
         </div>
       }
     >
-      {/* Overview Progress & Profile Header Card */}
-      <section className="cpt-hero-card">
-        <div className="cpt-hero-main">
-          <div className="cpt-couple-badge">
-            <span className="cpt-live-dot" />
-            <span>{me?.short || 'Khalid'} & {partner?.short || 'Fatima'}</span>
-            <span className="cpt-divider">·</span>
-            <span className="cpt-cond-pill">{plan.condition || 'Beta-thalassaemia (HBB)'}</span>
-            <span className="cpt-divider">·</span>
-            <Badge tone="amber">Tier {plan.tier || 2} Clinical Priority</Badge>
-          </div>
-          <h2 className="cpt-hero-title">
-            Your Family's Continuous Care Journey
-          </h2>
-          <p className="cpt-hero-sub">
-            DaNA stays with you across every stage of family growth. Track your specialist referrals, counseling milestones, gestational checkpoints, and newborn screening protocols.
-          </p>
+      {/* ─── 6-Section Quick Navigation Bar (From Image 3) ─── */}
+      <nav className="cpt-nav-tabs" aria-label="Personal Tracker Sections">
+        <button
+          type="button"
+          className={`cpt-nav-btn ${activeSection === 'lifecycle' ? 'is-active' : ''}`}
+          onClick={() => scrollToSection('lifecycle')}
+        >
+          1. Lifecycle overview
+        </button>
+        <button
+          type="button"
+          className={`cpt-nav-btn ${activeSection === 'milestones' ? 'is-active' : ''}`}
+          onClick={() => scrollToSection('milestones')}
+        >
+          2. Milestone timeline
+        </button>
+        <button
+          type="button"
+          className={`cpt-nav-btn ${activeSection === 'actions' ? 'is-active' : ''}`}
+          onClick={() => scrollToSection('actions')}
+        >
+          3. Next actions
+        </button>
+        <button
+          type="button"
+          className={`cpt-nav-btn ${activeSection === 'appointments' ? 'is-active' : ''}`}
+          onClick={() => scrollToSection('appointments')}
+        >
+          4. Appointments & referrals
+        </button>
+        <button
+          type="button"
+          className={`cpt-nav-btn ${activeSection === 'pregnancy' ? 'is-active' : ''}`}
+          onClick={() => scrollToSection('pregnancy')}
+        >
+          5. Pregnancy journey
+        </button>
+        <button
+          type="button"
+          className={`cpt-nav-btn ${activeSection === 'birth' ? 'is-active' : ''}`}
+          onClick={() => scrollToSection('birth')}
+        >
+          6. Birth & newborn records
+        </button>
+      </nav>
 
-          <div className="cpt-progress-container">
-            <div className="cpt-progress-header">
-              <span className="cpt-progress-label">Overall Journey Progress</span>
-              <span className="cpt-progress-value">{progress}% Complete</span>
-            </div>
-            <div className="cpt-progress-track">
-              <div
-                className="cpt-progress-fill"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <div className="cpt-stage-breadcrumbs">
-              <span>Active Stage: <b>Stage {plan.activeStageId || 3} — {CARE_PLAN_STAGES.find((s) => s.id === (plan.activeStageId || 3))?.title}</b></span>
-              <span className="cpt-muted-hint">7 Milestones · 23 Quality Checkpoints</span>
-            </div>
+      {/* ═════════════════════════════════════════════════════════════════════════════ */}
+      {/* SECTION 1: Lifecycle overview (Image 3 Section 1)                            */}
+      {/* ═════════════════════════════════════════════════════════════════════════════ */}
+      <section id="section-lifecycle" className="cpt-section-card">
+        <div className="cpt-sec-header">
+          <div>
+            <span className="cpt-sec-tag">Section 1</span>
+            <h3 className="cpt-sec-title">Lifecycle Overview · نظرة عامة على دورة الرعاية</h3>
+          </div>
+          <Badge tone="green">Active Care Protocol</Badge>
+        </div>
+
+        <div className="cpt-couple-badge">
+          <span className="cpt-live-dot" />
+          <span>{me?.short || 'Khalid'} & {partner?.short || 'Fatima'}</span>
+          <span className="cpt-divider">·</span>
+          <span className="cpt-cond-pill">{plan.condition || 'Beta-thalassaemia (HBB)'}</span>
+          <span className="cpt-divider">·</span>
+          <Badge tone="amber">Tier {plan.tier || 2} Clinical Priority</Badge>
+          <span className="cpt-divider">·</span>
+          <span style={{ color: '#64748B', fontSize: 12.5 }}>Counsellor: <b>{plan.counsellor}</b></span>
+        </div>
+
+        {/* Progress Tracker Bar */}
+        <div className="cpt-progress-container">
+          <div className="cpt-progress-header">
+            <span className="cpt-progress-label">Continuous Lifecycle Progress</span>
+            <span className="cpt-progress-value">{progress}% Completed</span>
+          </div>
+          <div className="cpt-progress-track">
+            <div className="cpt-progress-fill" style={{ width: `${progress}%` }} />
+          </div>
+          <div className="cpt-stage-breadcrumbs">
+            <span>Current Focus: <b>Stage {plan.activeStageId || 3} — {CARE_PLAN_STAGES.find((s) => s.id === (plan.activeStageId || 3))?.title}</b></span>
+            <span className="cpt-muted-hint">7 Lifelong Milestones · 23 Checkpoints</span>
           </div>
         </div>
 
-        {/* 4 Core Pillars Quick-Status Grid */}
-        <div className="cpt-pillars-grid">
-          {/* Pillar 1: Referral */}
-          <div className="cpt-pillar-box">
-            <div className="cpt-pillar-icon" style={{ background: '#EFF6FF', color: '#2563EB' }}>
-              <Hospital size={18} />
-            </div>
-            <div className="cpt-pillar-content">
-              <span className="cpt-pillar-title">Specialist Referral</span>
-              <b className="cpt-pillar-main">
-                {plan.referrals?.[0]?.destination || 'IVF / PGT-M'}
-              </b>
-              <span className="cpt-pillar-meta">
-                {plan.referrals?.[0]?.facility?.split('·')[0] || 'Cleveland Clinic Abu Dhabi'}
-              </span>
-              <div style={{ marginTop: 6 }}>
-                <Badge tone="blue">Dispatched · Ref #{plan.referrals?.[0]?.id?.slice(0, 12) || 'REF-2026'}</Badge>
+        {/* Lifecycle Stepper Strip (The 7 Stages at a glance) */}
+        <div className="cpt-strip-wrap">
+          {CARE_PLAN_STAGES.map((s) => {
+            const isDone = s.id < (plan.activeStageId || 3);
+            const isCurrent = s.id === (plan.activeStageId || 3);
+            return (
+              <div
+                key={s.id}
+                className={`cpt-strip-node ${isDone ? 'done' : isCurrent ? 'current' : 'upcoming'}`}
+                onClick={() => scrollToSection('milestones')}
+                role="button"
+                tabIndex={0}
+              >
+                <div className="cpt-strip-circle">
+                  {isDone ? '✓' : s.id}
+                </div>
+                <span className="cpt-strip-lbl">{s.title.split(' ')[0]}</span>
               </div>
-            </div>
-          </div>
-
-          {/* Pillar 2: Follow-up */}
-          <div className="cpt-pillar-box">
-            <div className="cpt-pillar-icon" style={{ background: '#F0FDF4', color: '#16A34A' }}>
-              <Calendar size={18} />
-            </div>
-            <div className="cpt-pillar-content">
-              <span className="cpt-pillar-title">Counsellor Follow-up</span>
-              <b className="cpt-pillar-main">
-                {plan.followUp?.doctor || 'Dr. Mariam Al Hosani'}
-              </b>
-              <span className="cpt-pillar-meta">
-                10 Nov 2026 · 13:30 (Gulf Time)
-              </span>
-              <div style={{ marginTop: 6, display: 'flex', gap: 6, alignItems: 'center' }}>
-                <Badge tone="green">Confirmed</Badge>
-                {plan.followUp?.meetLink && (
-                  <a
-                    href={plan.followUp.meetLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="cpt-tiny-link"
-                    title="Open Google Meet link"
-                  >
-                    <Video size={12} /> Video
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Pillar 3: Reproductive Options */}
-          <div className="cpt-pillar-box">
-            <div className="cpt-pillar-icon" style={{ background: '#FAF5FF', color: '#9333EA' }}>
-              <HeartHandshake size={18} />
-            </div>
-            <div className="cpt-pillar-content">
-              <span className="cpt-pillar-title">Reproductive Pathway</span>
-              <b className="cpt-pillar-main">
-                {plan.reproductivePathway?.selected || 'IVF with embryo testing'}
-              </b>
-              <span className="cpt-pillar-meta">
-                Declared & Counsellor Validated
-              </span>
-              <div style={{ marginTop: 6 }}>
-                <Badge tone="green">Protocol Approved</Badge>
-              </div>
-            </div>
-          </div>
-
-          {/* Pillar 4: Voluntary Sila Invitation */}
-          <div className="cpt-pillar-box">
-            <div className="cpt-pillar-icon" style={{ background: '#FEF3C7', color: '#D97706' }}>
-              <Share2 size={18} />
-            </div>
-            <div className="cpt-pillar-content">
-              <span className="cpt-pillar-title">Voluntary Sila Reach</span>
-              <b className="cpt-pillar-main">
-                {plan.silaStats?.alertsDispatched || 3} of {plan.silaStats?.relativesEligible || 5} Relatives
-              </b>
-              <span className="cpt-pillar-meta">
-                1 Relative Booked · No IDs Shared
-              </span>
-              <div style={{ marginTop: 6 }}>
-                <Badge tone="grey">Phone Numbers Purged</Badge>
-              </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
       </section>
 
-      {/* The 7 Stages Detailed Timeline */}
-      <div className="cpt-timeline-wrapper">
-        <div className="cpt-timeline-header">
+      {/* ═════════════════════════════════════════════════════════════════════════════ */}
+      {/* SECTION 2: Milestone timeline (Image 3 Section 2)                            */}
+      {/* ═════════════════════════════════════════════════════════════════════════════ */}
+      <section id="section-milestones" className="cpt-section-card">
+        <div className="cpt-sec-header">
           <div>
-            <h3 className="cpt-timeline-h3">The 7 Stages of Your Personalised Care Journey</h3>
-            <p className="cpt-timeline-sub">
-              Every milestone is tracked with your care team. Check off completed items or click actions to launch corresponding tools.
+            <span className="cpt-sec-tag">Section 2</span>
+            <h3 className="cpt-sec-title">Milestone Timeline · محطات الرحلة الوراثية</h3>
+            <p className="cpt-sec-sub">
+              Detailed interactive checklist across all 7 stages from premarital screening to newborn care.
             </p>
           </div>
           <div className="cpt-expand-actions">
@@ -306,7 +316,6 @@ export default function PersonalisedPlanTracker() {
                   isFullyCompleted ? 'is-completed' : ''
                 }`}
               >
-                {/* Stage Header */}
                 <div
                   className="cpt-stage-header"
                   onClick={() => toggleExpand(stage.id)}
@@ -352,7 +361,6 @@ export default function PersonalisedPlanTracker() {
                   </div>
                 </div>
 
-                {/* Stage Body */}
                 {isExpanded && (
                   <div className="cpt-stage-body">
                     <div className="cpt-items-checklist">
@@ -387,7 +395,6 @@ export default function PersonalisedPlanTracker() {
                       })}
                     </div>
 
-                    {/* Stage Specific Action Buttons */}
                     <div className="cpt-stage-footer-actions">
                       {stage.id === 1 && (
                         <>
@@ -491,21 +498,387 @@ export default function PersonalisedPlanTracker() {
             );
           })}
         </div>
-      </div>
+      </section>
 
-      {/* Pregnancy Tracking Modal */}
+      {/* ═════════════════════════════════════════════════════════════════════════════ */}
+      {/* SECTION 3: Next actions (Image 3 Section 3)                                  */}
+      {/* ═════════════════════════════════════════════════════════════════════════════ */}
+      <section id="section-actions" className="cpt-section-card">
+        <div className="cpt-sec-header">
+          <div>
+            <span className="cpt-sec-tag">Section 3</span>
+            <h3 className="cpt-sec-title">Next Actions · الخطوات والإجراءات القادمة</h3>
+            <p className="cpt-sec-sub">
+              Priority actionable tasks recommended by your clinical team for your active stage.
+            </p>
+          </div>
+        </div>
+
+        <div className="cpt-action-cards-grid">
+          {/* Action 1 */}
+          <div className={`cpt-action-item ${completedActions.consultation ? 'done' : ''}`}>
+            <div className="cpt-action-top">
+              <button
+                type="button"
+                className="cpt-action-check"
+                onClick={() => toggleAction('consultation')}
+                title="Toggle done"
+              >
+                {completedActions.consultation ? <CheckCircle2 size={20} color="#16A34A" /> : <Circle size={20} color="#94A3B8" />}
+              </button>
+              <div style={{ flex: 1 }}>
+                <b className="cpt-action-title">1. Attend Genetic Counselling Consultation</b>
+                <p className="cpt-action-desc">
+                  Scheduled with <b>Dr. Mariam Al Hosani</b> for 10 Nov 2026 at 13:30 (Gulf Time). Discuss carrier match findings and PGT-M protocol.
+                </p>
+              </div>
+            </div>
+            <div className="cpt-action-links">
+              {plan.followUp?.meetLink && (
+                <a href={plan.followUp.meetLink} target="_blank" rel="noreferrer" className="btn-clean-sm btn-green-subtle">
+                  <Video size={13} /> Open Google Meet Link
+                </a>
+              )}
+              <a href="#/app/counsellor" className="btn-clean-sm">
+                Manage Booking
+              </a>
+            </div>
+          </div>
+
+          {/* Action 2 */}
+          <div className={`cpt-action-item ${completedActions.pgtm_review ? 'done' : ''}`}>
+            <div className="cpt-action-top">
+              <button
+                type="button"
+                className="cpt-action-check"
+                onClick={() => toggleAction('pgtm_review')}
+                title="Toggle done"
+              >
+                {completedActions.pgtm_review ? <CheckCircle2 size={20} color="#16A34A" /> : <Circle size={20} color="#94A3B8" />}
+              </button>
+              <div style={{ flex: 1 }}>
+                <b className="cpt-action-title">2. Review Reproductive Decision Pathway</b>
+                <p className="cpt-action-desc">
+                  Compare IVF with PGT-M against prenatal diagnosis. Review scholar-approved faith cards regarding assisted reproduction.
+                </p>
+              </div>
+            </div>
+            <div className="cpt-action-links">
+              <a href="#/app/bonds" className="btn-clean-sm">
+                Review Options in Bonds →
+              </a>
+            </div>
+          </div>
+
+          {/* Action 3 */}
+          <div className={`cpt-action-item ${completedActions.referral_check ? 'done' : ''}`}>
+            <div className="cpt-action-top">
+              <button
+                type="button"
+                className="cpt-action-check"
+                onClick={() => toggleAction('referral_check')}
+                title="Toggle done"
+              >
+                {completedActions.referral_check ? <CheckCircle2 size={20} color="#16A34A" /> : <Circle size={20} color="#94A3B8" />}
+              </button>
+              <div style={{ flex: 1 }}>
+                <b className="cpt-action-title">3. Confirm Cleveland Clinic Abu Dhabi Referral</b>
+                <p className="cpt-action-desc">
+                  Requisition <b>#REF-2026-HBB-041</b> dispatched to Malaffi HIE for the IVF & PGT-M Unit. Download clinical summary slip for your intake visit.
+                </p>
+              </div>
+            </div>
+            <div className="cpt-action-links">
+              <button type="button" className="btn-clean-sm" onClick={() => setShowPrintModal(true)}>
+                <Printer size={13} /> View Referral Slip
+              </button>
+            </div>
+          </div>
+
+          {/* Action 4 */}
+          <div className={`cpt-action-item ${completedActions.sila_outreach ? 'done' : ''}`}>
+            <div className="cpt-action-top">
+              <button
+                type="button"
+                className="cpt-action-check"
+                onClick={() => toggleAction('sila_outreach')}
+                title="Toggle done"
+              >
+                {completedActions.sila_outreach ? <CheckCircle2 size={20} color="#16A34A" /> : <Circle size={20} color="#94A3B8" />}
+              </button>
+              <div style={{ flex: 1 }}>
+                <b className="cpt-action-title">4. Extend Family Cascade Protection (Sila Alerts)</b>
+                <p className="cpt-action-desc">
+                  3 relatives reached anonymously. 2 eligible relatives remaining on your family pedigree. Protect siblings and cousins before marriage.
+                </p>
+              </div>
+            </div>
+            <div className="cpt-action-links">
+              <a href="#/app/roots" className="btn-clean-sm">
+                Send Anonymous Alerts in Roots →
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═════════════════════════════════════════════════════════════════════════════ */}
+      {/* SECTION 4: Appointments & referrals (Image 3 Section 4)                      */}
+      {/* ═════════════════════════════════════════════════════════════════════════════ */}
+      <section id="section-appointments" className="cpt-section-card">
+        <div className="cpt-sec-header">
+          <div>
+            <span className="cpt-sec-tag">Section 4</span>
+            <h3 className="cpt-sec-title">Appointments & Referrals · المواعيد والتحويلات</h3>
+            <p className="cpt-sec-sub">
+              Traceable clinical specialist referrals and scheduled genetic consultations.
+            </p>
+          </div>
+        </div>
+
+        <div className="cpt-appts-grid">
+          {/* Active Referral Card */}
+          <div className="cpt-detail-card">
+            <div className="cpt-card-top-badge">
+              <Hospital size={16} color="#2563EB" />
+              <span>Specialist Genomics Referral</span>
+              <Badge tone="blue">Dispatched</Badge>
+            </div>
+
+            <h4 className="cpt-card-h4">Cleveland Clinic Abu Dhabi · Fertility Center</h4>
+            <dl className="cpt-dl">
+              <dt>Service Destination</dt>
+              <dd><b>IVF with PGT-M (Embryo Testing)</b></dd>
+              <dt>Requisition Ref</dt>
+              <dd><code>{plan.referrals?.[0]?.id || 'REF-2026-HBB-041'}</code></dd>
+              <dt>Clinical Priority</dt>
+              <dd><Badge tone="amber">High Priority (Carrier Match)</Badge></dd>
+              <dt>Clinical Indication</dt>
+              <dd>Both partners confirmed carriers of pathogenic <i>HBB</i> beta-globin gene mutations ({'c.20A>T'} &amp; {'c.92+1G>A'}).</dd>
+              <dt>HIE Integration</dt>
+              <dd>Dispatched through Malaffi · Confirmed received by facility</dd>
+            </dl>
+
+            <div style={{ marginTop: 14, display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                className="btn-clean-sm btn-green-subtle"
+                onClick={() => setShowPrintModal(true)}
+              >
+                <Printer size={13} /> Print Referral Slip
+              </button>
+            </div>
+          </div>
+
+          {/* Active Consultation Card */}
+          <div className="cpt-detail-card">
+            <div className="cpt-card-top-badge">
+              <Video size={16} color="#16A34A" />
+              <span>Genetic Counselling Consultation</span>
+              <Badge tone="green">Confirmed</Badge>
+            </div>
+
+            <h4 className="cpt-card-h4">Dr. Mariam Al Hosani · Licensed Clinical Geneticist</h4>
+            <dl className="cpt-dl">
+              <dt>Session Date</dt>
+              <dd><b>Sunday, 10 Nov 2026 · 13:30 (GST)</b></dd>
+              <dt>Format & Modality</dt>
+              <dd>Encrypted Telehealth (Google Meet)</dd>
+              <dt>Consultation Topic</dt>
+              <dd>Joint couple result interpretation, PGT-M pre-testing requirements, and Sanger validation.</dd>
+              <dt>Physical Clinic</dt>
+              <dd>Cleveland Clinic Abu Dhabi · Building A · Room 204</dd>
+            </dl>
+
+            <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {plan.followUp?.meetLink && (
+                <a
+                  href={plan.followUp.meetLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-clean-sm btn-green-subtle"
+                >
+                  <Video size={13} /> Open Google Meet Link
+                </a>
+              )}
+              <a href="#/app/counsellor" className="btn-clean-sm">
+                Reschedule Session
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═════════════════════════════════════════════════════════════════════════════ */}
+      {/* SECTION 5: Pregnancy journey (Image 3 Section 5)                             */}
+      {/* ═════════════════════════════════════════════════════════════════════════════ */}
+      <section id="section-pregnancy" className="cpt-section-card">
+        <div className="cpt-sec-header">
+          <div>
+            <span className="cpt-sec-tag">Section 5</span>
+            <h3 className="cpt-sec-title">Pregnancy Journey · رحلة الحمل والمتابعة الجنينية</h3>
+            <p className="cpt-sec-sub">
+              Gestational age tracking, trimester health milestones, and time-critical prenatal testing windows.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn-clean-sm btn-green-subtle"
+            onClick={() => setShowPregnancyModal(true)}
+          >
+            Update Pregnancy Record →
+          </button>
+        </div>
+
+        <div className="cpt-preg-dashboard">
+          <div className="cpt-preg-stat-box">
+            <span className="cpt-preg-stat-label">Gestational Age</span>
+            <b className="cpt-preg-stat-val">
+              {plan.pregnancy?.weeks ? `${plan.pregnancy.weeks} Weeks` : '12 Weeks'}
+            </b>
+            <span className="cpt-preg-stat-note">First Trimester · Ultrasound Dating Aligned</span>
+          </div>
+
+          <div className="cpt-preg-stat-box">
+            <span className="cpt-preg-stat-label">Expected Delivery Date (EDD)</span>
+            <b className="cpt-preg-stat-val">
+              {plan.pregnancy?.edd ? new Date(plan.pregnancy.edd).toLocaleDateString('en-GB') : '15 May 2027'}
+            </b>
+            <span className="cpt-preg-stat-note">Danat Al Emarat Hospital for Women & Children</span>
+          </div>
+
+          <div className="cpt-preg-stat-box">
+            <span className="cpt-preg-stat-label">Prenatal Genetic Testing Window</span>
+            <b className="cpt-preg-stat-val" style={{ color: '#2563EB' }}>
+              Active (Weeks 11–14)
+            </b>
+            <span className="cpt-preg-stat-note">Chorionic Villus Sampling (CVS) eligible</span>
+          </div>
+        </div>
+
+        {/* Trimester Timetable */}
+        <div className="cpt-trimester-timeline">
+          <div className="cpt-tri-col active">
+            <div className="cpt-tri-head">
+              <b>1st Trimester (Weeks 1–12)</b>
+              <Badge tone="green">Current Phase</Badge>
+            </div>
+            <ul className="cpt-tri-list">
+              <li>✓ Obstetric registration and ultrasound dating</li>
+              <li>✓ Early prenatal genetic consultation with Dr. Mariam</li>
+              <li>• Optional CVS diagnostic window (Weeks 11–14)</li>
+            </ul>
+          </div>
+
+          <div className="cpt-tri-col">
+            <div className="cpt-tri-head">
+              <b>2nd Trimester (Weeks 13–27)</b>
+              <Badge tone="grey">Upcoming</Badge>
+            </div>
+            <ul className="cpt-tri-list">
+              <li>• Amniocentesis testing window (Weeks 15–18 if indicated)</li>
+              <li>• Fetal anomaly ultrasound scan (Weeks 18–22)</li>
+              <li>• Pediatric hematology coordination visit</li>
+            </ul>
+          </div>
+
+          <div className="cpt-tri-col">
+            <div className="cpt-tri-head">
+              <b>3rd Trimester (Weeks 28–40)</b>
+              <Badge tone="grey">Upcoming</Badge>
+            </div>
+            <ul className="cpt-tri-list">
+              <li>• Delivery hospital maternity protocol sign-off</li>
+              <li>• Cord blood sampling kit pre-stationed at delivery ward</li>
+              <li>• Pre-birth pediatric genetic intake briefed</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* ═════════════════════════════════════════════════════════════════════════════ */}
+      {/* SECTION 6: Birth & newborn records (Image 3 Section 6)                       */}
+      {/* ═════════════════════════════════════════════════════════════════════════════ */}
+      <section id="section-birth" className="cpt-section-card">
+        <div className="cpt-sec-header">
+          <div>
+            <span className="cpt-sec-tag">Section 6</span>
+            <h3 className="cpt-sec-title">Birth & Newborn Records · سجل الولادة وفحوصات المولود</h3>
+            <p className="cpt-sec-sub">
+              Maternity delivery coordination, national newborn blood spot screening, and pediatric care handoff.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn-clean-sm btn-green-subtle"
+            onClick={() => setShowBirthModal(true)}
+          >
+            <Baby size={14} /> Log Childbirth Details →
+          </button>
+        </div>
+
+        <div className="cpt-birth-grid">
+          {/* Maternity Handover Status */}
+          <div className="cpt-detail-card">
+            <div className="cpt-card-top-badge">
+              <Building size={16} color="#00843D" />
+              <span>Maternity & Hospital Handover</span>
+              <Badge tone="green">Ready</Badge>
+            </div>
+
+            <h4 className="cpt-card-h4">
+              {plan.pregnancy?.deliveryHospital || 'Danat Al Emarat Hospital for Women & Children'}
+            </h4>
+            <dl className="cpt-dl">
+              <dt>Expected Delivery</dt>
+              <dd><b>{plan.pregnancy?.edd ? new Date(plan.pregnancy.edd).toLocaleDateString('en-GB') : '15 May 2027'}</b></dd>
+              <dt>Labor Ward Alert</dt>
+              <dd><Badge tone="green">Active · Cord blood sampling protocol alerted</Badge></dd>
+              <dt>Clinical Handover</dt>
+              <dd>Pre-authorized genomic dossier transferred to pediatric team with couple consent.</dd>
+            </dl>
+          </div>
+
+          {/* Newborn Screening & Record */}
+          <div className="cpt-detail-card">
+            <div className="cpt-card-top-badge">
+              <Baby size={16} color="#2563EB" />
+              <span>Newborn Screening Record</span>
+              <Badge tone={plan.childbirth?.delivered ? 'green' : 'amber'}>
+                {plan.childbirth?.delivered ? 'Verified' : 'Scheduled at Birth'}
+              </Badge>
+            </div>
+
+            <h4 className="cpt-card-h4">
+              {plan.childbirth?.delivered
+                ? `Baby ${plan.childbirth.babyName || 'Zayed'} Al Mansoori`
+                : 'National Newborn Screening Protocol (UAE DoH)'}
+            </h4>
+            <dl className="cpt-dl">
+              <dt>Blood Spot Screen</dt>
+              <dd>
+                <b>Extended Metabolic & Hemoglobinopathy Panel</b> · Heel-prick test completed at 48 hours.
+              </dd>
+              <dt>Cord Blood Confirmation</dt>
+              <dd>Tested for parental <i>HBB</i> variants · Confirmatory results verified.</dd>
+              <dt>Pediatric Follow-up</dt>
+              <dd>Assigned to Sheikh Shakhbout Medical City (SSMC) Pediatric Care.</dd>
+              <dt>Family Pedigree Link</dt>
+              <dd>Child registered on generation (+1) node in the family health pedigree.</dd>
+            </dl>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Pregnancy Modal ─── */}
       {showPregnancyModal && (
         <Dialog
-          title="Update Gestational & Pregnancy Care"
+          title="Update Gestational Age & Pregnancy Care"
           onClose={() => setShowPregnancyModal(false)}
           onSubmit={savePregnancy}
           footer={
             <>
-              <button
-                type="button"
-                className="btn-line"
-                onClick={() => setShowPregnancyModal(false)}
-              >
+              <button type="button" className="btn-line" onClick={() => setShowPregnancyModal(false)}>
                 Cancel
               </button>
               <button type="submit" className="btn btn-green-primary">
@@ -552,7 +925,7 @@ export default function PersonalisedPlanTracker() {
         </Dialog>
       )}
 
-      {/* Childbirth & Newborn Screening Modal */}
+      {/* ─── Childbirth Modal ─── */}
       {showBirthModal && (
         <Dialog
           title="Childbirth & Newborn Screening Milestone"
@@ -560,11 +933,7 @@ export default function PersonalisedPlanTracker() {
           onSubmit={saveBirth}
           footer={
             <>
-              <button
-                type="button"
-                className="btn-line"
-                onClick={() => setShowBirthModal(false)}
-              >
+              <button type="button" className="btn-line" onClick={() => setShowBirthModal(false)}>
                 Cancel
               </button>
               <button type="submit" className="btn btn-green-primary">
@@ -611,7 +980,7 @@ export default function PersonalisedPlanTracker() {
         </Dialog>
       )}
 
-      {/* Printable Clinical Summary Modal */}
+      {/* ─── Printable Summary Modal ─── */}
       {showPrintModal && (
         <Dialog
           title="Clinical Referral & Care Plan Slip"
@@ -619,18 +988,10 @@ export default function PersonalisedPlanTracker() {
           wide
           footer={
             <>
-              <button
-                type="button"
-                className="btn-line"
-                onClick={() => setShowPrintModal(false)}
-              >
+              <button type="button" className="btn-line" onClick={() => setShowPrintModal(false)}>
                 Close
               </button>
-              <button
-                type="button"
-                className="btn btn-green-primary"
-                onClick={handlePrint}
-              >
+              <button type="submit" className="btn btn-green-primary" onClick={handlePrint}>
                 <Printer size={15} /> Print / Save PDF
               </button>
             </>

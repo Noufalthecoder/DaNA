@@ -292,8 +292,8 @@ export default function Home() {
       </div>
 
       <div className="tiles">
-        <a className="tile" href="#/app/plan" style={{ borderColor: '#00843D', background: '#F0FDF4' }}>
-          <small style={{ color: '#00843D', fontWeight: 600 }}>Personalised Care Plan</small>
+        <a className="tile" href="#/app/tracker" style={{ borderColor: '#00843D', background: '#F0FDF4' }}>
+          <small style={{ color: '#00843D', fontWeight: 600 }}>Personal Tracker</small>
           <b style={{ color: '#0F172A' }}>7-Stage Care Roadmap</b>
           <span style={{ color: '#00843D' }}>Stage 3: Counselling active →</span>
         </a>

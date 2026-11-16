@@ -63,11 +63,11 @@ export const MENUS = {
     label: 'Couple',
     items: [
       { to: '/app', label: 'Home', icon: <HomeIcon /> },
+      { to: '/app/tracker', label: 'Personal Tracker', icon: <PlanTrackerIcon />, badge: 'New' },
       { to: '/app/result', label: 'My result', icon: <ContentIcon /> },
       { to: '/app/malaffi', label: 'Malaffi record', icon: <PrivacyIcon /> },
       { to: '/app/familytree', label: 'Family Tree', icon: <BranchesIcon /> },
       { to: '/app/bonds', label: 'Bonds', icon: <BondsIcon /> },
-      { to: '/app/plan', label: 'Care Plan', icon: <PlanTrackerIcon /> },
       { to: '/app/roots', label: 'Roots', icon: <RootsIcon /> },
       { to: '/app/connections', label: 'Connections', icon: <ConnectionsIcon /> },
       { to: '/app/counsellor', label: 'Counsellor', icon: <CounsellorIcon /> },
@@ -136,6 +136,8 @@ export function page(role, path) {
   if (role === 'couple') {
     const coupleRoutes = {
       '/app': <Home />,
+      '/app/tracker': <PersonalisedPlanTracker />,
+      '/app/plan': <PersonalisedPlanTracker />,
       '/app/result': <Result />,
       '/app/malaffi': <MalaffiPage />,
       '/app/details': <Details />,
@@ -148,7 +150,6 @@ export function page(role, path) {
       '/app/bonds/counselling': <CoupleCounsellor />,
       '/app/bonds/timeline': <PersonalisedPlanTracker />,
       '/app/bonds/plan': <PersonalisedPlanTracker />,
-      '/app/plan': <PersonalisedPlanTracker />,
       '/app/familytree': <FamilyTree />,
       '/app/branches': <FamilyTree />,
       '/app/connections': <Connections />,

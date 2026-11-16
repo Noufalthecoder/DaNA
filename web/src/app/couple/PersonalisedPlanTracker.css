@@ -1,6 +1,48 @@
-/* Personalised Care Plan Tracker Styles */
+/* Personal Tracker Styles (Matching Image 1, 2, and 3) */
 
-.cpt-hero-card {
+/* ─── 6-Section Navigation Tabs (Image 3) ─── */
+.cpt-nav-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 14px 2px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--line, #E2E8F0);
+  scrollbar-width: none;
+}
+
+.cpt-nav-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.cpt-nav-btn {
+  background: #ffffff;
+  border: 1px solid var(--line, #E2E8F0);
+  border-radius: 9999px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink2, #475569);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.cpt-nav-btn:hover {
+  background: #F8FAFC;
+  color: var(--ink, #0F172A);
+  border-color: #CBD5E1;
+}
+
+.cpt-nav-btn.is-active {
+  background: var(--ink, #0F172A);
+  color: #ffffff;
+  border-color: var(--ink, #0F172A);
+}
+
+/* ─── Section Card Wrapper ─── */
+.cpt-section-card {
   background: #ffffff;
   border: 1px solid var(--line, #E2E8F0);
   border-radius: 16px;
@@ -9,6 +51,42 @@
   box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.04);
 }
 
+.cpt-sec-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cpt-sec-tag {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #00843D;
+  background: #E8F5E9;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 6px;
+  letter-spacing: 0.04em;
+}
+
+.cpt-sec-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink, #0F172A);
+  margin: 0 0 4px 0;
+}
+
+.cpt-sec-sub {
+  font-size: 13px;
+  color: #64748B;
+  margin: 0;
+}
+
+/* ─── Section 1: Lifecycle Overview ─── */
 .cpt-couple-badge {
   display: flex;
   align-items: center;
@@ -16,7 +94,11 @@
   flex-wrap: wrap;
   font-size: 13px;
   color: var(--ink2, #475569);
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: #F8FAFC;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
 }
 
 .cpt-live-dot {
@@ -30,34 +112,19 @@
 .cpt-cond-pill {
   font-weight: 600;
   color: var(--ink, #0F172A);
-  background: #F1F5F9;
-  padding: 3px 8px;
+  background: #ffffff;
+  padding: 2px 8px;
   border-radius: 6px;
+  border: 1px solid #E2E8F0;
 }
 
 .cpt-divider {
   color: #CBD5E1;
 }
 
-.cpt-hero-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--ink, #0F172A);
-  margin: 0 0 8px 0;
-  letter-spacing: -0.01em;
-}
-
-.cpt-hero-sub {
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--ink2, #475569);
-  max-width: 760px;
-  margin: 0 0 20px 0;
-}
-
-/* Progress Bar */
+/* Progress Container */
 .cpt-progress-container {
-  background: #F8FAFC;
+  background: #ffffff;
   border: 1px solid #E2E8F0;
   border-radius: 12px;
   padding: 16px;
@@ -78,7 +145,7 @@
 }
 
 .cpt-progress-value {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--green, #00843D);
 }
@@ -114,114 +181,70 @@
   font-size: 12px;
 }
 
-/* 4 Pillars Grid */
-.cpt-pillars-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
-  margin-top: 14px;
-}
-
-.cpt-pillar-box {
-  background: #ffffff;
-  border: 1px solid #E2E8F0;
-  border-radius: 12px;
-  padding: 14px;
+/* Lifecycle Stepper Strip */
+.cpt-strip-wrap {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 12px 6px;
+  background: #F8FAFC;
+  border-radius: 12px;
+  border: 1px solid #E2E8F0;
 }
 
-.cpt-pillar-box:hover {
+.cpt-strip-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  flex: 1;
+  min-width: 70px;
+  transition: transform 0.15s ease;
+}
+
+.cpt-strip-node:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.05);
 }
 
-.cpt-pillar-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
+.cpt-strip-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-}
-
-.cpt-pillar-content {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.cpt-pillar-title {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: #64748B;
-  letter-spacing: 0.03em;
-  margin-bottom: 2px;
-}
-
-.cpt-pillar-main {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #0F172A;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: 2px;
-}
-
-.cpt-pillar-meta {
   font-size: 12px;
-  color: #64748B;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.cpt-tiny-link {
-  font-size: 11.5px;
-  color: #00843D;
-  text-decoration: none;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.cpt-tiny-link:hover {
-  text-decoration: underline;
-}
-
-/* Timeline Wrapper */
-.cpt-timeline-wrapper {
-  margin-top: 24px;
-}
-
-.cpt-timeline-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.cpt-timeline-h3 {
-  font-size: 18px;
   font-weight: 700;
-  color: #0F172A;
-  margin: 0 0 4px 0;
-}
-
-.cpt-timeline-sub {
-  font-size: 13px;
+  background: #E2E8F0;
   color: #64748B;
-  margin: 0;
 }
 
+.cpt-strip-node.done .cpt-strip-circle {
+  background: #10B981;
+  color: #ffffff;
+}
+
+.cpt-strip-node.current .cpt-strip-circle {
+  background: #00843D;
+  color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 132, 61, 0.25);
+}
+
+.cpt-strip-lbl {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.cpt-strip-node.current .cpt-strip-lbl {
+  color: #00843D;
+  font-weight: 700;
+}
+
+/* ─── Section 2: Milestone Timeline ─── */
 .cpt-expand-actions {
   display: flex;
   align-items: center;
@@ -246,7 +269,6 @@
   color: #CBD5E1;
 }
 
-/* Stages List */
 .cpt-stages-list {
   display: flex;
   flex-direction: column;
@@ -378,9 +400,6 @@
   font-size: 13px;
   color: #64748B;
   margin: 3px 0 0 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .cpt-stage-toggle-btn {
@@ -388,7 +407,6 @@
   padding: 4px;
 }
 
-/* Stage Body & Checklist */
 .cpt-stage-body {
   border-top: 1px solid #F1F5F9;
   background: #FAFAFA;
@@ -464,7 +482,6 @@
   line-height: 1.4;
 }
 
-/* Footer Actions */
 .cpt-stage-footer-actions {
   display: flex;
   align-items: center;
@@ -474,6 +491,198 @@
   border-top: 1px dashed #E2E8F0;
 }
 
+/* ─── Section 3: Next Actions ─── */
+.cpt-action-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+.cpt-action-item {
+  background: #ffffff;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  transition: border-color 0.15s ease;
+}
+
+.cpt-action-item.done {
+  background: #F0FDF4;
+  border-color: #BBF7D0;
+}
+
+.cpt-action-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.cpt-action-check {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  margin-top: 2px;
+}
+
+.cpt-action-title {
+  font-size: 14px;
+  color: #0F172A;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.cpt-action-desc {
+  font-size: 12.5px;
+  color: #64748B;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.cpt-action-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ─── Section 4: Appointments & Referrals ─── */
+.cpt-appts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.cpt-detail-card {
+  background: #ffffff;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cpt-card-top-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 12px;
+}
+
+.cpt-card-h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 12px 0;
+}
+
+.cpt-dl {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 8px 12px;
+  font-size: 13px;
+  margin: 0 0 12px 0;
+}
+
+.cpt-dl dt {
+  color: #64748B;
+  font-weight: 500;
+}
+
+.cpt-dl dd {
+  margin: 0;
+  color: #0F172A;
+}
+
+/* ─── Section 5: Pregnancy Journey ─── */
+.cpt-preg-dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.cpt-preg-stat-box {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cpt-preg-stat-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #64748B;
+  letter-spacing: 0.03em;
+}
+
+.cpt-preg-stat-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.cpt-preg-stat-note {
+  font-size: 12px;
+  color: #64748B;
+}
+
+.cpt-trimester-timeline {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.cpt-tri-col {
+  background: #ffffff;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.cpt-tri-col.active {
+  border-color: #00843D;
+  background: #F0FDF4;
+}
+
+.cpt-tri-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 13.5px;
+}
+
+.cpt-tri-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #475569;
+}
+
+/* ─── Section 6: Birth & Newborn Records ─── */
+.cpt-birth-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+/* ─── Buttons & Common Utilities ─── */
 .btn-clean-sm {
   background: #ffffff;
   border: 1px solid #CBD5E1;
@@ -515,7 +724,7 @@
   font-weight: 500;
 }
 
-/* Form inputs for modals */
+/* Modals */
 .cpt-modal-intro {
   font-size: 13.5px;
   color: #475569;

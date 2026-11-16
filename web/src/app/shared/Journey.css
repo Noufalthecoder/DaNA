@@ -1,0 +1,220 @@
+/* Compact 7-Stage Lifecycle Overview Styles (Matches Image 1) */
+
+.lifecycle-card {
+  background: #0B0F17;
+  color: #FFFFFF;
+  border: 1px solid #1E293B;
+  border-radius: 18px;
+  padding: 24px 26px;
+  margin-bottom: 24px;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
+}
+
+.lifecycle-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.lifecycle-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.lifecycle-counter {
+  font-size: 13px;
+  font-weight: 500;
+  color: #94A3B8;
+}
+
+/* Stepper */
+.lifecycle-stepper-wrap {
+  margin-bottom: 28px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.lifecycle-stepper {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  min-width: 540px;
+  position: relative;
+}
+
+/* Connecting bar behind circles */
+.lifecycle-stepper::before {
+  content: '';
+  position: absolute;
+  top: 15px;
+  left: 24px;
+  right: 24px;
+  height: 2px;
+  background: #1E293B;
+  z-index: 1;
+}
+
+.lifecycle-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  flex: 1;
+}
+
+.lifecycle-circle-wrap {
+  background: #0B0F17;
+  padding: 0 6px;
+  margin-bottom: 8px;
+}
+
+.lifecycle-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  background: #1E293B;
+  color: #64748B;
+  transition: all 0.2s ease;
+}
+
+/* Step States */
+.lifecycle-step.is-done .lifecycle-circle {
+  background: #10B981;
+  color: #FFFFFF;
+}
+
+.lifecycle-check {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.lifecycle-step.is-current .lifecycle-circle {
+  background: #FFFFFF;
+  color: #00843D;
+  border: 2.5px solid #00843D;
+  box-shadow: 0 0 0 4px rgba(0, 132, 61, 0.25);
+  font-size: 14px;
+}
+
+.lifecycle-step.is-upcoming .lifecycle-circle {
+  background: #131A26;
+  color: #64748B;
+  border: 1px solid #1E293B;
+}
+
+.lifecycle-label {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #64748B;
+  white-space: nowrap;
+}
+
+.lifecycle-step.is-done .lifecycle-label {
+  color: #94A3B8;
+}
+
+.lifecycle-step.is-current .lifecycle-label {
+  color: #10B981;
+  font-weight: 700;
+}
+
+/* Current Stage Box */
+.lifecycle-current-box {
+  border-top: 1px solid #1E293B;
+  padding-top: 20px;
+}
+
+.lifecycle-current-h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0 0 6px 0;
+}
+
+.lifecycle-current-p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #94A3B8;
+  margin: 0 0 20px 0;
+  max-width: 720px;
+}
+
+/* Action Button */
+.lifecycle-action-row {
+  display: flex;
+}
+
+.lifecycle-open-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: #FFFFFF;
+  color: #0B0F17;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 13px 24px;
+  border-radius: 9999px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.lifecycle-open-btn:hover {
+  background: #F1F5F9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.lifecycle-btn-arr {
+  font-size: 16px;
+  transition: transform 0.15s ease;
+}
+
+.lifecycle-open-btn:hover .lifecycle-btn-arr {
+  transform: translateX(4px);
+}
+
+/* Inline Onboarding (if fresh account) */
+.lifecycle-onboarding-inline {
+  margin-top: 20px;
+  padding: 16px;
+  background: #131A26;
+  border: 1px dashed #334155;
+  border-radius: 12px;
+}
+
+.lifecycle-onboarding-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.lifecycle-onboarding-tag {
+  background: #FEF3C7;
+  color: #92400E;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
