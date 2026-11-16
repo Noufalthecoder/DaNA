@@ -8,18 +8,21 @@ import { supabase } from './supabase.js';
 import { isLive } from './db.js';
 import { get } from './store.js';
 
-/* offline demo only: the same emirates as the database, with a few areas each */
+/* offline demo only: a subset of public.locations with the SAME ids and coordinates as the live table,
+   so a place chosen in the demo means the same place live */
 export const DEMO_LOCATIONS = [
-  { id: 100, city: 'Abu Dhabi', state_name: 'Abu Dhabi' },
-  { id: 101, city: 'Al Ain', state_name: 'Abu Dhabi' },
-  { id: 1, city: 'Downtown Dubai', state_name: 'Dubai' },
-  { id: 2, city: 'Dubai Marina', state_name: 'Dubai' },
-  { id: 3, city: 'Jumeirah', state_name: 'Dubai' },
-  { id: 102, city: 'Sharjah', state_name: 'Sharjah' },
-  { id: 103, city: 'Ajman', state_name: 'Ajman' },
-  { id: 104, city: 'Ras Al Khaimah', state_name: 'Ras Al Khaimah' },
-  { id: 105, city: 'Fujairah', state_name: 'Fujairah' },
-  { id: 106, city: 'Umm Al Quwain', state_name: 'Umm Al Quwain' },
+  { id: 1, city: 'Downtown Dubai', state_name: 'Dubai', latitude: 25.1972, longitude: 55.2744 },
+  { id: 2, city: 'Dubai Marina', state_name: 'Dubai', latitude: 25.0805, longitude: 55.1403 },
+  { id: 3, city: 'Jumeirah', state_name: 'Dubai', latitude: 25.2048, longitude: 55.238 },
+  { id: 21, city: 'Abu Dhabi', state_name: 'Abu Dhabi', latitude: 24.4539, longitude: 54.3773 },
+  { id: 22, city: 'Al Ain', state_name: 'Abu Dhabi', latitude: 24.2075, longitude: 55.7447 },
+  { id: 23, city: 'Al Maryah Island', state_name: 'Abu Dhabi', latitude: 24.5027, longitude: 54.3897 },
+  { id: 26, city: 'Madinat Zayed', state_name: 'Abu Dhabi', latitude: 23.6522, longitude: 53.6536 },
+  { id: 31, city: 'Ajman', state_name: 'Ajman', latitude: 25.4052, longitude: 55.5136 },
+  { id: 32, city: 'Fujairah', state_name: 'Fujairah', latitude: 25.1288, longitude: 56.3265 },
+  { id: 33, city: 'Ras Al Khaimah', state_name: 'Ras Al Khaimah', latitude: 25.7895, longitude: 55.9432 },
+  { id: 36, city: 'Sharjah', state_name: 'Sharjah', latitude: 25.3463, longitude: 55.4209 },
+  { id: 37, city: 'Umm Al Quwain', state_name: 'Umm Al Quwain', latitude: 25.5647, longitude: 55.5552 },
 ];
 
 let cache = null;

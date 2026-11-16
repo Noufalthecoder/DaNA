@@ -49,3 +49,7 @@
 .loc-prompt{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
 .loc-prompt p{flex:1 1 320px;font-size:14px;line-height:1.5;color:var(--ink2)}
 .cov-status{display:inline-flex;gap:6px}
+/* read-only value shown on a form, with where to change it */
+.pf-readonly{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;font-size:14px}
+.pf-readonly small,.pf-readonly a{font-size:12.5px;color:var(--ink3)}
+.pf-readonly a{color:var(--green)}
