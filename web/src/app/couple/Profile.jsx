@@ -11,16 +11,7 @@ import { setMySex } from '../shared/db.js';
 import { PEOPLE } from '../shared/data.js';
 import { Avatar } from '../shared/ui.jsx';
 import HomeLocation, { HomeLocationText } from '../shared/HomeLocation.jsx';
-
-const RELATIONS = [
-  'Mother', 'Father', 'Brother', 'Sister',
-  'Maternal Grandfather', 'Maternal Grandmother',
-  'Paternal Grandfather', 'Paternal Grandmother',
-  'Maternal Uncle', 'Maternal Aunt',
-  'Paternal Uncle', 'Paternal Aunt',
-  'First Cousin (Paternal)', 'First Cousin (Maternal)',
-  'Child', 'Other Relative'
-];
+import FamilyPedigree from '../shared/FamilyPedigree.jsx';
 
 export default function Profile() {
   const { me, partner, couple } = useCouple();
@@ -158,22 +149,6 @@ export default function Profile() {
     setConsent(baseConsent);
     setErrors({});
     setIsEditing(false);
-  };
-
-  const addFamilyMember = () => {
-    setFamily([
-      ...family,
-      { id: Date.now(), relation: 'Sibling', condition: '', cancerHistory: '' },
-    ]);
-  };
-
-  const updateFamilyMember = (id, field, value) => {
-    setFamily(family.map((f) => (f.id === id ? { ...f, [field]: value } : f)));
-  };
-
-  const removeFamilyMember = (id) => {
-    if (family.length <= 1) return;
-    setFamily(family.filter((f) => f.id !== id));
   };
 
   const isIntakeCompleted = !!existingIntake?.completed;
@@ -541,149 +516,8 @@ export default function Profile() {
           </Card>
         </div>
 
-        {/* Section 3: Family Pedigree & Consanguinity */}
-        <Card title="Family Pedigree & Consanguinity" style={{ marginTop: 16 }}>
-          <div style={{ marginBottom: 18 }}>
-            <label className="field-label" style={{ display: 'block', fontSize: 12.5, fontWeight: 600, marginBottom: 4 }}>
-              Consanguinity with Partner ({partner.name})
-            </label>
-            {isEditing ? (
-              <div style={{ display: 'grid', gap: 10 }}>
-                <div style={{ display: 'flex', gap: 18 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
-                    <input
-                      type="radio"
-                      name="isConsanguineous"
-                      value="yes"
-                      checked={compliance.isConsanguineous === 'yes'}
-                      onChange={() => setCompliance({ ...compliance, isConsanguineous: 'yes' })}
-                    />
-                    Yes, related by blood
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
-                    <input
-                      type="radio"
-                      name="isConsanguineous"
-                      value="no"
-                      checked={compliance.isConsanguineous === 'no'}
-                      onChange={() => setCompliance({ ...compliance, isConsanguineous: 'no', relationToPartner: '' })}
-                    />
-                    No, unrelated
-                  </label>
-                </div>
-                {compliance.isConsanguineous === 'yes' && (
-                  <input
-                    type="text"
-                    value={compliance.relationToPartner}
-                    onChange={(e) => setCompliance({ ...compliance, relationToPartner: e.target.value })}
-                    className="input"
-                    placeholder="e.g. Second cousin (Maternal grandmothers are sisters)"
-                    style={{ width: '100%' }}
-                  />
-                )}
-              </div>
-            ) : (
-              <div style={{ fontSize: 14, fontWeight: 500 }}>
-                {compliance.isConsanguineous === 'yes'
-                  ? `Consanguineous · ${compliance.relationToPartner || 'Related by blood'}`
-                  : 'Unrelated'}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <label className="field-label" style={{ fontSize: 13, fontWeight: 600 }}>
-                Family Members with Known Conditions
-              </label>
-              {isEditing && (
-                <button
-                  type="button"
-                  onClick={addFamilyMember}
-                  className="link"
-                  style={{ fontSize: 13, fontWeight: 600 }}
-                >
-                  + Add Relative
-                </button>
-              )}
-            </div>
-
-            <div style={{ border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
-                <thead>
-                  <tr style={{ background: '#F8F9FA', borderBottom: '1px solid var(--line)', textAlign: 'left' }}>
-                    <th style={{ padding: '8px 12px', fontWeight: 600, width: '28%' }}>Relationship</th>
-                    <th style={{ padding: '8px 12px', fontWeight: 600, width: '36%' }}>Genetic or Chronic Condition</th>
-                    <th style={{ padding: '8px 12px', fontWeight: 600, width: '28%' }}>Cancer History</th>
-                    {isEditing && <th style={{ padding: '8px 12px', width: '8%', textAlign: 'center' }}>Action</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {family.map((f) => (
-                    <tr key={f.id} style={{ borderBottom: '1px solid var(--line)' }}>
-                      <td style={{ padding: '8px 12px' }}>
-                        {isEditing ? (
-                          <select
-                            value={f.relation}
-                            onChange={(e) => updateFamilyMember(f.id, 'relation', e.target.value)}
-                            className="input"
-                            style={{ width: '100%', padding: '4px 8px' }}
-                          >
-                            {RELATIONS.map((r) => (
-                              <option key={r} value={r}>{r}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <b>{f.relation}</b>
-                        )}
-                      </td>
-                      <td style={{ padding: '8px 12px' }}>
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={f.condition}
-                            onChange={(e) => updateFamilyMember(f.id, 'condition', e.target.value)}
-                            className="input"
-                            placeholder="e.g. Beta-thalassaemia trait"
-                            style={{ width: '100%', padding: '4px 8px' }}
-                          />
-                        ) : (
-                          <span>{f.condition || 'None reported'}</span>
-                        )}
-                      </td>
-                      <td style={{ padding: '8px 12px' }}>
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={f.cancerHistory}
-                            onChange={(e) => updateFamilyMember(f.id, 'cancerHistory', e.target.value)}
-                            className="input"
-                            placeholder="e.g. None or Colorectal (age 72)"
-                            style={{ width: '100%', padding: '4px 8px' }}
-                          />
-                        ) : (
-                          <span>{f.cancerHistory || 'None'}</span>
-                        )}
-                      </td>
-                      {isEditing && (
-                        <td style={{ padding: '8px 12px', textAlign: 'center' }}>
-                          <button
-                            type="button"
-                            onClick={() => removeFamilyMember(f.id)}
-                            style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13 }}
-                            title="Remove relative"
-                          >
-                            Remove
-                          </button>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </Card>
+        {/* Section 3: Family Pedigree & Consanguinity, from the person's answers and the Family Tree */}
+        <div className="pf-gap"><FamilyPedigree me={me} partnerName={partner.name} /></div>
 
         <Card title="Sharing and consent" style={{ marginTop: 16 }}>
           <p className="muted" style={{ margin: '0 0 12px' }}>Who can see your result, who opened your data, and your Malaffi consent are all on one page.</p>
