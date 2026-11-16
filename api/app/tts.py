@@ -64,7 +64,7 @@ def _limit(user_id: str) -> None:
 
 
 def speak(text: str, lang: str, sex: str, user_id: str) -> bytes:
-    key = os.getenv("GEMINI_API_KEY")
+    key = "".join(os.getenv("GEMINI_API_KEY", "").split()).strip("\"'")  # drop spaces, line breaks and quotes pasted with the key
     if not key:
         raise TTSError(503, "Voice in Arabic and Urdu is not switched on yet.")
     text = (text or "").strip()[:MAX_CHARS]
