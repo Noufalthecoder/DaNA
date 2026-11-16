@@ -12,7 +12,7 @@ from typing import Literal
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import config
@@ -21,7 +21,7 @@ from .benchmark import EvaluateRequest, LabEntry, evaluate_couple, labs_from_rec
 from .db import as_service, as_user
 from .fhir import parse_bundle
 from .sample_bundle import malaffi_bundle, synthetic_blood, scenario_bundle
-from . import scenarios, panel as gene_panel
+from . import scenarios, panel as gene_panel, tts
 
 app = FastAPI(title="DaNA API", version="0.1.0",
               description="Family genetic companion. Synthetic data only; Malaffi and UAE PASS are simulated.")
@@ -44,6 +44,28 @@ def root():
 @app.get("/health", tags=["system"])
 def health():
     return {"status": "ok", "database": bool(config.SUPABASE_URL), "ingestion": bool(config.SUPABASE_SERVICE_ROLE_KEY)}
+
+
+class SpeakRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=1200)
+    lang: Literal["ar", "ur", "en"] = "ar"
+    voice: Literal["F", "M"] = "F"
+
+
+@app.get("/tts/status", tags=["guide"])
+def tts_status():
+    return {"enabled": tts.enabled()}
+
+
+@app.post("/tts", tags=["guide"], response_class=Response,
+          responses={200: {"content": {"audio/wav": {}}}})
+def speak(req: SpeakRequest, user: User = Depends(current_user)):
+    """Read a DaNA guide answer aloud in Arabic or Urdu (Gemini voice). Signed-in users only."""
+    try:
+        audio = tts.speak(req.text, req.lang, req.voice, user.id)
+    except tts.TTSError as e:
+        raise HTTPException(e.status, str(e))
+    return Response(content=audio, media_type="audio/wav", headers={"Cache-Control": "private, max-age=86400"})
 
 
 @app.get("/me", tags=["account"])

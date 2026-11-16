@@ -12,6 +12,8 @@ import { useCouple } from '../couple/useCouple.js';
 import { logAudit } from './db.js';
 import './assistant.css';
 import { useLang, getLang } from './i18n.js';
+import { supabase } from './supabase.js';
+import { API_URL } from './api.js';
 
 /* friendly counsellor illustrations: Emirati dress, no real person's likeness */
 export function CounsellorFace({ sex, size = 56 }) {
@@ -259,6 +261,42 @@ async function speakEnglish(text, sex, onEnd) {
   return true;
 }
 
+/* Arabic and Urdu: a natural voice from the DaNA server (Gemini). The key stays on the server.
+   Each answer is fetched once and kept for this visit. */
+const voiceCache = new Map();
+let nowPlaying = null;
+async function arabicUrduAudio(text, lang, sex) {
+  const k = `${lang}|${sex}|${text}`;
+  if (voiceCache.has(k)) return voiceCache.get(k);
+  const { data } = (await supabase?.auth.getSession()) || {};
+  const token = data?.session?.access_token;
+  if (!token) throw new Error({ ar: 'الصوت بالعربية متاح بعد تسجيل الدخول.', ur: 'اردو آواز سائن اِن کے بعد دستیاب ہے۔' }[lang]);
+  let res;
+  try {
+    res = await fetch(`${API_URL}/tts`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, lang, voice: sex }),
+    });
+  } catch {
+    throw new Error({ ar: 'تعذّر الوصول إلى الخادم. حاول بعد دقيقة.', ur: 'سرور تک رسائی نہیں ہو سکی۔ ایک منٹ بعد کوشش کریں۔' }[lang]);
+  }
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    throw new Error(j.detail || 'Voice is not available right now.');
+  }
+  const url = URL.createObjectURL(await res.blob());
+  voiceCache.set(k, url);
+  return url;
+}
+function stopAll() {
+  if (canSpeak) window.speechSynthesis.cancel();
+  if (nowPlaying) { nowPlaying.pause(); nowPlaying = null; }
+}
+const LISTEN = { en: '🔊 Listen', ar: '🔊 استمع', ur: '🔊 سنیں' };
+const PREPARING = { en: 'Preparing…', ar: 'جارٍ تجهيز الصوت…', ur: 'آواز تیار ہو رہی ہے…' };
+const STOP = { en: '■ Stop', ar: '■ إيقاف', ur: '■ روکیں' };
+
 export default function Assistant() {
   const session = useStore((s) => s.session);
   const topics = useTopics();
@@ -277,7 +315,7 @@ export default function Assistant() {
 
   useEffect(() => { end.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs, open]);
   useEffect(() => { if (canSpeak) window.speechSynthesis.getVoices(); }, []); // loads the voice list early
-  useEffect(() => { if (!open && canSpeak) window.speechSynthesis.cancel(); }, [open]);
+  useEffect(() => { if (!open) stopAll(); }, [open]);
 
   const upd = (i, patch) => setMsgs((m) => m.map((x, j) => (j === i ? { ...x, ...patch } : x)));
 
@@ -290,13 +328,31 @@ export default function Assistant() {
     logAudit(`Asked the DaNA guide (${tp ? tp.id : 'unmatched'})`).catch(() => {}); // the topic only, never the words typed
   };
 
-  // sound: English only for now; the text can be read in any of the three languages
+  // sound in the language shown: English from the browser's own voice, Arabic and Urdu from the DaNA server
   const play = async (i) => {
-    setMsgs((all) => all.map((x, j) => ({ ...x, playing: j === i })));
-    const ok = await speakEnglish(msgs[i].en, sex, () => upd(i, { playing: false }));
-    if (!ok) upd(i, { playing: false, note: 'Sound is not available in this browser.' });
+    stopAll();
+    const lang = msgs[i].shown || 'en';
+    setMsgs((all) => all.map((x, j) => ({ ...x, playing: false, loading: false, ...(j === i ? { note: '' } : {}) })));
+    if (lang === 'en') {
+      upd(i, { playing: true });
+      const ok = await speakEnglish(msgs[i].en, sex, () => upd(i, { playing: false }));
+      if (!ok) upd(i, { playing: false, note: 'Sound is not available in this browser.' });
+      return;
+    }
+    upd(i, { loading: true });
+    try {
+      const url = await arabicUrduAudio(msgs[i][lang] || msgs[i].en, lang, sex);
+      const audio = new Audio(url);
+      nowPlaying = audio;
+      audio.onended = () => upd(i, { playing: false });
+      audio.onerror = () => upd(i, { playing: false });
+      await audio.play();
+      upd(i, { loading: false, playing: true });
+    } catch (e) {
+      upd(i, { loading: false, playing: false, note: e.message });
+    }
   };
-  const stop = (i) => { if (canSpeak) window.speechSynthesis.cancel(); upd(i, { playing: false }); };
+  const stop = (i) => { stopAll(); upd(i, { playing: false, loading: false }); };
 
   const listen = () => {
     if (!SR) { setVoiceErr('Voice input works in Chrome, Edge and Safari.'); return; }
@@ -350,10 +406,10 @@ export default function Assistant() {
                           <button key={k} type="button" className={(m.shown || 'en') === k ? 'on' : ''} aria-pressed={(m.shown || 'en') === k} onClick={() => upd(i, { shown: k })}>{v.name}</button>
                         ))}
                       </div>
-                      {canSpeak && (m.playing
-                        ? <button type="button" className="as-play on" onClick={() => stop(i)}>■ Stop</button>
-                        : <button type="button" className="as-play" onClick={() => play(i)}>🔊 Listen (English)</button>)}
-                      {m.note && <small className="as-note">{m.note}</small>}
+                      {(m.playing || m.loading)
+                        ? <button type="button" className="as-play on" onClick={() => stop(i)}>{m.loading ? PREPARING[m.shown || 'en'] : STOP[m.shown || 'en']}</button>
+                        : <button type="button" className="as-play" onClick={() => play(i)}>{LISTEN[m.shown || 'en']}</button>}
+                      {m.note && <small className="as-note" dir="auto">{m.note}</small>}
                     </div>
                   )}
                 </div>
