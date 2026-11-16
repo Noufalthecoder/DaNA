@@ -46,6 +46,8 @@
 .as-play.on{background:#00843D;color:#fff}
 .as-langs{display:flex;gap:6px;flex-wrap:wrap}
 .as-langs button{border:1.5px solid #00843D;background:#fff;color:#00843D;border-radius:999px;padding:5px 12px;font:700 13px var(--body);cursor:pointer}
-.as-langs button:hover{background:#00843D;color:#fff}
+.as-langs button{padding:4px 11px;font-size:12.5px;border-color:#B9D9C6}
+.as-langs button.on{background:#00843D;border-color:#00843D;color:#fff}
+.as-langs button:hover{border-color:#00843D}
 .as-note{color:#B26A00;font-size:12px}
 .as-msg [dir=rtl]{text-align:right;font-size:15.5px;line-height:1.7}

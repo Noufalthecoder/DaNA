@@ -227,20 +227,34 @@ function pickVoice(lang, sex) {
   return [...vs].sort((a, b) => (fits(b) + natural(b)) - (fits(a) + natural(a)))[0];
 }
 
-/* speaks the text; returns false when the device has no voice for that language */
-function speak(text, lang, sex) {
+/* Chrome loads its voice list late: wait for it (at most 1.5 s) instead of speaking with none */
+function voicesReady() {
+  const synth = window.speechSynthesis;
+  if (synth.getVoices().length) return Promise.resolve();
+  return new Promise((done) => {
+    const t = setTimeout(done, 1500);
+    synth.addEventListener('voiceschanged', () => { clearTimeout(t); done(); }, { once: true });
+  });
+}
+
+/* reads English text aloud, sentence by sentence; onEnd runs when it finishes or is stopped */
+async function speakEnglish(text, sex, onEnd) {
   if (!canSpeak) return false;
-  window.speechSynthesis.cancel();
-  const voice = pickVoice(lang, sex);
-  if (!voice) return false;
-  const parts = text.replace(/\n+/g, ' ').match(/[^.!?؟۔]+[.!?؟۔]*/g) || [text];
-  for (const part of parts) {
+  const synth = window.speechSynthesis;
+  synth.cancel();
+  await voicesReady();
+  await new Promise((r) => setTimeout(r, 60)); // Chrome stays silent if speak() follows cancel() at once
+  const voice = pickVoice('en', sex); // null = the device default voice, still English
+  const parts = text.replace(/\n+/g, ' ').match(/[^.!?]+[.!?]*/g) || [text];
+  parts.forEach((part, i) => {
     const u = new SpeechSynthesisUtterance(part.trim());
-    u.voice = voice;
-    u.lang = voice.lang;
+    if (voice) u.voice = voice;
+    u.lang = voice?.lang || 'en-GB';
     u.rate = 0.95;
-    window.speechSynthesis.speak(u);
-  }
+    if (i === parts.length - 1) { u.onend = onEnd; u.onerror = onEnd; }
+    synth.speak(u);
+  });
+  if (synth.paused) synth.resume(); // a paused engine never starts the queue
   return true;
 }
 
@@ -273,12 +287,13 @@ export default function Assistant() {
     logAudit(`Asked the DaNA guide (${tp ? tp.id : 'unmatched'})`).catch(() => {}); // the topic only, never the words typed
   };
 
-  const listenIn = (i, lang) => {
-    const m = msgs[i];
-    const ok = speak(m[lang] || m.en, lang, sex);
-    setMsgs((all) => all.map((x, j) => ({ ...x, playing: j === i && ok ? lang : null, ...(j === i ? { shown: lang, picking: false, note: ok ? '' : `This device has no ${LANGS[lang].name} voice. The answer is shown in ${LANGS[lang].name} instead.` } : {}) })));
+  // sound: English only for now; the text can be read in any of the three languages
+  const play = async (i) => {
+    setMsgs((all) => all.map((x, j) => ({ ...x, playing: j === i })));
+    const ok = await speakEnglish(msgs[i].en, sex, () => upd(i, { playing: false }));
+    if (!ok) upd(i, { playing: false, note: 'Sound is not available in this browser.' });
   };
-  const stop = (i) => { if (canSpeak) window.speechSynthesis.cancel(); upd(i, { playing: null }); };
+  const stop = (i) => { if (canSpeak) window.speechSynthesis.cancel(); upd(i, { playing: false }); };
 
   const listen = () => {
     if (!SR) { setVoiceErr('Voice input works in Chrome, Edge and Safari.'); return; }
@@ -321,19 +336,16 @@ export default function Assistant() {
                     {text.split('\n').map((l, j) => (l ? <p key={j}>{l}</p> : null))}
                   </div>
                   {m.link && <a className="as-link" href={m.link[0]} onClick={() => setOpen(false)}>{m.link[1]} →</a>}
-                  {m.from === 'dana' && canSpeak && (
+                  {m.from === 'dana' && (
                     <div className="as-voice">
-                      {m.playing ? (
-                        <button type="button" className="as-play on" onClick={() => stop(i)}>■ Stop ({LANGS[m.playing].name})</button>
-                      ) : m.picking ? (
-                        <div className="as-langs" role="group" aria-label="Listen in">
-                          {Object.entries(LANGS).map(([k, v]) => (
-                            <button key={k} type="button" onClick={() => listenIn(i, k)}>{v.name}</button>
-                          ))}
-                        </div>
-                      ) : (
-                        <button type="button" className="as-play" onClick={() => upd(i, { picking: true })}>▶ Listen</button>
-                      )}
+                      <div className="as-langs" role="group" aria-label="Show this answer in">
+                        {Object.entries(LANGS).map(([k, v]) => (
+                          <button key={k} type="button" className={(m.shown || 'en') === k ? 'on' : ''} aria-pressed={(m.shown || 'en') === k} onClick={() => upd(i, { shown: k })}>{v.name}</button>
+                        ))}
+                      </div>
+                      {canSpeak && (m.playing
+                        ? <button type="button" className="as-play on" onClick={() => stop(i)}>■ Stop</button>
+                        : <button type="button" className="as-play" onClick={() => play(i)}>🔊 Listen (English)</button>)}
                       {m.note && <small className="as-note">{m.note}</small>}
                     </div>
                   )}
