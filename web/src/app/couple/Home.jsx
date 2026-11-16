@@ -300,13 +300,8 @@ export default function Home() {
         )}
       </div>
 
-      {counsellorReady && <CarePath result={result} couple={couple} />}
+      {counsellorReady && <CarePath result={result} couple={couple} booking={activeAppt} />}
 
-      <div className="tiles">
-        <a className="tile" href="#/app/bonds"><small>Your plan</small><b>{plan ? plan.split(':')[0] : 'Not chosen yet'}</b><span>{plan ? 'Change any time' : 'Take your time →'}</span></a>
-        <a className="tile" href="#/app/roots"><small>Relatives invited</small><b>{sent.length}</b><span>Anonymous alerts →</span></a>
-        <a className="tile" href="#/app/my-report"><small>Your report</small><b>Ready</b><span>English · العربية · اردو →</span></a>
-      </div>
       {/* ─── Book Consultation Quick Modal ─── */}
       {showBookModal && (
         <div className="patient-modal-overlay" onClick={() => setShowBookModal(false)}>

@@ -57,8 +57,12 @@ export function useCarePath(coupleId) {
   };
 }
 
-export default function CarePath({ result, couple }) {
-  const path = useCarePath(couple?.id);
+export default function CarePath({ result, couple, booking }) {
+  const raw = useCarePath(couple?.id);
+  // the booking shown on Home and the path must agree: a pending request is "Requested", a confirmed one "Booked"
+  const path = booking && raw.counselling === 'not_started'
+    ? { ...raw, counselling: booking.confirmed === false || booking.priority === 'pending' ? 'requested' : 'booked' }
+    : raw;
   const escalated = !!escalation(result, couple);
   const refs = path.referrals || [];
   const [cl, ct] = COUNSEL[path.counselling] || COUNSEL.not_started;
