@@ -1,0 +1,22 @@
+/* Security Console › Users & Roles (UsersRoles.jsx) */
+.ur-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.ur-head h2 { font: 700 20px var(--head); margin: 0 0 4px; }
+.ur-head p { margin: 0; color: var(--ink2); font-size: 14px; }
+.ur-ct { display: inline-flex; align-items: center; gap: 8px; }
+.ur-ct svg { color: var(--green); }
+.ur-table td small { margin-top: 3px; }
+.ur-table td .badge + small { margin-top: 4px; }
+.ur-actions { white-space: nowrap; }
+.ur-actions > * + * { margin-inline-start: 8px; }
+.btn-line.ur-danger { color: #A30E20; border-color: #F3C2C8; }
+.btn-line.ur-danger:hover { background: #FDECEE; }
+.shell .btn.ur-btn-danger, .dialog .btn.ur-btn-danger { background: #B4232F; }
+.shell .btn.ur-btn-danger:hover, .dialog .btn.ur-btn-danger:hover { background: #961B26; }
+.ur-dlg { margin: 0 0 14px; color: var(--ink2); line-height: 1.55; font-size: 14px; }
+.ur-foot { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink3); margin-top: 4px; }
+.ur-foot svg { color: var(--green); }
+.tbl-tools > select:disabled { opacity: .6; }
+@media (max-width: 900px) { .ur-actions { white-space: normal; } .ur-actions > * { margin: 4px 0 0; } }
+/* search on its own row, then the filters share one even row */
+.ur-tools .tbl-search { flex-basis: 100%; }
+.ur-tools > select { flex: 1 1 160px; min-width: 150px; }

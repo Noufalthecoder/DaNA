@@ -50,6 +50,11 @@ export async function loadSession(user) {
       supabase.from('accounts').update({ display_name: metaName }).eq('user_id', user.id).then();
     }
   }
+  // a suspended account (036) is told why and signed out; the database already denies it all data
+  if (acc?.status === 'suspended') {
+    await supabase.auth.signOut().catch(() => {});
+    throw new Error(`This account is suspended${acc.status_reason ? `: ${acc.status_reason}` : ''}. Contact the DoH premarital programme team.`);
+  }
   // staff role chosen at sign-up (016): the database checks the access code
   let claim = null;
   try { claim = JSON.parse(sessionStorage.getItem('dana.staffClaim') || 'null'); sessionStorage.removeItem('dana.staffClaim'); } catch {}
