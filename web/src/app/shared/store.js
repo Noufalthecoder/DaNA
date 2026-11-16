@@ -257,10 +257,19 @@ export function get() {
 
 export function signOut() {
   state = {
-    ...state,
+    ...initial,
     session: null,
+    reports: {},
+    notes: {},
+    screeningIntakes: {},
+    cases: {},
+    appointments: {},
   };
-  save();
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    /* private browsing mode */
+  }
   subs.forEach((f) => f());
 }
 
