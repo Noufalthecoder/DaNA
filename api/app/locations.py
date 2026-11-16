@@ -162,16 +162,17 @@ def fetch_supabase_table(table: str, select: str = "*", filters: Optional[Dict[s
     if time.time() - _last_supabase_error < CIRCUIT_BREAKER_SECS:
         return []
 
+    auth_key = getattr(config, "SUPABASE_SERVICE_ROLE_KEY", None) or config.SUPABASE_ANON_KEY
     try:
         url = f"{config.SUPABASE_URL}/rest/v1/{table}"
         params = {"select": select}
         if filters:
             params.update(filters)
         headers = {
-            "apikey": config.SUPABASE_ANON_KEY,
-            "Authorization": f"Bearer {config.SUPABASE_ANON_KEY}",
+            "apikey": auth_key,
+            "Authorization": f"Bearer {auth_key}",
         }
-        with httpx.Client(timeout=1.0) as client:
+        with httpx.Client(timeout=2.0) as client:
             resp = client.get(url, params=params, headers=headers)
             if resp.status_code == 200:
                 data = resp.json()
@@ -454,10 +455,13 @@ def get_admin_accounts(
             loc_c = normalize_text(acc_country)
             loc_code = normalize_text(acc_country_code)
             if norm_c in ("dubai", "uae", "ae", "united arab emirates"):
-                if loc_code != "ae" and "emirates" not in loc_c and "dubai" not in loc_c:
+                # If account has an explicit foreign location, exclude it.
+                # If loc_c is empty (account has unassigned location in the UAE programme), retain it.
+                if loc_c and loc_code and loc_code != "ae" and "emirates" not in loc_c and "dubai" not in loc_c:
                     continue
             elif norm_c != loc_c and norm_c != loc_code:
-                continue
+                if loc_c:
+                    continue
 
         # State filter (only applied when admin actively selects a state)
         if state:
