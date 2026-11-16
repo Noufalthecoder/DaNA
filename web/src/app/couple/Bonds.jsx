@@ -85,7 +85,19 @@ export default function Bonds() {
   const choose = (id) => { if (id !== plan) choosePlan(coupleId, id); };
 
   return (
-    <Page title="Bonds" sub={`Your combined result · ${me.short} & ${partner.short}`}>
+    <Page
+      title="Bonds"
+      sub={`Your combined result · ${me.short} & ${partner.short}`}
+      actions={
+        <a
+          href="#/app/plan"
+          className="btn"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+        >
+          View 7-Stage Care Plan →
+        </a>
+      }
+    >
       <section className={`rs-hero rs-${g.tone}`}>
         <span className="rs-eyebrow">Your combined result</span>
         <h2>{g.title}</h2>

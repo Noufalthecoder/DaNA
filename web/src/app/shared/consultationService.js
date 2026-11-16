@@ -45,7 +45,10 @@ export async function syncConsultationsFromSupabase(coupleId, counsellorUserId =
 
       for (const row of requests) {
         const existingIdx = updatedList.findIndex(
-          (a) => a.id === row.id || (row.appointment_id && (a.id === String(row.appointment_id) || a.id === row.appointment_id)) || (a.requestId === row.id)
+          (a) => a.id === row.id
+            || a.requestId === row.id
+            || (row.appointment_id && (a.id === String(row.appointment_id) || a.id === row.appointment_id))
+            || (a.cid && a.cid === row.couple_id)
         );
 
         if (row.status === 'CANCELLED' || row.status === 'DECLINED') {
@@ -82,13 +85,10 @@ export async function syncConsultationsFromSupabase(coupleId, counsellorUserId =
         };
 
         if (existingIdx >= 0) {
-          // Update if changed
-          if (updatedList[existingIdx].confirmed !== apptObj.confirmed || updatedList[existingIdx].status !== apptObj.status) {
-            updatedList[existingIdx] = { ...updatedList[existingIdx], ...apptObj };
-            modified = true;
-          }
+          updatedList[existingIdx] = { ...updatedList[existingIdx], ...apptObj };
+          modified = true;
         } else {
-          updatedList.push(apptObj);
+          updatedList.unshift(apptObj);
           modified = true;
         }
 
@@ -199,6 +199,18 @@ export async function confirmConsultationByCounsellor(requestId, coupleId) {
       if (!error) return { ok: true, appointmentId: data };
     } catch (e) {
       console.warn('RPC confirm_consultation_request notice:', e?.message);
+    }
+    // Direct table update fallback if RPC didn't match or failed
+    try {
+      await supabase
+        .from('consultation_requests')
+        .update({
+          status: 'CONFIRMED',
+          responded_at: new Date().toISOString(),
+        })
+        .or(`id.eq.${requestId},couple_id.eq.${coupleId}`);
+    } catch (e) {
+      console.warn('Direct consultation_requests update notice:', e?.message);
     }
   }
 

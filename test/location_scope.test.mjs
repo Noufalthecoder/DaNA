@@ -3,14 +3,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import path from 'node:path';
 import { createRequire } from 'node:module';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
-// the package is installed under web/, this file lives in test/
 const { PGlite } = await import(pathToFileURL(createRequire(new URL('../web/package.json', import.meta.url)).resolve('@electric-sql/pglite')).href);
 
-const DIR = new URL('../supabase/', import.meta.url).pathname;
-const SHIM = new URL('./support/supabase_shim.sql', import.meta.url).pathname;
+const DIR = fileURLToPath(new URL('../supabase/', import.meta.url));
+const SHIM = fileURLToPath(new URL('./support/supabase_shim.sql', import.meta.url));
 
 async function run(identity) {
 const db = new PGlite();
@@ -21,7 +21,7 @@ const dubai = [['Downtown Dubai',25.1972,55.2744],['Dubai Marina',25.0805,55.140
 let id = 1; for (const [c,la,lo] of dubai) await db.exec(`insert into locations ${identity ? 'overriding system value ' : ''}values (${id++}, '${c}','${c}','Dubai','United Arab Emirates','AE',${la},${lo})`);
 await db.exec(`insert into locations ${identity ? 'overriding system value ' : ''}values (100,'Abu Dhabi','Abu Dhabi','Abu Dhabi','United Arab Emirates','AE',24.4539,54.3773),(101,'Al Ain','Al Ain','Abu Dhabi','United Arab Emirates','AE',24.2075,55.7447),(102,'Sharjah','Sharjah','Sharjah','United Arab Emirates','AE',25.3463,55.4209)`);
 const files = ['schema.sql','seed.sql', ...fs.readdirSync(DIR).filter(f=>/^\d{3}_.*\.sql$/.test(f)).sort().filter(f=>f!=='029_locations.sql')];
-for (const f of files) { try { await db.exec(fs.readFileSync(DIR+f,'utf8')); } catch(e){ console.log('MIGRATION FAIL', f, e.message.split('\n')[0]); throw new Error('migration failed: '+f);} }
+for (const f of files) { try { await db.exec(fs.readFileSync(path.join(DIR, f),'utf8')); } catch(e){ console.log('MIGRATION FAIL', f, e.message.split('\n')[0]); throw new Error('migration failed: '+f);} }
 console.log('migrations ok (live-shaped locations, 029_locations skipped)');
 await db.exec(`grant select, insert, update, delete on all tables in schema public to authenticated, service_role; grant usage on all sequences in schema public to authenticated;`);
 const U = { adminN:'00000000-0000-0000-0000-0000000000a1', adminD:'00000000-0000-0000-0000-0000000000a2', k1:'00000000-0000-0000-0000-0000000000b1', k2:'00000000-0000-0000-0000-0000000000b2', c1:'00000000-0000-0000-0000-0000000000c1', c2:'00000000-0000-0000-0000-0000000000c2' };

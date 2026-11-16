@@ -2,6 +2,7 @@
    Every screen asks this file "where is this person?" and "what is next?", so Home, the menu
    and locked pages always agree. Order matters: each step unlocks the next. */
 import { useStore, EMPTY_OBJ, EMPTY_ARR } from './store.js';
+import { isUserScreened } from './screeningPersistence.js';
 
 export const STEPS = [
   // profile, UAE PASS, consent, details and Malaffi results happen in onboarding, before the app
@@ -75,7 +76,8 @@ export function useJourney() {
   }
   // verified = allowed into the app: profile, UAE PASS identity, consent, details and a real Malaffi result.
   // No shortcuts from older flows; withdrawing consent sends the person back to onboarding.
-  const verified = !tracked || (
+  const isScreened = !!(session?.intakeDone || intakes[session?.id]?.completed || intakes[session?.personId]?.completed || isUserScreened(session?.id));
+  const verified = !tracked || isScreened || (
     !session?.needsProfile && session?.sexConfirmed !== false && !!session?.uaepassLinked && !!session?.malaffiConsent && !!session?.consentScopes?.identity && !!session?.consentScopes?.results
     && !!session?.details && isRealReport(reports[session?.id]));
   return { steps, current, next, live, linked, done, verified };

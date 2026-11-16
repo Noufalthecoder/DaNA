@@ -24,6 +24,7 @@ import { Dialog, Badge } from '../shared/ui.jsx';
 import { useStore } from '../shared/store.js';
 import { COUPLES, PEOPLE, INITIAL_SCHEDULE } from '../shared/data.js';
 import { completeAppointment, saveScheduleAppointments, confirmAppointment, declineAppointment, isLive } from '../shared/db.js';
+import { confirmConsultationByCounsellor, syncConsultationsFromSupabase } from '../shared/consultationService.js';
 import ClinicSlots from './ClinicSlots.jsx';
 import './schedule.css';
 
@@ -107,8 +108,18 @@ export default function Schedule() {
     return () => window.removeEventListener('hashchange', checkHashReview);
   }, [appointments]);
 
-  const handleAcceptRequest = (appt) => {
+  const handleAcceptRequest = async (appt) => {
     confirmAppointment(appt.id || appt.cid);
+    try {
+      if (appt.requestId || appt.id) {
+        await confirmConsultationByCounsellor(appt.requestId || appt.id, appt.cid);
+      }
+      if (appt.cid) {
+        await syncConsultationsFromSupabase(appt.cid);
+      }
+    } catch (e) {
+      console.warn('Accept consultation notice:', e?.message);
+    }
     setAppointments((prev) =>
       prev.map((a) => (a.id === appt.id || (a.cid && a.cid === appt.cid) ? {
         ...a,
@@ -456,36 +467,30 @@ export default function Schedule() {
         </div>
       </div>
 
-      {/* Pending Requests Alert Notification */}
-      {pendingRequests.length > 0 && (
-        <div className="appt-pending-notification-bar">
+      {/* Pending Requests Alert Notifications — One alert per request */}
+      {pendingRequests.map((req) => (
+        <div key={req.id} className="appt-pending-notification-bar">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span className="appt-pulsing-amber-dot" />
             <span style={{ fontSize: 13.5, fontWeight: 700, color: '#92400E' }}>
-              {pendingRequests.length} Appointment Request{pendingRequests.length > 1 ? 's' : ''} Awaiting Confirmation
-            </span>
-            <span style={{ fontSize: 13, color: '#B45309' }}>
-              — Patient awaiting clinical review and verification
+              1 Appointment Request Awaiting Confirmation
             </span>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            {pendingRequests.map((req) => (
-              <button
-                key={req.id}
-                type="button"
-                className="btn-review-request"
-                onClick={() => {
-                  setSelectedDateStr(req.date);
-                  setDrawerAppt(req);
-                  setSidePanelOpen(true);
-                }}
-              >
-                Review {req.who} ({req.date.slice(5)}) →
-              </button>
-            ))}
+          <div>
+            <button
+              type="button"
+              className="btn-review-request"
+              onClick={() => {
+                setSelectedDateStr(req.date);
+                setDrawerAppt(req);
+                setSidePanelOpen(true);
+              }}
+            >
+              Review {req.who} ({req.date.slice(5)}) →
+            </button>
           </div>
         </div>
-      )}
+      ))}
 
       {/* ─── Main Workspace: Calendar Left + Side Panel Right (Image 2) ─── */}
       <div className="appt-workspace">

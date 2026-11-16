@@ -73,7 +73,9 @@ export default function Shell({ menu, path, children }) {
         <nav>
           {menu.items.filter((m) => isLinked(session) || !NEEDS_PARTNER.includes(m.to)).map((m) => (
             <a key={m.to} href={`#${m.to}`} className={active(m.to) ? 'on' : ''}>
-              <span className="ic" aria-hidden="true">{m.icon}</span>{m.label}
+              <span className="ic" aria-hidden="true">{m.icon}</span>
+              <span>{m.label}</span>
+              {m.badge && <span className="nav-pill-new">{m.badge}</span>}
             </a>
           ))}
         </nav>

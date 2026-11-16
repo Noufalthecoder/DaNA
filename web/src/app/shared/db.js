@@ -115,10 +115,92 @@ export function approveNote(coupleId, noteId) {
     });
 }
 
+export const REFERRAL_FACILITY_MAP = {
+  'IVF / PGT-M': 'Cleveland Clinic Abu Dhabi · Fertility Center',
+  'Fetal medicine': 'Danat Al Emarat Hospital · Fetal Medicine Unit',
+  'Haematology': 'Sheikh Shakhbout Medical City (SSMC) · Adult & Paediatric Haematology',
+  'Paediatrics': 'Sheikh Khalifa Medical City (SKMC) · Paediatric Genetics',
+  'Other': 'Cleveland Clinic Abu Dhabi · Medical Genetics',
+};
+
+export function getFacilityForDestination(destination) {
+  if (!destination) return 'Cleveland Clinic Abu Dhabi · Fertility Center';
+  return REFERRAL_FACILITY_MAP[destination] || `${destination} Specialized Care Center`;
+}
+
 export function addReferral(coupleId, destination, priority, reason) {
   const s = get();
-  const item = { destination, priority, reason, status: 'sent', t: new Date().toISOString() };
-  return act({ referrals: { ...s.referrals, [coupleId]: [item, ...(s.referrals[coupleId] || [])] } },
+  const isObj = typeof destination === 'object' && destination !== null;
+  const actualDest = isObj ? destination.destination : destination;
+  const actualPriority = (isObj ? destination.priority : priority) || 'high';
+  const actualReason = isObj ? destination.reason : reason;
+  const refYear = new Date().getFullYear();
+  const refCode = String(Date.now()).slice(-4);
+  const refId = (isObj && destination.id) ? destination.id : `REF-${refYear}-${coupleId.toUpperCase()}-${refCode}`;
+  const facility = (isObj && destination.facility) ? destination.facility : getFacilityForDestination(actualDest);
+  const item = {
+    id: refId,
+    destination: actualDest,
+    facility,
+    priority: actualPriority,
+    reason: actualReason,
+    status: (isObj && destination.status) ? destination.status : 'dispatched',
+    dispatchedAt: (isObj && destination.dispatchedAt) ? destination.dispatchedAt : new Date().toISOString(),
+    t: new Date().toISOString(),
+  };
+
+  const nextRefs = [item, ...(s.referrals[coupleId] || [])];
+  const curPlan = s.carePlans?.[coupleId] || {};
+  const prevItems = curPlan.completedItems || [
+    'individual_screening',
+    'medical_family_history',
+    'pedigree_completion',
+    'results_explanations',
+    'partner_connection_consent',
+    'joint_risk_assessment',
+    'reproductive_options',
+  ];
+  const nextCompletedItems = Array.from(new Set([
+    ...prevItems,
+    'appointment_booking',
+    'counsellor_recommendations',
+    'follow_up_referrals',
+  ]));
+
+  const nextPlan = {
+    ...curPlan,
+    referrals: nextRefs,
+    completedItems: nextCompletedItems,
+    counsellingCompleted: true,
+    activeStageId: Math.max(curPlan.activeStageId || 1, 4),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const coupleUsers = coupleId === 'c5' ? ['rashid', 'aisha'] :
+    coupleId === 'c2' ? ['ahmed', 'noura'] :
+    coupleId === 'c3' ? ['saeed', 'maryam'] :
+    coupleId === 'c4' ? ['omar', 'latifa'] :
+    ['fatima', 'khalid'];
+
+  const assignedDoctor = s.coupleCounsellors?.[coupleId] || s.cases?.[coupleId]?.counsellor || curPlan.counsellor || 'Dr. Mariam Al Hosani';
+
+  const referralNotifs = coupleUsers.map((pId) => ({
+    id: `notif_ref_${Date.now()}_${pId}`,
+    userId: pId,
+    actorId: 'mariam',
+    type: 'REFERRAL_ISSUED',
+    title: 'Specialist Clinical Referral Issued',
+    body: `${assignedDoctor} issued a referral to ${facility} (${destination}) for your care plan.`,
+    link: '/app/plan',
+    isRead: false,
+    createdAt: new Date().toISOString(),
+  }));
+
+  return act({
+    referrals: { ...s.referrals, [coupleId]: nextRefs },
+    carePlans: { ...(s.carePlans || {}), [coupleId]: nextPlan },
+    notifications: [...referralNotifs, ...(s.notifications || [])],
+  },
     `Counsellor referred ${coupleId.toUpperCase()} to ${destination}`,
     () => supabase.from('referrals').insert({ case_id: s.cases[coupleId]?.id, destination, priority, reason }));
 }
@@ -264,6 +346,7 @@ export function book(coupleId, slot, details = {}) {
   }
 
   const isPending = details.confirmed === false || details.priority === 'pending' || details.status === 'pending';
+  const assignedDoctor = details.doctor || s.coupleCounsellors?.[coupleId] || s.cases?.[coupleId]?.counsellor || 'Dr. Mariam Al Hosani';
 
   const newAppt = {
     id: details.id || `appt_${Date.now()}`,
@@ -278,7 +361,7 @@ export function book(coupleId, slot, details = {}) {
     requestedAt: details.requestedAt || new Date().toISOString(),
     confirmedAt: details.confirmedAt || (!isPending ? new Date().toISOString() : null),
     tone: details.tone || (isPending ? 'amber' : 'green'),
-    doctor: details.doctor || 'Dr. Mariam Al Hosani',
+    doctor: assignedDoctor,
     mode: details.mode || 'online',
     type: details.mode === 'offline' ? 'Clinic' : 'Video',
     provider: details.mode === 'offline' ? null : 'Google Meet',
@@ -310,11 +393,35 @@ export function book(coupleId, slot, details = {}) {
     }
   }
 
+  const updatedCoupleCounsellors = {
+    ...(s.coupleCounsellors || {}),
+    [coupleId]: assignedDoctor,
+  };
+  const updatedCases = {
+    ...(s.cases || {}),
+    [coupleId]: {
+      ...(s.cases?.[coupleId] || {}),
+      counsellor: assignedDoctor,
+    },
+  };
+  const curPlan = s.carePlans?.[coupleId] || {};
+  const updatedCarePlans = {
+    ...(s.carePlans || {}),
+    [coupleId]: {
+      ...curPlan,
+      counsellor: assignedDoctor,
+    },
+  };
+
   const extraFlags = coupleId === 'c1' ? { c1Cancelled: false } : {};
   return act({
     appointments: { ...s.appointments, [coupleId]: label },
     scheduleAppointments: schedule,
     notifications: notifs,
+    coupleCounsellors: updatedCoupleCounsellors,
+    cases: updatedCases,
+    carePlans: updatedCarePlans,
+    booked: label,
     ...extraFlags,
   },
     `Couple booked a counsellor session: ${label}`,
@@ -339,6 +446,59 @@ export function book(coupleId, slot, details = {}) {
       }
       return { error: null };
     });
+}
+
+export function getCoupleCounsellor(coupleId) {
+  const s = get();
+  return (
+    s.coupleCounsellors?.[coupleId] ||
+    s.cases?.[coupleId]?.counsellor ||
+    s.carePlans?.[coupleId]?.counsellor ||
+    (s.scheduleAppointments || []).find((a) => a.cid === coupleId)?.doctor ||
+    'Dr. Mariam Al Hosani'
+  );
+}
+
+export function selectCounsellor(coupleId, counsellorNameOrObj) {
+  const s = get();
+  const counsellorName = typeof counsellorNameOrObj === 'string' ? counsellorNameOrObj : counsellorNameOrObj?.name;
+  if (!counsellorName) return;
+
+  const updatedCoupleCounsellors = {
+    ...(s.coupleCounsellors || {}),
+    [coupleId]: counsellorName,
+  };
+
+  const updatedCases = {
+    ...(s.cases || {}),
+    [coupleId]: {
+      ...(s.cases?.[coupleId] || {}),
+      counsellor: counsellorName,
+    },
+  };
+
+  const curPlan = s.carePlans?.[coupleId] || {};
+  const updatedCarePlans = {
+    ...(s.carePlans || {}),
+    [coupleId]: {
+      ...curPlan,
+      counsellor: counsellorName,
+    },
+  };
+
+  const updatedSchedule = (s.scheduleAppointments || []).map((a) => {
+    if (a.cid === coupleId) {
+      return { ...a, doctor: counsellorName };
+    }
+    return a;
+  });
+
+  return act({
+    coupleCounsellors: updatedCoupleCounsellors,
+    cases: updatedCases,
+    carePlans: updatedCarePlans,
+    scheduleAppointments: updatedSchedule,
+  }, `Couple ${coupleId.toUpperCase()} selected dedicated counsellor: ${counsellorName}`);
 }
 
 export function rescheduleAppointment(coupleId, newSlotLabel, newDetails = {}) {
@@ -381,7 +541,7 @@ export function confirmAppointment(apptIdOrCid) {
   let coupleWho = '';
   let updatedRow = null;
   const schedule = (s.scheduleAppointments || []).map((a) => {
-    if (a.id === apptIdOrCid || a.cid === apptIdOrCid) {
+    if (a.id === apptIdOrCid || a.cid === apptIdOrCid || a.requestId === apptIdOrCid) {
       coupleWho = a.who || a.cid;
       updatedRow = {
         ...a,
@@ -407,20 +567,28 @@ export function confirmAppointment(apptIdOrCid) {
     updatedRow?.cid === 'c4' ? ['omar', 'latifa'] :
     ['fatima', 'khalid'];
 
+  const assignedDoctor = updatedRow?.doctor || s.coupleCounsellors?.[updatedRow?.cid] || 'Dr. Mariam Al Hosani';
+
   const coupleNotifs = coupleUsers.map((pId) => ({
     id: `notif_confirmed_${Date.now()}_${pId}`,
     userId: pId,
     actorId: 'mariam',
     type: 'CONSULTATION_CONFIRMED',
     title: 'Consultation Confirmed',
-    body: `Dr. Mariam confirmed your premarital consultation for ${updatedRow?.date} at ${updatedRow?.time} GST.`,
+    body: `${assignedDoctor} confirmed your premarital consultation for ${updatedRow?.date} at ${updatedRow?.time} GST.`,
     link: '/app/counsellor',
     isRead: false,
     createdAt: new Date().toISOString(),
   }));
 
+  const apptsMap = { ...(s.appointments || {}) };
+  if (updatedRow?.cid) {
+    apptsMap[updatedRow.cid] = `${updatedRow.date} · ${updatedRow.time}`;
+  }
+
   return act({
     scheduleAppointments: schedule,
+    appointments: apptsMap,
     notifications: [...coupleNotifs, ...existingNotifs],
   },
     `Counsellor verified and confirmed appointment for ${coupleWho || apptIdOrCid}`,
@@ -473,7 +641,28 @@ export function completeAppointment(coupleId) {
   const rest = { ...s.appointments };
   delete rest[coupleId];
   const schedule = (s.scheduleAppointments || []).map((a) => (a.cid === coupleId ? { ...a, priority: 'completed', tone: 'blue' } : a));
-  return act({ appointments: rest, scheduleAppointments: schedule }, `Counsellor completed the session with ${coupleId.toUpperCase()}`,
+  const plan = s.carePlans?.[coupleId] || {};
+  // Auto-tick Stage 3 items when counsellor marks the session complete
+  const prevItems = plan.completedItems || [
+    'individual_screening', 'medical_family_history', 'pedigree_completion', 'results_explanations',
+    'partner_connection_consent', 'joint_risk_assessment', 'reproductive_options',
+  ];
+  const nextCompletedItems = Array.from(new Set([
+    ...prevItems,
+    'appointment_booking',
+    'counsellor_recommendations',
+  ]));
+  const updatedPlans = {
+    ...(s.carePlans || {}),
+    [coupleId]: {
+      ...plan,
+      completedItems: nextCompletedItems,
+      counsellingCompleted: true,
+      counsellingCompletedAt: new Date().toISOString(),
+      activeStageId: Math.max(plan.activeStageId || 1, 3),
+    },
+  };
+  return act({ appointments: rest, scheduleAppointments: schedule, carePlans: updatedPlans }, `Counsellor completed the session with ${coupleId.toUpperCase()}`,
     () => (s.apptIds?.[coupleId] ? supabase.rpc('complete_appointment', { p_appt: s.apptIds[coupleId] }) : Promise.resolve({ error: null })));
 }
 
@@ -509,7 +698,35 @@ export function addNote(coupleId, text) {
 
 export function approvePlan(coupleId) {
   const s = get();
-  return act({ approved: [...s.approved, coupleId] }, `Counsellor approved the plan for ${coupleId.toUpperCase()}`,
+  const curPlan = s.carePlans?.[coupleId] || {};
+  const prevItems = curPlan.completedItems || [
+    'individual_screening',
+    'medical_family_history',
+    'pedigree_completion',
+    'results_explanations',
+    'partner_connection_consent',
+    'joint_risk_assessment',
+    'reproductive_options',
+  ];
+  const nextCompletedItems = Array.from(new Set([
+    ...prevItems,
+    'appointment_booking',
+    'counsellor_recommendations',
+    'approved_care_plan',
+  ]));
+
+  const nextPlan = {
+    ...curPlan,
+    completedItems: nextCompletedItems,
+    counsellingCompleted: true,
+    activeStageId: Math.max(curPlan.activeStageId || 1, 4),
+    updatedAt: new Date().toISOString(),
+  };
+
+  return act({
+    approved: [...s.approved, coupleId],
+    carePlans: { ...(s.carePlans || {}), [coupleId]: nextPlan },
+  }, `Counsellor approved the plan for ${coupleId.toUpperCase()}`,
     async () => {
       const { data: { user } } = await supabase.auth.getUser();
       return supabase.from('plans').update({ approved_by: user.id, approved_at: new Date().toISOString() }).eq('couple_id', coupleId);
@@ -755,8 +972,33 @@ export async function linkUaePass(viaSignIn) {
 export async function submitIntake(scopes, details) {
   if (isLive()) return rpc('submit_intake', { p_scopes: scopes, p_details: details });
   const s = get().session;
-  set({ session: { ...s, malaffiConsent: true, malaffiConsentAt: new Date().toISOString(), consentScopes: scopes, details, intakeDone: true } },
-    'Gave consent and saved screening details (demo)');
+  const currentIntakes = get().screeningIntakes || {};
+  const prev = currentIntakes[s?.id] || {};
+  set({
+    session: {
+      ...s,
+      malaffiConsent: true,
+      malaffiConsentAt: new Date().toISOString(),
+      consentScopes: scopes,
+      details,
+      intakeDone: true,
+      fresh: false,
+      needsProfile: false,
+      sexConfirmed: true,
+      uaepassLinked: true,
+    },
+    screeningIntakes: {
+      ...currentIntakes,
+      ...(s?.id ? {
+        [s.id]: {
+          ...prev,
+          completed: true,
+          submittedAt: new Date().toISOString(),
+          mode: 'uae_pass',
+        },
+      } : {}),
+    },
+  }, 'Gave consent and saved screening details (demo)');
   return new Date().toISOString();
 }
 

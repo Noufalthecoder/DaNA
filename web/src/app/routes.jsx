@@ -13,6 +13,7 @@ import Screening from './couple/Screening.jsx';
 import Profile from './couple/Profile.jsx';
 import MedicalReport from './couple/MedicalReport.jsx';
 import Bonds from './couple/Bonds.jsx';
+import PersonalisedPlanTracker from './couple/PersonalisedPlanTracker.jsx';
 import Connections from './couple/Connections.jsx';
 import Roots from './couple/Roots.jsx';
 import CoupleCounsellor from './couple/Counsellor.jsx';
@@ -51,6 +52,7 @@ import {
   AuditIcon,
   ConnectionsIcon,
   SettingsIcon,
+PlanTrackerIcon,
   MetricsIcon,
 } from './shared/Icons.jsx';
 
@@ -64,6 +66,7 @@ export const MENUS = {
     label: 'Couple',
     items: [
       { to: '/app', label: 'Home', icon: <HomeIcon /> },
+      { to: '/app/tracker', label: 'Personal Tracker', icon: <PlanTrackerIcon />, badge: 'New' },
       { to: '/app/result', label: 'My result', icon: <ContentIcon /> },
       { to: '/app/connections', label: 'Connections', icon: <ConnectionsIcon /> },
       { to: '/app/bonds', label: 'Bonds', icon: <BondsIcon /> },
@@ -139,6 +142,8 @@ export function page(role, path) {
   if (role === 'couple') {
     const coupleRoutes = {
       '/app': <Home />,
+      '/app/tracker': <PersonalisedPlanTracker />,
+      '/app/plan': <PersonalisedPlanTracker />,
       '/app/result': <Result />,
       '/app/malaffi': <MalaffiPage />,
       '/app/details': <Details />,
@@ -149,7 +154,8 @@ export function page(role, path) {
       '/app/bonds': <Bonds />,
       '/app/bonds/assessment': <Bonds defaultTab="assessment" />,
       '/app/bonds/counselling': <CoupleCounsellor />,
-      '/app/bonds/timeline': <Bonds defaultTab="timeline" />,
+      '/app/bonds/timeline': <PersonalisedPlanTracker />,
+      '/app/bonds/plan': <PersonalisedPlanTracker />,
       '/app/familytree': <FamilyTree />,
       '/app/branches': <FamilyTree />,
       '/app/connections': <Connections />,

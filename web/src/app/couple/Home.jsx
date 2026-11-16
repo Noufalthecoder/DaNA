@@ -2,10 +2,12 @@ import { Page, Card, Stat, Badge } from '../shared/ui.jsx';
 import Journey from '../shared/Journey.jsx';
 import { useJourney } from '../shared/journey.js';
 import { useStore, EMPTY_OBJ, EMPTY_ARR } from '../shared/store.js';
-import { useState, useMemo } from 'react';
-import { Calendar, Clock, Video, MapPin, Check, ExternalLink, X } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Calendar, Clock, Video, MapPin, Check, CheckCircle, ExternalLink, X } from 'lucide-react';
 import { useCouple } from './useCouple.js';
 import { fetchMalaffi, book as bookSlot } from '../shared/db.js';
+import { syncConsultationsFromSupabase } from '../shared/consultationService.js';
+import { isUserScreened } from '../shared/screeningPersistence.js';
 import { SLOTS } from '../shared/data.js';
 import './counsellor.css';
 import CarePath, { EscalationNote } from '../shared/CarePath.jsx';
@@ -15,7 +17,7 @@ export default function Home() {
   const journey = useJourney();
   const intakes = useStore((s) => s.screeningIntakes) || EMPTY_OBJ;
   const myIntake = intakes[me.id];
-  const isScreened = !!myIntake?.completed;
+  const isScreened = !!myIntake?.completed || isUserScreened(me.id);
 
   // live couples: the result is only meaningful once BOTH lab reports are in
   const live = useStore((s) => !!s.session?.backend);
@@ -29,12 +31,16 @@ export default function Home() {
   const [showBookModal, setShowBookModal] = useState(false);
   const [bookModality, setBookModality] = useState('online');
 
+  const session = useStore((s) => s.session);
+  const cid = session?.couple || couple?.id || 'c1';
+  const dedicatedDoctor = useStore((s) => s.coupleCounsellors?.[cid]) || useStore((s) => s.cases?.[cid]?.counsellor) || 'Dr. Mariam Al Hosani';
+
   const handleBookSlot = (slot) => {
     const isOnline = bookModality === 'online';
     bookSlot(cid, slot, {
       mode: isOnline ? 'online' : 'offline',
       who: session?.name || 'Khalid & Fatima',
-      doctor: 'Dr. Mariam Al Hosani',
+      doctor: dedicatedDoctor,
       what: 'Pre-marital counselling',
       priority: 'pending',
       status: 'pending',
@@ -54,8 +60,6 @@ export default function Home() {
     setBusy(false);
   };
 
-  const session = useStore((s) => s.session);
-  const cid = session?.couple || couple?.id || 'c1';
   const sent = useStore((s) => s.alertsSent) || EMPTY_ARR;
   const plan = useStore((s) => (couple?.id ? s.plans[couple.id] : null) || s.plan);
   const scheduleAppointments = useStore((s) => s.scheduleAppointments) || EMPTY_ARR;
@@ -78,7 +82,8 @@ export default function Home() {
   };
 
   const activeAppt = useMemo(() => {
-    const found = scheduleAppointments.find((a) => a.cid === cid);
+    const coupleAppts = scheduleAppointments.filter((a) => a.cid === cid);
+    const found = coupleAppts.find((a) => a.confirmed === true || a.status === 'confirmed' || a.priority === 'upcoming') || coupleAppts[0];
     if (found) return found;
     if (bookedLabel) {
       let apptDate = '2026-11-10';
@@ -92,7 +97,7 @@ export default function Home() {
         date: apptDate,
         time: apptTime,
         endTime: '14:15',
-        doctor: 'Dr. Mariam Al Hosani',
+        doctor: dedicatedDoctor,
         mode: 'online',
         type: 'Video',
         what: 'Pre-marital counselling',
@@ -104,7 +109,13 @@ export default function Home() {
       };
     }
     return null;
-  }, [scheduleAppointments, cid, bookedLabel]);
+  }, [scheduleAppointments, cid, bookedLabel, dedicatedDoctor]);
+
+  useEffect(() => {
+    if (cid) {
+      syncConsultationsFromSupabase(cid);
+    }
+  }, [cid]);
 
   // the counsellor comes in once the groundwork is done: own result seen and the couple result ready
   const counsellorReady = journey.done.result && journey.done.together;
@@ -163,7 +174,7 @@ export default function Home() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '10px 14px', borderRadius: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10B981' }} />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>Dr. Mariam Al Hosani</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{dedicatedDoctor}</span>
                   <span style={{ fontSize: 12, color: '#64748B' }}>· Available for premarital booking</span>
                 </div>
                 <Badge tone="green">Available</Badge>
@@ -206,7 +217,7 @@ export default function Home() {
                   </span>
                 </div>
                 <span style={{ fontSize: 12.5, fontWeight: 600, color: '#0F172A' }}>
-                  {activeAppt.doctor || 'Dr. Mariam Al Hosani'}
+                  {activeAppt.doctor || dedicatedDoctor}
                 </span>
               </div>
 
@@ -244,11 +255,11 @@ export default function Home() {
               {/* Notice */}
               {activeAppt.confirmed === false || activeAppt.priority === 'pending' ? (
                 <p style={{ margin: 0, fontSize: 12.5, color: '#92400E', lineHeight: 1.4 }}>
-                  ⏳ Your request has been forwarded to Dr. Mariam for clinical confirmation. Meeting room activates upon acceptance.
+                  ⏳ Your request has been forwarded to {activeAppt.doctor || dedicatedDoctor} for clinical confirmation. Meeting room activates upon acceptance.
                 </p>
               ) : (
                 <p style={{ margin: 0, fontSize: 12.5, color: '#047857', lineHeight: 1.4 }}>
-                  ✓ Clinically verified by Dr. Mariam. Your encrypted Google Meet room is ready for you and your partner.
+                  ✓ Clinically verified by {activeAppt.doctor || dedicatedDoctor}. Your encrypted Google Meet room is ready for you and your partner.
                 </p>
               )}
 
@@ -300,7 +311,18 @@ export default function Home() {
         )}
       </div>
 
-      {counsellorReady && <CarePath result={result} couple={couple} booking={activeAppt} />}
+{counsellorReady && <CarePath result={result} couple={couple} booking={activeAppt} />}
+
+      <div className="tiles">
+        <a className="tile" href="#/app/tracker" style={{ borderColor: '#00843D', background: '#F0FDF4' }}>
+          <small style={{ color: '#00843D', fontWeight: 600 }}>Personal Tracker</small>
+          <b style={{ color: '#0F172A' }}>7-Stage Care Roadmap</b>
+          <span style={{ color: '#00843D' }}>Stage 3: Counselling active →</span>
+        </a>
+        <a className="tile" href="#/app/bonds"><small>Your plan</small><b>{plan ? plan.split(':')[0] : 'Not chosen yet'}</b><span>{plan ? 'Change any time' : 'Take your time →'}</span></a>
+        <a className="tile" href="#/app/roots"><small>Relatives invited</small><b>{sent.length}</b><span>Anonymous alerts →</span></a>
+        <a className="tile" href="#/app/my-report"><small>Your report</small><b>Ready</b><span>English · العربية · اردو →</span></a>
+      </div>
 
       {/* ─── Book Consultation Quick Modal ─── */}
       {showBookModal && (
@@ -313,7 +335,7 @@ export default function Home() {
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: 16, color: '#0F172A' }}>Book Premarital Consultation</h3>
-                  <small style={{ color: '#64748B' }}>With Dr. Mariam Al Hosani · Genetic Counsellor</small>
+                  <small style={{ color: '#64748B' }}>With {dedicatedDoctor} · Genetic Counsellor</small>
                 </div>
               </div>
               <button

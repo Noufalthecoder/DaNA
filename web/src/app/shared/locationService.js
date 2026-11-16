@@ -9,7 +9,7 @@ import { isLive } from './db.js';
 import { get } from './store.js';
 
 /* offline demo only: the same emirates as the database, with a few areas each */
-const DEMO_LOCATIONS = [
+export const DEMO_LOCATIONS = [
   { id: 100, city: 'Abu Dhabi', state_name: 'Abu Dhabi' },
   { id: 101, city: 'Al Ain', state_name: 'Abu Dhabi' },
   { id: 1, city: 'Downtown Dubai', state_name: 'Dubai' },
