@@ -1,0 +1,128 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --g:#00843D; --mint:#E8F3EC; --ink:#0F1A14; --ink2:#55615A; --line:#DCE4DF; --red:#CE1126;
+          --teal:#0E7C86; --amber:#C77700; --purple:#6B4FBB; }
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 1920px; height: 1080px; background: #fff; font-family: Inter, sans-serif; color: var(--ink); overflow: hidden; }
+  .page { padding: 48px 64px 0; height: 100%; position: relative; }
+  .head { display: flex; justify-content: space-between; align-items: flex-end; }
+  .eyebrow { font: 700 16px Inter; letter-spacing: .16em; text-transform: uppercase; color: var(--g); display: flex; gap: 10px; align-items: center; }
+  .eyebrow i { width: 9px; height: 9px; border-radius: 50%; background: var(--red); }
+  h1 { font: 800 50px Outfit; letter-spacing: -1px; margin-top: 6px; }
+  h1 span { color: var(--g); }
+  .uae { font: 600 16px Inter; color: var(--g); background: var(--mint); padding: 10px 18px; border-radius: 999px; }
+
+  .flow { display: grid; grid-template-columns: 300px 54px 190px 54px 1fr 54px 330px; align-items: center; margin-top: 44px; height: 650px; }
+  .col { display: flex; flex-direction: column; gap: 14px; }
+  .lbl { font: 700 13px Inter; letter-spacing: .14em; text-transform: uppercase; color: var(--ink2); margin-bottom: 2px; }
+  .item { display: flex; align-items: center; gap: 14px; background: #fff; border: 1.5px solid var(--line); border-radius: 16px; padding: 14px 16px; }
+  .ic { width: 46px; height: 46px; flex: none; border-radius: 12px; background: var(--mint); display: grid; place-items: center; }
+  .ic svg { width: 24px; height: 24px; fill: none; stroke: var(--g); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .item b { font: 700 18px Outfit; display: block; }
+  .item small { font: 500 13.5px Inter; color: var(--ink2); }
+
+  .arrow { display: grid; place-items: center; }
+  .arrow svg { width: 44px; height: 24px; }
+
+  .gate { height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+          background: var(--g); color: #fff; border-radius: 26px; padding: 26px 18px; gap: 16px; }
+  .gate svg.sh { width: 64px; height: 64px; fill: none; stroke: #fff; stroke-width: 1.8; }
+  .gate b { font: 800 22px Outfit; line-height: 1.15; }
+  .gate ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .gate li { font: 600 14px Inter; background: rgba(255,255,255,.14); border-radius: 10px; padding: 8px 10px; }
+
+  .core { border: 2px solid var(--ink); border-radius: 28px; padding: 22px 24px 24px; height: 100%; display: flex; flex-direction: column; }
+  .core h2 { font: 800 26px Outfit; text-align: center; }
+  .core h2 span { color: var(--g); }
+  .engines { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 18px; flex: 1; }
+  .eng { border-radius: 18px; border: 2px solid; display: flex; flex-direction: column; overflow: hidden; }
+  .eng .t { color: #fff; font: 700 15px Inter; letter-spacing: .06em; text-transform: uppercase; padding: 10px 12px; text-align: center; }
+  .eng .bd { padding: 16px 14px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; flex: 1; justify-content: center; }
+  .eng .bd svg { width: 52px; height: 52px; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .eng .bd b { font: 700 19px Outfit; }
+  .eng .bd small { font: 500 14.5px Inter; color: var(--ink2); line-height: 1.35; }
+  .e1 { border-color: var(--teal); } .e1 .t { background: var(--teal); } .e1 svg { stroke: var(--teal); }
+  .e2 { border-color: var(--g); } .e2 .t { background: var(--g); } .e2 svg { stroke: var(--g); }
+  .e3 { border-color: var(--amber); } .e3 .t { background: var(--amber); } .e3 svg { stroke: var(--amber); }
+  .e4 { border-color: var(--purple); } .e4 .t { background: var(--purple); } .e4 svg { stroke: var(--purple); }
+  .down { display: grid; place-items: center; height: 40px; }
+  .result { display: flex; align-items: center; justify-content: center; gap: 16px; background: var(--mint); border: 2px solid var(--g); border-radius: 18px; padding: 16px; }
+  .result svg { width: 34px; height: 34px; fill: none; stroke: var(--g); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .result b { font: 800 24px Outfit; color: var(--g); }
+  .result span { font: 600 16px Inter; color: var(--ink2); }
+
+  .stack { position: absolute; left: 64px; right: 64px; bottom: 56px; display: grid; grid-template-columns: 170px repeat(6, 1fr); gap: 12px; align-items: stretch; }
+  .stack .h { display: flex; flex-direction: column; justify-content: center; }
+  .stack .h b { font: 800 22px Outfit; }
+  .stack .h span { font: 600 13px Inter; color: var(--ink2); }
+  .tc { border: 1.5px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .tc .k { font: 700 12.5px Inter; letter-spacing: .1em; text-transform: uppercase; color: #fff; background: var(--ink); padding: 7px 12px; }
+  .tc .v { padding: 9px 12px; font: 600 14.5px Inter; line-height: 1.3; }
+  .tc .v em { display: block; font-style: normal; font: 600 13px Inter; color: #0078D4; margin-top: 4px; }
+</style></head>
+<body><div class="page">
+  <div class="head">
+    <div><div class="eyebrow"><i></i>DaNA · System Architecture</div>
+      <h1>From one test to a <span>protected family</span></h1></div>
+    <div class="uae">UAE-hosted · consent-first · human-in-the-loop</div>
+  </div>
+
+  <div class="flow">
+    <!-- inputs -->
+    <div class="col">
+      <div class="lbl">Inputs</div>
+      <div class="item"><div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="12" r="2.5"/><path d="M14 10h4M14 14h3"/></svg></div><div><b>UAE PASS</b><small>Verified identity</small></div></div>
+      <div class="item"><div class="ic"><svg viewBox="0 0 24 24"><path d="M4 21V8l8-5 8 5v13"/><path d="M12 10v6M9 13h6"/></svg></div><div><b>Malaffi · FHIR</b><small>Genetic + blood tests</small></div></div>
+      <div class="item"><div class="ic"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></div><div><b>Couple details</b><small>Consent · family history</small></div></div>
+      <div class="item"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="14" r="5"/><circle cx="15" cy="14" r="5"/><path d="M12 4l-2 3h4z"/></svg></div><div><b>Partner link</b><small>Private DaNA ID</small></div></div>
+    </div>
+
+    <div class="arrow"><svg viewBox="0 0 44 24"><path d="M2 12h36M30 4l9 8-9 8" fill="none" stroke="#0F1A14" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+    <!-- consent gate -->
+    <div class="gate">
+      <svg class="sh" viewBox="0 0 24 24"><path d="M12 2.5l8 3v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10v-6z"/><rect x="9" y="10.5" width="6" height="5" rx="1"/><path d="M10.2 10.5V9a1.8 1.8 0 0 1 3.6 0v1.5"/></svg>
+      <b>Consent &amp;<br>Privacy Gate</b>
+      <ul><li>Consent per data</li><li>Role-based access</li><li>Audit trail</li></ul>
+    </div>
+
+    <div class="arrow"><svg viewBox="0 0 44 24"><path d="M2 12h36M30 4l9 8-9 8" fill="none" stroke="#0F1A14" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+    <!-- core -->
+    <div class="core">
+      <h2>DaNA <span>Intelligence Core</span></h2>
+      <div class="engines">
+        <div class="eng e1"><div class="t">Rules Engine</div><div class="bd"><svg viewBox="0 0 24 24"><path d="M7 3c0 6 10 6 10 12M17 3c0 6-10 6-10 12M7 21c0-2 1-3 2.5-4M17 21c0-2-1-3-2.5-4M8 7h8M8 11h8"/></svg><b>Couple risk</b><small>Deterministic, versioned. No AI on numbers.</small></div></div>
+        <div class="eng e2"><div class="t">Explain</div><div class="bd"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg><b>Plain words</b><small>English · <bdi>العربية</bdi> · <bdi>اردو</bdi></small></div></div>
+        <div class="eng e3"><div class="t">Triage</div><div class="bd"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="3.5"/><path d="M5 21c0-4 3-7 7-7s7 3 7 7M12 14v4M10 16h4"/></svg><b>Counsellor alert</b><small>Complex results go to a human</small></div></div>
+        <div class="eng e4"><div class="t">AI Guide</div><div class="bd"><svg viewBox="0 0 24 24"><rect x="5" y="8" width="14" height="10" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16h5"/></svg><b>Voice assistant</b><small>Grounded answers, safety guardrails</small></div></div>
+      </div>
+      <div class="down"><svg width="24" height="34" viewBox="0 0 24 34"><path d="M12 2v26M4 21l8 9 8-9" fill="none" stroke="#0F1A14" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="result"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10z"/></svg><b>Compatible, with a plan</b><span>· care path to specialist services</span></div>
+    </div>
+
+    <div class="arrow"><svg viewBox="0 0 44 24"><path d="M2 12h36M30 4l9 8-9 8" fill="none" stroke="#0F1A14" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+    <!-- outcomes -->
+    <div class="col">
+      <div class="lbl">Outcomes</div>
+      <div class="item"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M3 20c0-3 2-5 5-5s5 2 5 5M11 20c0-3 2-5 5-5s5 2 5 5"/></svg></div><div><b>Couple app</b><small>Result · options · tracker</small></div></div>
+      <div class="item"><div class="ic"><svg viewBox="0 0 24 24"><path d="M6 3v6a6 6 0 0 0 12 0V3M12 15v3a3 3 0 0 0 6 0v-1"/><circle cx="18" cy="15" r="2"/></svg></div><div><b>Counsellor portal</b><small>Queue · calendar · referrals</small></div></div>
+      <div class="item"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18" r="2.5"/><circle cx="12" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M12 7.5v8M12 11H5v4.5M12 11h7v4.5"/></svg></div><div><b>Family alerts</b><small>Anonymous · no names</small></div></div>
+      <div class="item"><div class="ic"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div><div><b>DoH dashboard</b><small>Understanding · equity</small></div></div>
+      <div class="item"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></div><div><b>Specialist care</b><small>Confirmatory test · IVF/PGT-M</small></div></div>
+    </div>
+  </div>
+
+  <div class="stack">
+    <div class="h"><b>Tech stack</b><span>Built today → <span style="color:#0078D4">Azure next</span></span></div>
+    <div class="tc"><div class="k">Frontend</div><div class="v">React · Vite<em>Static Web Apps</em></div></div>
+    <div class="tc"><div class="k">Backend</div><div class="v">FastAPI<em>Container Apps · APIM</em></div></div>
+    <div class="tc"><div class="k">Data</div><div class="v">PostgreSQL + RLS<em>Azure PostgreSQL · Key Vault</em></div></div>
+    <div class="tc"><div class="k">Health data</div><div class="v">HL7 FHIR<em>Health Data Services</em></div></div>
+    <div class="tc"><div class="k">AI &amp; Voice</div><div class="v">Rules engine · TTS<em>Azure OpenAI · AI Speech</em></div></div>
+    <div class="tc"><div class="k">Security</div><div class="v">Audit · 129 tests<em>Defender · Sentinel</em></div></div>
+  </div>
+</div></body></html>
