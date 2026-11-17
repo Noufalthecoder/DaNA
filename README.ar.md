@@ -21,6 +21,14 @@
 <div dir="rtl">
 
 <h3 align="center">فحصٌ واحد… يحمي عائلةً بأكملها</h3>
+<p align="center">
+  <b>خطة الإنتاج</b> &nbsp;<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/azure/azure-original.svg" alt="Microsoft Azure" height="30">&nbsp; <b>Microsoft Azure &middot; الإمارات الشمال والوسط</b>
+</p>
+<p align="center">
+  <img src="https://img.shields.io/badge/Azure-Static%20Web%20Apps-0078D4?style=flat-square" alt="Azure Static Web Apps"> <img src="https://img.shields.io/badge/Azure-Container%20Apps-0078D4?style=flat-square" alt="Azure Container Apps"> <img src="https://img.shields.io/badge/Azure-PostgreSQL-0078D4?style=flat-square" alt="Azure PostgreSQL"> <img src="https://img.shields.io/badge/Azure-Health%20Data%20Services%20(FHIR)-0078D4?style=flat-square" alt="Azure Health Data Services (FHIR)"> <img src="https://img.shields.io/badge/Azure-Entra%20External%20ID-0078D4?style=flat-square" alt="Azure Entra External ID"> <img src="https://img.shields.io/badge/Azure-AI%20Speech-0078D4?style=flat-square" alt="Azure AI Speech">
+</p>
+<p align="center"><sub>خطة ترحيل مقترحة ولم تُنفَّذ بعد: النموذج الأولي يعمل اليوم على Vercel وRender وSupabase. Azure علامة تجارية لشركة Microsoft، ودانة غير تابعة لها ولا معتمدة منها.</sub></p>
+
 <p align="center"><b>One test. A whole family protected.</b></p>
 
 ---

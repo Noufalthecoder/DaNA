@@ -21,6 +21,14 @@
   <img src="https://img.shields.io/badge/Languages-EN%20%C2%B7%20AR%20%C2%B7%20UR-00843D" alt="English, Arabic, Urdu">
 </p>
 
+<p align="center">
+  <b>Production plan</b> &nbsp;<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/azure/azure-original.svg" alt="Microsoft Azure" height="30">&nbsp; <b>Microsoft Azure &middot; UAE North &amp; UAE Central</b>
+</p>
+<p align="center">
+  <img src="https://img.shields.io/badge/Azure-Static%20Web%20Apps-0078D4?style=flat-square" alt="Azure Static Web Apps"> <img src="https://img.shields.io/badge/Azure-Container%20Apps-0078D4?style=flat-square" alt="Azure Container Apps"> <img src="https://img.shields.io/badge/Azure-PostgreSQL-0078D4?style=flat-square" alt="Azure PostgreSQL"> <img src="https://img.shields.io/badge/Azure-Health%20Data%20Services%20(FHIR)-0078D4?style=flat-square" alt="Azure Health Data Services (FHIR)"> <img src="https://img.shields.io/badge/Azure-Entra%20External%20ID-0078D4?style=flat-square" alt="Azure Entra External ID"> <img src="https://img.shields.io/badge/Azure-AI%20Speech-0078D4?style=flat-square" alt="Azure AI Speech">
+</p>
+<p align="center"><sub>Planned migration, not yet deployed: today the prototype runs on Vercel, Render and Supabase. Azure is a trademark of Microsoft; DaNA is not affiliated with or endorsed by Microsoft.</sub></p>
+
 <h3 align="center">One test. A whole family protected.</h3>
 <p align="center"><b>فحصٌ واحد… يحمي عائلةً بأكملها</b></p>
 
@@ -328,6 +336,11 @@ Relatives never log in: they receive a private invite link. Everything is saved 
 - [ ] ClinVar / ClinGen re-checks that flag reclassified variants for expert review
 - [ ] Native-speaker clinical review of all Arabic and Urdu wording
 - [ ] Usability testing with couples and counsellors; safety documentation pack
+
+## Credits and licence
+
+- **Licence:** see [LICENSE](LICENSE). The code is shared for evaluation by the challenge organizers and judges. Third-party components keep their own licences: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- **Data credit:** city and country reference data from the [SimpleMaps World Cities Database](https://simplemaps.com/data/world-cities), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 ---
 
