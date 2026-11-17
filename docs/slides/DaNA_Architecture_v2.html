@@ -1,0 +1,216 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --g:#00843D; --mint:#E8F3EC; --ink:#0F1A14; --ink2:#55615A; --line:#D9E1DC; --red:#CE1126; --az:#0078D4;
+          --blue:#EAF3FB; --amber:#FFF4E0; --pink:#FDECEF; --purple:#EFEAFB; }
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 1920px; height: 1080px; background: #fff; font-family: Inter, sans-serif; color: var(--ink); overflow: hidden; position: relative; }
+  .abs { position: absolute; }
+  .title { left: 56px; top: 26px; }
+  .title .k { font: 700 14px Inter; letter-spacing: .16em; text-transform: uppercase; color: var(--g); }
+  .title h1 { font: 800 38px Outfit; letter-spacing: -.8px; margin-top: 2px; }
+  .title h1 span { color: var(--g); }
+  .proto { left: 1100px; top: 28px; width: 764px; height: 72px; border: 2.5px solid var(--ink); border-radius: 16px; display: flex; align-items: center; gap: 16px; padding: 0 20px; background: #fff; }
+  .proto .pill { font: 700 14px Inter; background: var(--g); color: #fff; border-radius: 999px; padding: 6px 12px; }
+  .proto b { font: 700 18px Outfit; }
+  .proto u { color: var(--az); font: 600 16px Inter; text-decoration: none; border-bottom: 2px solid var(--az); }
+  .proto .bar { flex: 1; height: 10px; border-radius: 999px; background: #E6EAE7; overflow: hidden; }
+  .proto .bar i { display: block; width: 100%; height: 100%; background: linear-gradient(90deg, #00843D, #4CC27F); }
+  .proto small { font: 600 14px Inter; color: var(--ink2); white-space: nowrap; }
+
+  .panel { border-radius: 22px; padding: 16px 18px; }
+  .panel h3 { font: 800 19px Outfit; display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .panel h3 .av { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font: 700 13px Outfit; color: #fff; }
+  .panel h3 em { font: 600 13px Inter; color: var(--ink2); font-style: normal; }
+  .feat { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .feat span { background: #fff; border-radius: 10px; padding: 7px 10px; font: 600 14px Inter; display: flex; align-items: center; gap: 7px; }
+  .feat span i { width: 16px; height: 16px; border-radius: 4px; display: inline-grid; place-items: center; font-size: 11px; color: #fff; flex: none; font-style: normal; }
+  .tag { font: 600 13px Inter; color: var(--ink2); margin-top: 8px; }
+
+  .box { width: 150px; height: 112px; border: 2.5px solid var(--ink); border-radius: 18px; background: #fff; display: grid; place-items: center; }
+  .box img, .box svg { width: 64px; height: 64px; }
+  .node { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; width: 170px; }
+  .node b { font: 800 20px Outfit; line-height: 1.1; }
+  .node small { font: 600 13.5px Inter; color: var(--ink2); line-height: 1.3; }
+  .hnode { display: flex; align-items: center; gap: 14px; }
+  .hnode .tx { display: flex; flex-direction: column; gap: 5px; width: 150px; }
+  .hnode b { font: 800 20px Outfit; line-height: 1.1; }
+  .hnode small { font: 600 13.5px Inter; color: var(--ink2); }
+
+  .logos { display: inline-flex; gap: 10px; background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 7px 10px; }
+  .logos img { width: 30px; height: 30px; }
+  .lg { display: flex; align-items: center; gap: 10px; }
+  .lg span { font: 600 13px Inter; color: var(--ink2); }
+
+  .note { background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .note span { font: 500 14.5px Inter; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+  .note span::before { content: '←'; color: var(--ink2); font-weight: 700; }
+  .cap { font: 700 12.5px Inter; letter-spacing: .12em; text-transform: uppercase; color: var(--ink2); }
+
+  .azure { border: 2.5px dashed var(--az); border-radius: 24px; background: #F5FAFF; }
+  .azure .h { position: absolute; left: 18px; top: -16px; background: #F5FAFF; padding: 0 10px; display: flex; align-items: center; gap: 8px; font: 800 17px Outfit; color: var(--az); }
+  .azure .h svg { width: 22px; height: 22px; }
+  .azure .n { font: 600 12.5px Inter; color: var(--az); background: #fff; border: 1.5px solid #BFD9F2; border-radius: 999px; padding: 4px 10px; position: absolute; }
+  .azure .note { border-color: #BFD9F2; }
+  .azure .note span { font-size: 13.5px; } .azure .note span::before { content: ''; }
+  .azure .cap { color: var(--az); }
+
+  .chip { font: 600 13.5px Inter; background: #fff; color: var(--g); border: 1.5px solid #BFDCCB; border-radius: 999px; padding: 5px 11px; display: inline-flex; align-items: center; gap: 6px; }
+  svg.lines { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; pointer-events: none; }
+  svg.lines path { fill: none; stroke: var(--ink); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+  svg.lines path.soft { stroke: #9AA6A0; stroke-width: 2.5; stroke-dasharray: 7 6; }
+  .lbl { font: 600 12.5px Inter; color: var(--ink2); background: #fff; padding: 2px 6px; border-radius: 6px; }
+</style></head>
+<body>
+<svg class="lines" viewBox="0 0 1920 1080">
+  <defs>
+    <marker id="a" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto" markerUnits="userSpaceOnUse"><path d="M2 2l8 4-8 4z" fill="#0F1A14"/></marker>
+    <marker id="s" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto" markerUnits="userSpaceOnUse"><path d="M2 2l8 4-8 4z" fill="#9AA6A0"/></marker>
+  </defs>
+  <!-- users bus -> web app (both ways) -->
+  <path d="M452 248 H500 V938 H452"/>
+  <path d="M452 575 H500"/><path d="M452 800 H500"/>
+  <path d="M500 648 H556" marker-end="url(#a)"/><path d="M556 666 H500" marker-end="url(#a)"/>
+  <!-- identity & records -> gate -->
+  <path d="M726 206 H790" marker-end="url(#a)"/>
+  <path d="M726 406 H790" marker-end="url(#a)"/>
+  <!-- web app -> gate (every request passes the gate) -->
+  <path d="M726 657 H866 V434" marker-end="url(#a)"/>
+  <!-- gate -> API -->
+  <path d="M942 305 H1000" marker-end="url(#a)"/>
+  <!-- API <-> database -->
+  <path d="M1067 362 V470" marker-end="url(#a)"/><path d="M1083 470 V362" marker-end="url(#a)"/>
+  <!-- database -> outcomes -->
+  <path d="M1075 582 V740" marker-end="url(#a)"/>
+  <!-- outcomes -> users (soft return) -->
+  <path class="soft" d="M1000 860 H520 V956 H500" marker-end="url(#s)"/>
+  <!-- deploy -->
+  <path class="soft" d="M641 722 V760" marker-end="url(#s)"/>
+</svg>
+
+<div class="abs title"><div class="k">DaNA · System architecture</div><h1>From one genetic test to a <span>protected family</span></h1></div>
+<div class="abs proto"><span class="pill">LIVE</span><b>Working prototype</b><u>dana-gamma-seven.vercel.app</u><div class="bar"><i></i></div><small>6 / 6 requirements built</small></div>
+
+<!-- ===== LEFT: who uses DaNA ===== -->
+<div class="abs panel" style="left:56px;top:150px;width:396px;background:var(--blue)">
+  <h3><span class="av" style="background:#2B6CB0">👫</span>Couple <em>· each partner</em></h3>
+  <div class="feat">
+    <span><i style="background:#2B6CB0">1</i>UAE PASS sign-in</span><span><i style="background:#2B6CB0">2</i>consent &amp; details</span>
+    <span><i style="background:#2B6CB0">3</i>my result · quiz</span><span><i style="background:#2B6CB0">4</i>link partner · bell</span>
+    <span><i style="background:#2B6CB0">5</i>Bonds · 3 options</span><span><i style="background:#2B6CB0">6</i>book counsellor</span>
+    <span><i style="background:#2B6CB0">7</i>care tracker</span><span><i style="background:#2B6CB0">8</i>family alerts</span>
+  </div>
+  <div class="tag">🤖 DaNA guide · voice · EN / AR / UR &nbsp;·&nbsp; 🔒 who saw my data</div>
+</div>
+
+<div class="abs panel" style="left:56px;top:470px;width:396px;background:var(--amber)">
+  <h3><span class="av" style="background:#C77700">Dr</span>Genetic counsellor</h3>
+  <div class="feat">
+    <span><i style="background:#C77700">✓</i>priority case queue</span><span><i style="background:#C77700">✓</i>case view · notes</span>
+    <span><i style="background:#C77700">✓</i>accept bookings</span><span><i style="background:#C77700">✓</i>care path · referrals</span>
+  </div>
+  <div class="tag">Complex results reach a human, automatically</div>
+</div>
+
+<div class="abs panel" style="left:56px;top:700px;width:396px;background:var(--pink)">
+  <h3><span class="av" style="background:#B52B3A">DoH</span>Programme admin</h3>
+  <div class="feat">
+    <span><i style="background:#B52B3A">✓</i>outcome metrics</span><span><i style="background:#B52B3A">✓</i>language equity</span>
+    <span><i style="background:#B52B3A">✓</i>verify counsellors</span><span><i style="background:#B52B3A">✓</i>audit log · security</span>
+  </div>
+  <div class="tag">Totals only · groups under 5 hidden · never counts marriages</div>
+</div>
+
+<div class="abs panel" style="left:56px;top:916px;width:396px;background:var(--purple);padding:12px 18px">
+  <h3 style="margin:0"><span class="av" style="background:#6B4FBB">👪</span>Relatives <em>· no account</em> &nbsp;<span class="chip">private invite link</span></h3>
+</div>
+
+<!-- ===== identity & records ===== -->
+<div class="abs node" style="left:546px;top:150px">
+  <div class="box"><svg viewBox="0 0 64 64"><rect x="6" y="10" width="52" height="44" rx="8" fill="#111"/><text x="32" y="30" font-family="Outfit" font-weight="800" font-size="13" fill="#fff" text-anchor="middle">UAE</text><text x="32" y="46" font-family="Outfit" font-weight="800" font-size="13" fill="#fff" text-anchor="middle">PASS</text></svg></div>
+  <b>UAE PASS</b><small>verified identity</small>
+</div>
+<div class="abs node" style="left:546px;top:350px">
+  <div class="box" style="border-color:#1A6FBF"><svg viewBox="0 0 64 64"><path d="M14 56V22l18-12 18 12v34" fill="none" stroke="#1A6FBF" stroke-width="4" stroke-linejoin="round"/><path d="M32 28v16M24 36h16" stroke="#CE1126" stroke-width="5" stroke-linecap="round"/></svg></div>
+  <b>Malaffi</b><small>health records · HL7 FHIR<br>570-gene test · blood tests</small>
+</div>
+
+<!-- ===== web app ===== -->
+<div class="abs" style="left:546px;top:600px;width:170px;text-align:center">
+  <div class="logos"><img src="https://cdn.simpleicons.org/react/61DAFB"><img src="https://cdn.simpleicons.org/vite/646CFF"><img src="https://cdn.simpleicons.org/framer/0055FF"></div>
+  <b style="font:800 20px Outfit;display:block;margin-top:6px">DaNA web app</b><small style="font:600 13.5px Inter;color:var(--ink2)">responsive · RTL · 3 languages</small>
+</div>
+<div class="abs lg" style="left:560px;top:770px"><div class="logos"><img src="https://cdn.simpleicons.org/vercel/000000"><img src="https://cdn.simpleicons.org/github/181717"><img src="https://cdn.simpleicons.org/githubactions/2088FF"></div><span>deploy</span></div>
+
+<!-- ===== consent gate ===== -->
+<div class="abs" style="left:790px;top:180px;width:152px;height:250px;background:var(--g);border-radius:20px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:12px">
+  <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#fff" stroke-width="1.8"><path d="M12 2.5l8 3v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10v-6z"/><rect x="9" y="10.5" width="6" height="5" rx="1"/><path d="M10.2 10.5V9a1.8 1.8 0 0 1 3.6 0v1.5"/></svg>
+  <b style="font:800 17px Outfit;line-height:1.15">Consent &amp;<br>privacy gate</b>
+  <small style="font:600 12.5px Inter;opacity:.95;line-height:1.5">consent per data<br>role-based access<br>audit trail</small>
+</div>
+<div class="abs lbl" style="left:874px;top:520px">every request</div>
+<div class="abs lbl" style="left:700px;top:846px">back to every user</div>
+
+<!-- ===== API ===== -->
+<div class="abs hnode" style="left:1000px;top:250px">
+  <div class="box"><img src="https://cdn.simpleicons.org/fastapi/009688"></div>
+  <div class="tx"><b>DaNA API</b><small>FastAPI · Python</small>
+    <div class="lg"><div class="logos" style="padding:5px 8px;gap:8px"><img src="https://cdn.simpleicons.org/python/3776AB" style="width:24px;height:24px"><img src="https://cdn.simpleicons.org/render/000000" style="width:24px;height:24px"></div><span>129 tests</span></div></div>
+</div>
+<div class="abs note" style="left:1350px;top:150px;width:290px">
+  <div class="cap">Inside the API</div>
+  <span>imports Malaffi FHIR bundles</span>
+  <span><b>rules engine</b>: couple risk · tier 1–4</span>
+  <span>no AI ever decides a number</span>
+  <span>triage → counsellor escalation</span>
+</div>
+<div class="abs" style="left:1350px;top:318px;width:290px;display:flex;align-items:center;gap:12px;border:2px solid var(--line);border-radius:14px;padding:10px 14px;background:#fff">
+  <div class="logos" style="padding:5px 7px"><img src="https://cdn.simpleicons.org/googlegemini/8E75B2"></div>
+  <div><b style="font:800 17px Outfit">AI guide · voice</b><br><small style="font:600 13px Inter;color:var(--ink2)">answers in EN · AR · UR · key on server</small></div>
+</div>
+
+<!-- ===== database ===== -->
+<div class="abs hnode" style="left:1000px;top:470px">
+  <div class="box"><img src="https://cdn.simpleicons.org/supabase/3ECF8E"></div>
+  <div class="tx"><b>Database</b><small>PostgreSQL · Supabase</small>
+    <div class="lg"><div class="logos" style="padding:5px 8px"><img src="https://cdn.simpleicons.org/postgresql/4169E1" style="width:24px;height:24px"></div><span>36 migrations</span></div></div>
+</div>
+<div class="abs note" style="left:1350px;top:462px;width:290px">
+  <div class="cap">Row-level security</div>
+  <span>you see only your own data</span>
+  <span>partner data only with consent</span>
+  <span>staff see only their role</span>
+  <span>append-only audit · k ≥ 5 metrics</span>
+</div>
+
+<!-- ===== outcomes ===== -->
+<div class="abs" style="left:1000px;top:740px;width:640px;background:var(--mint);border:2px solid var(--g);border-radius:20px;padding:14px 18px">
+  <div class="cap" style="color:var(--g)">What comes out</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-top:8px">
+    <span class="chip">💬 result in plain words</span><span class="chip">🤝 compatible, with a plan</span>
+    <span class="chip">👩‍⚕️ counsellor booked &amp; confirmed</span><span class="chip">🗺️ care path to specialist care</span>
+    <span class="chip">🌳 anonymous family alerts</span><span class="chip">📊 understanding &amp; equity metrics</span>
+  </div>
+</div>
+
+<!-- ===== Azure ===== -->
+<div class="abs azure" style="left:1660px;top:150px;width:204px;height:770px">
+  <div class="h"><svg viewBox="0 0 24 24"><path d="M9 3h6l6 15h-6zM3 18l7-13 3 9-4 4z" fill="#0078D4"/></svg>Azure next</div>
+  <div style="position:absolute;left:14px;top:30px;right:14px;display:flex;flex-direction:column;gap:11px">
+    <div class="note"><div class="cap">Identity</div><span>Entra External ID + UAE PASS</span></div>
+    <div class="note"><div class="cap">Health data</div><span>Health Data Services (FHIR) ↔ Malaffi</span></div>
+    <div class="note"><div class="cap">Compute</div><span>Static Web Apps · Container Apps · APIM</span></div>
+    <div class="note"><div class="cap">Data</div><span>Azure PostgreSQL · Key Vault · Purview</span></div>
+    <div class="note"><div class="cap">AI</div><span>Azure OpenAI + AI Search · AI Speech · Content Safety</span></div>
+    <div class="note"><div class="cap">Security</div><span>Defender for Cloud · Sentinel</span></div>
+    <div class="note"><div class="cap">Insight</div><span>Fabric · Power BI (de-identified)</span></div>
+  </div>
+  <div class="n" style="left:14px;bottom:14px">🇦🇪 UAE North · UAE Central</div>
+</div>
+
+<div class="abs" style="left:546px;top:1006px;right:56px;display:flex;justify-content:space-between;align-items:center;font:600 14px Inter;color:var(--ink2)">
+  <span>Solid = built and running today &nbsp;·&nbsp; <span style="color:var(--az)">Blue dashed = Microsoft Azure production plan</span></span>
+  <span>Synthetic data only · UAE PASS and Malaffi simulated · DaNA explains, it does not diagnose</span>
+</div>
+</body></html>
