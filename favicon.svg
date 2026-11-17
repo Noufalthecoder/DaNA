@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="76 36 360 360">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Marcellus&amp;family=Amiri:wght@700&amp;display=swap');
+    </style>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F4DC9A"/>
+      <stop offset="0.55" stop-color="#D9AE52"/>
+      <stop offset="1" stop-color="#B8862F"/>
+    </linearGradient>
+    <radialGradient id="pearl" cx="0.36" cy="0.32" r="0.78">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.4" stop-color="#F8F3EA"/>
+      <stop offset="0.8" stop-color="#E2D6C6"/>
+      <stop offset="1" stop-color="#C7B59E"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0.45" stop-color="#FFF4D6" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#FFF4D6" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="pearlClip"><circle cx="256" cy="214" r="40"/></clipPath>
+  </defs>
+
+  <rect width="512" height="512" fill="#0B2A3C"/>
+  <g transform="translate(0 -26)">
+
+  <!-- ن as an open oyster shell: calligraphic bowl, thin at the tips, full at the base -->
+  <path fill="url(#gold)"
+        d="M120 196
+           C 118 300, 178 352, 256 352
+           C 338 352, 398 296, 392 176
+           C 391 168, 384 166, 382 174
+           C 376 270, 326 316, 256 316
+           C 190 316, 142 278, 132 196
+           C 131 186, 121 186, 120 196 Z"/>
+
+  <!-- soft nacre sheen along the inside of the shell -->
+  <path d="M162 286 C 190 314, 222 323, 256 323 C 292 323, 324 313, 352 288" fill="none" stroke="#FFF1C9" stroke-opacity="0.45" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- the pearl = the dot of ن, resting in the shell -->
+  <circle cx="256" cy="214" r="78" fill="url(#glow)"/>
+  <circle cx="256" cy="214" r="40" fill="url(#pearl)"/>
+  <!-- nacre layers: a pearl grows layer by layer, like generations -->
+  <g clip-path="url(#pearlClip)" fill="none" stroke="#B9A589" stroke-opacity="0.22" stroke-width="1.2">
+    <circle cx="262" cy="220" r="31"/>
+    <circle cx="265" cy="223" r="21"/>
+    <circle cx="267" cy="225" r="11"/>
+  </g>
+  <ellipse cx="242" cy="198" rx="11" ry="6" fill="#FFFFFF" opacity="0.9" transform="rotate(-32 242 198)"/>
+
+  
+  </g>
+</svg>
