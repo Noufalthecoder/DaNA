@@ -557,6 +557,8 @@ export async function syncRequestsFromSupabase(userId, userEmail = null, userAut
 
     // Live: my_connection_requests() (012) returns my rows with both people's names and DaNA IDs.
     const live = !!get().session?.backend;
+    // offline demo / signed-out: the table is closed to anonymous visitors (033), so asking only produces 401s
+    if (!live) return;
     const { data, error } = live
       ? await supabase.rpc('my_connection_requests')
       : await supabase
