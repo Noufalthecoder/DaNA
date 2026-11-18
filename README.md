@@ -72,6 +72,7 @@ Built for the **[Future Health Digital Innovation Challenge 2026](https://hack2s
 - [What makes DaNA different](#what-makes-dana-different)
 - [See it](#see-it)
 - [Architecture](#architecture)
+- [Technical documentation](#technical-documentation)
 - [Safety, privacy and compliance](#safety-privacy-and-compliance)
 - [Measuring what matters](#measuring-what-matters)
 - [Run it locally](#run-it-locally)
@@ -220,7 +221,190 @@ flowchart LR
 | API | **FastAPI** (Python) on **Render** | Malaffi (FHIR) import and parsing, rules engine, gene-panel benchmarks, voice |
 | Rules engine | Deterministic, versioned (`rules-v0.2`) | Triage tier 1–4 and every risk number. No AI. |
 | Voice | Browser speech (English) · **Gemini TTS** (Arabic, Urdu) via the API | The key stays on the server; signed-in users only, rate-limited, cached |
-| Tests | **129 API tests** (pytest) | FHIR parsing, rules, benchmarks, gene panel, privacy paths |
+| Tests | **129 API tests** (pytest) + Node security suites | FHIR parsing, rules, benchmarks, gene panel, authorization and privacy paths |
+
+## Technical documentation
+
+> Everything below was checked against the code in this repository. Full engineering notes live in [`docs/engineering`](docs/engineering) and security reports in [`docs/security`](docs/security).
+
+### System at a glance
+
+```mermaid
+flowchart TB
+    subgraph Client["Browser · React 18 + Vite 6 (Vercel)"]
+        L[Landing page<br/>EN / AR]
+        C[Couple app]
+        K[Counsellor portal]
+        A[DoH admin]
+        R[Rules engine<br/>genetics.js · rules-v0.2]
+    end
+    subgraph API["FastAPI · Python 3.11 (Render)"]
+        J[JWT verify<br/>JWKS · ES256]
+        F[FHIR R4 parser<br/>Malaffi adapter]
+        B[Benchmark engine<br/>benchmark-rules-v1]
+        T[Voice · Gemini TTS]
+    end
+    subgraph DB["Supabase · Postgres"]
+        RLS[Row-level security<br/>80+ policies]
+        FN[Security-definer functions<br/>compute_tier · connect · consent]
+        AU[(Append-only audit log)]
+    end
+    C & K & A -->|supabase-js · user token| RLS
+    C & K & A -->|Bearer token| J
+    J -->|as_user: caller's own token| RLS
+    F -->|as_service: after identity + consent check| DB
+    RLS --- FN --- AU
+    R -. mirrors .-> FN
+```
+
+| Layer | Technology | Responsibility |
+|---|---|---|
+| **Web** | React 18, Vite 6, Framer Motion 11, Lenis, supabase-js 2 | Landing, couple app, counsellor portal, admin; EN / AR / UR with full RTL; hash-routed SPA |
+| **API** | FastAPI 0.115, Pydantic 2, httpx, PyJWT | Malaffi FHIR import, benchmark evaluation, gene panel, directory and locations, voice |
+| **Database** | Supabase Postgres + PostgREST | Source of truth *and* the security boundary: every rule about who sees what is enforced here |
+| **Auth** | Supabase Auth (JWT), UAE PASS simulated | Sign-in; the same token is forwarded to the database so privacy rules apply per user |
+| **Voice** | Gemini TTS (server-side) | Arabic and Urdu read-aloud; the key never reaches the browser |
+| **Hosting (today)** | Vercel · Render · Supabase | Prototype. Production plan: Azure UAE North / Central (see top of this page) |
+
+### Design decisions that matter
+
+| Decision | Why |
+|---|---|
+| **The database is the security boundary, not the API.** The API calls Postgres *as the signed-in user* (`as_user`), so row-level security decides every read. | A bug in the API or the browser cannot leak another family's data. |
+| **The service key is used in one narrow place** (`as_service`, Malaffi ingestion), only after the caller's identity and consent are checked. | Least privilege; the secret lives only in the server environment. |
+| **Two rules engines that must agree.** `compute_tier()` in SQL (migration `004`) is mirrored by `assess()` in `web/src/app/shared/genetics.js`. | The offline demo and the database always give the same answer. |
+| **No AI for numbers.** Risk comes from versioned, deterministic code (`rules-v0.2`, `benchmark-rules-v1`). | Auditable, reproducible, explainable to a clinician. |
+| **Nothing is assumed normal.** Missing lab values are reported as missing, never filled in. | Safe failure for a clinical product. |
+| **Adapters for external systems.** UAE PASS, Malaffi and SMS sit behind interfaces. | Swap simulators for real services without touching the UI. |
+
+### Rules engine: how a result becomes a priority
+
+Implemented twice and kept in sync: SQL `compute_tier(couple_id)` and JS `assess(couple)`.
+
+| Tier | Priority | Trigger | Result type |
+|---|---|---|---|
+| **1** | urgent | Pregnant **and** a shared pathogenic finding (or X-linked) | counsellor immediately |
+| **2** | high | Both partners carry the **same autosomal-recessive gene** (each pregnancy: 1 in 4), or an X-linked female carrier (each son: 1 in 2) | `plan` · `xlinked` |
+| **3** | moderate | A variant of uncertain significance (**no number is given** until a specialist reviews it), or a single carrier (same as the general population) | `uncertain` · `carrier` |
+| **4** | routine | Nothing relevant found | `clear` |
+
+Only `pathogenic` and `likely_pathogenic` variants count towards a match. `upsert_case()` creates the clinical case and assigns it to the active counsellor with the most free capacity (`max_caseload - active_caseload`).
+
+**Benchmark engine** (`api/app/benchmark.py`, `benchmark-rules-v1`): cross-checks both partners' blood panels (Hb, MCV, MCH, HbA2, HbF, Hb variant, ferritin with inflammation flag, G6PD, rubella, RhD, infections) against thresholds stored in the `risk_benchmarks` table, **never hard-coded**. Every threshold has a cited source, a review status and a full version history, and each assessment stores a snapshot so a past result can always be reproduced. See [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
+
+### Malaffi (FHIR R4) ingestion
+
+`api/app/fhir.py` reads a FHIR Bundle exactly as Malaffi would send it: `DiagnosticReport`, variant `Observation`s, `Organization` and `Provenance`. It validates; it does not guess.
+
+| Check | Detail |
+|---|---|
+| Terminology | LOINC codes (`51969-4` genetic report, `48018-6` gene, `48004-6` c.HGVS, `48005-3` p.HGVS, `53034-5` zygosity, `53037-8` significance) |
+| Significance | LOINC answer list `LL4034-6` → pathogenic · likely pathogenic · VUS · likely benign · benign |
+| Variant syntax | HGVS patterns for `c.` and `p.` notation |
+| Provenance | Laboratory accreditation must match `CAP-NNNNNNN` or `ISO15189-…` |
+| Output | Rows for `genetic_reports` / `genetic_variants`, plus explicit `errors` and `warnings`. Anything missing or unrecognised is reported, never filled in |
+
+Consent is checked before ingestion runs; the person can later withdraw it and optionally delete the fetched results.
+
+### API reference
+
+Interactive docs: **https://dana-api-589n.onrender.com/docs** (OpenAPI). 40+ endpoints; the main groups:
+
+| Group | Endpoints | Access |
+|---|---|---|
+| **system** | `GET /health` | public |
+| **account** | `GET /me`, `GET/PUT /me/location` | signed-in |
+| **results** | `POST /ingest/validate`, `POST /ingest/malaffi`, `GET /me/report`, `GET/POST /people/{id}/labs` | signed-in, consent-gated |
+| **care** | `GET /cases`, `POST /cases/{couple}/benchmark-check`, `GET /cases/{couple}/assessments` | counsellor / admin |
+| **benchmarks** | `GET /benchmarks`, `POST /benchmarks/evaluate`, `GET /benchmarks/mismatches`, `GET/PATCH /benchmarks/{sex}`, snapshots, restore | read: staff · edit: admin, reason required |
+| **gene panel** | `GET /panel`, `PATCH /panel/{symbol}`, `GET /panel/{symbol}/snapshots` | read: staff · edit: admin |
+| **connections** | `POST /invite/email` | signed-in |
+| **places and locations** | `GET /places`, `/places/{id}/counsellors`, `/locations/countries`, `/regions`, `/cities` | signed-in |
+| **admin** | `GET /admin/accounts` (+ `/summary`, `/filters`), `/admin/locations/*`, `PUT /admins/{id}/scope`, `POST /counsellors/{id}/manage` | admin (role-checked) |
+| **analytics** | `GET /analytics/aggregate` | anonymous totals, groups under 5 hidden |
+| **guide** | `POST /tts`, `GET /tts/status` | signed-in, 60 calls per hour per user, cached |
+
+**Authentication:** `Authorization: Bearer <Supabase JWT>`. The API verifies signature (JWKS, ES256 / RS256, keys cached for 1 hour), expiry, issuer and audience `authenticated`, so no shared secret is needed. `require_role()` then enforces RBAC for `couple`, `counsellor`, `admin`, `clinical_supervisor`, `content_reviewer`, `doh_viewer` and `system_service`, and rejects suspended accounts.
+
+### Data model
+
+40+ Postgres tables, built by numbered, re-runnable migrations (`supabase/002` … `036`). Core entities:
+
+```mermaid
+erDiagram
+    accounts ||--o| people : "is"
+    people ||--o{ genetic_reports : has
+    genetic_reports ||--o{ genetic_variants : contains
+    people ||--o{ lab_results : has
+    people ||--o{ consents : grants
+    people ||--o{ connection_requests : sends
+    couples }o--|| people : "partner a / b"
+    couples ||--|| clinical_cases : triggers
+    clinical_cases ||--o{ case_assignments : "assigned to"
+    counsellors ||--o{ case_assignments : handles
+    clinical_cases ||--o{ care_plans : "care path"
+    couples ||--o{ appointments : books
+    couples ||--o{ risk_assessments : snapshots
+    people ||--o{ family_members : "family tree"
+    people ||--o{ sila_invitations : sends
+    risk_benchmarks ||--o{ risk_benchmark_snapshots : versions
+    genes ||--o{ gene_panel_snapshots : versions
+```
+
+| Area | Tables |
+|---|---|
+| Identity and access | `accounts`, `people`, `uaepass_identity`, `staff_codes`, `counsellors`, `person_blocks` |
+| Genetics | `genetic_reports`, `genetic_variants`, `genes`, `gene_panel_snapshots`, `lab_results`, `medical_records` |
+| Couple and care | `couples`, `connection_requests`, `partner_consents`, `clinical_cases`, `case_assignments`, `care_plans`, `referrals`, `appointments`, `consultation_requests`, `counsellor_availability`, `notes` |
+| Family | `family_members`, `family_conditions`, `sila_alerts`, `sila_invitations` |
+| Benchmarks | `risk_benchmarks`, `risk_benchmark_snapshots`, `benchmark_sources`, `risk_assessments` |
+| Governance | `consents`, `audit_log` (append-only), `comprehension_checks`, `content_cards` |
+| Reference | `countries`, `regions`, `cities`, `locations` (SimpleMaps, CC BY 4.0) |
+
+### Security model
+
+| Control | Implementation |
+|---|---|
+| **Row-level security** | Policies across the schema (80+); couples see only their own and a consenting partner's rows; staff see only what their role allows |
+| **Checked database functions** | Linking, consent, care-path updates and counsellor verification run as `security definer` functions with `search_path` pinned, and check the caller's role |
+| **No self-promotion** | Nobody can change their own role; a counsellor cannot verify themself (migration `033`) |
+| **Discovery** | Partner lookup by exact DaNA ID only, rate-limited, masked names; a directory leak was closed in `034` |
+| **Consent** | Per data group, revocable, with optional deletion; a connection never implies data access |
+| **Audit** | Append-only log; every staff case view is recorded and shown to the person (*Who saw my data*) |
+| **Metrics** | Aggregates only; groups under 5 people are suppressed |
+| **Secrets** | Service and Gemini keys exist only in the server environment; CORS limited to configured origins |
+| **Live verification** | `scripts/verify_authorization_live.mjs` and `scripts/verify_live_database_security.mjs` probe the deployed database |
+
+Reports: [authorization model](docs/security/DANA_AUTHORIZATION_MODEL.md) · [permission matrix](docs/security/DANA_PERMISSION_MATRIX.md) · [consent model](docs/security/DANA_CONSENT_MODEL.md) · [final security audit](docs/security/DANA_FINAL_SECURITY_AUDIT.md) · [security test report](docs/security/DANA_COMPLETE_SECURITY_TEST_REPORT.md).
+
+### Testing
+
+| Suite | Command | Covers |
+|---|---|---|
+| **API** | `cd api && pytest` | **129 tests pass**: FHIR parsing, benchmark rules (with SQL golden data), gene panel, locations, invites, places, API contracts |
+| **Web and security** | `cd web && npm install && npm test` | Authorization, complete authorization security, connections, care plans, consultation flow, counsellor matcher, couple report, family IDs, security console, location scope. The location suite runs the real migrations in an in-memory Postgres (`@electric-sql/pglite`) |
+
+### Configuration
+
+| Variable | Where | Purpose |
+|---|---|---|
+| `SUPABASE_URL` | API · web (`VITE_SUPABASE_URL`) | Project URL |
+| `SUPABASE_ANON_KEY` | API · web (`VITE_SUPABASE_ANON_KEY`) | Public key; calls run as the user |
+| `SUPABASE_SERVICE_ROLE_KEY` | **API only, secret** | Server-side ingestion |
+| `ALLOWED_ORIGINS` | API | CORS allow-list |
+| `GEMINI_API_KEY` | **API only, secret** | Arabic and Urdu voice |
+
+Template: `api/.env.example`. Real `.env` files are git-ignored.
+
+### Deployment
+
+| Part | Target | How |
+|---|---|---|
+| Web | Vercel, plus GitHub Pages via `.github/workflows/deploy.yml` | `npm ci && npm run build` on push to `main` |
+| API | Render (`render.yaml` blueprint) | `pip install -r requirements.txt`, `uvicorn app.main:app`, health check `/health`, auto-deploy |
+| Database | Supabase | `supabase/schema.sql`, then the numbered migrations; see [SETUP.md](supabase/SETUP.md) |
+
+**Pilot path:** Azure UAE North / Central (Static Web Apps, Container Apps, PostgreSQL, Health Data Services for FHIR, Entra External ID, AI Speech). Real UAE PASS and Malaffi replace the simulators behind the existing adapters.
 
 ## Safety, privacy and compliance
 
