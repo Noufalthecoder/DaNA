@@ -1,5 +1,7 @@
 # DaNA — System Architecture Specification
 
+> **Current implementation:** see [docs/TECHNICAL_DOCUMENTATION.md](../TECHNICAL_DOCUMENTATION.md) for the verified, up-to-date system description (Supabase Postgres with row-level security, FastAPI service, deterministic rules engine). This file is the original design specification.
+
 ## 1. Architectural Principles
 
 1. **Maths decides, AI only explains:** Every clinical risk percentage and Mendelian compatibility metric is computed by a deterministic, versioned genetics engine (`genetics.js`). Generative AI is restricted to language translation, plain-language patient explanations, and drafting clinical notes—never diagnosing or computing risks.
@@ -38,7 +40,7 @@ flowchart TD
     end
 
     subgraph PersistenceTier["Data & Integration Layer"]
-        DB[(PostgreSQL / SQLite Storage)]
+        DB[(Supabase PostgreSQL + RLS)]
         MalaffiAdapter[Malaffi Health Information Exchange - FHIR]
         UaePassAdapter[UAE PASS National Identity Provider]
         SMSAdapter[UAE Telecom Gateway - Temporary Dispatch]
