@@ -29,6 +29,10 @@
 </p>
 <p align="center"><sub>Planned migration, not yet deployed: today the prototype runs on Vercel, Render and Supabase. Azure is a trademark of Microsoft; DaNA is not affiliated with or endorsed by Microsoft.</sub></p>
 
+<p align="center">
+  <a href="docs/TECHNICAL_DOCUMENTATION.md"><img src="https://img.shields.io/badge/%F0%9F%93%98%20Technical%20Documentation-Read%20the%20full%20docs-00843D?style=for-the-badge" alt="Technical Documentation"></a>
+</p>
+
 <h3 align="center">One test. A whole family protected.</h3>
 <p align="center"><b>فحصٌ واحد… يحمي عائلةً بأكملها</b></p>
 
@@ -225,7 +229,7 @@ flowchart LR
 
 ## Technical documentation
 
-> Everything below was checked against the code in this repository. Full engineering notes live in [`docs/engineering`](docs/engineering) and security reports in [`docs/security`](docs/security).
+> Everything below was checked against the code in this repository. The **[full technical documentation](docs/TECHNICAL_DOCUMENTATION.md)** adds sequence diagrams, frontend architecture, compliance mapping and limitations. Engineering notes live in [`docs/engineering`](docs/engineering) and security reports in [`docs/security`](docs/security).
 
 ### System at a glance
 
